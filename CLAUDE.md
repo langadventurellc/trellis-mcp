@@ -101,6 +101,16 @@ Other metadata edits use `updateObject`.
 2. Offer options (A / B / C) if helpful.
 3. Wait for user guidance before proceeding.
 
+## Troubleshooting
+
+If you encounter issues:
+
+- Check the documentation in `docs/`
+- Use the context7 MCP tool for up-to-date library documentation
+- Use web for research
+- Get a second opinion from Gemini CLI by executing bash`gemini -p "<explanation of problem or question>"` for quick useful insights
+- If you need clarification, ask specific questions with options
+
 ---
 
 Happy coding! Keep it clean, typed, and green. 🛠️✅
