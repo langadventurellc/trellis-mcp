@@ -21,8 +21,8 @@ Consult `` (v 1.0) for schema & lifecycles.
 Run **all** checks before committing:
 
 ```bash
-pre-commit run --all-files   # flake8, black, pyright, etc.
-pytest -q                    # unit tests
+uv run pre-commit run --all-files   # flake8, black, pyright, etc.
+uv run pytest -q                    # unit tests
 ```
 
 Any ❌ = block. Fix → re‑run → commit.
