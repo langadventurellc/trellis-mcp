@@ -13,6 +13,7 @@ from trellis_mcp.id_utils import (
     validate_id_charset,
     validate_id_length,
     generate_id,
+    clean_prerequisite_id,
     DuplicateIDError,
 )
 
@@ -498,3 +499,84 @@ class TestGenerateId:
                 assert validate_id_charset(result), f"Invalid charset for '{result}' from '{title}'"
                 assert validate_id_length(result), f"Invalid length for '{result}' from '{title}'"
                 assert result != base_slug, f"Collision not resolved for '{title}'"
+
+
+class TestCleanPrerequisiteId:
+    """Test cases for the clean_prerequisite_id function."""
+
+    def test_standard_prefixes(self):
+        """Test cleaning standard Trellis MCP prefixes."""
+        assert clean_prerequisite_id("P-project-name") == "project-name"
+        assert clean_prerequisite_id("E-epic-name") == "epic-name"
+        assert clean_prerequisite_id("F-feature-name") == "feature-name"
+        assert clean_prerequisite_id("T-task-name") == "task-name"
+
+    def test_any_single_character_prefix(self):
+        """Test cleaning any single-character prefix followed by dash."""
+        assert clean_prerequisite_id("A-something") == "something"
+        assert clean_prerequisite_id("X-test") == "test"
+        assert clean_prerequisite_id("1-numeric") == "numeric"
+        assert clean_prerequisite_id("?-special") == "special"
+
+    def test_no_prefix(self):
+        """Test IDs without prefixes are returned unchanged."""
+        assert clean_prerequisite_id("task-name") == "task-name"
+        assert clean_prerequisite_id("project") == "project"
+        assert clean_prerequisite_id("simple") == "simple"
+        assert clean_prerequisite_id("multi-word-id") == "multi-word-id"
+
+    def test_edge_cases(self):
+        """Test edge cases and malformed IDs."""
+        # Empty string
+        assert clean_prerequisite_id("") == ""
+
+        # Single character (no dash)
+        assert clean_prerequisite_id("T") == "T"
+        assert clean_prerequisite_id("P") == "P"
+
+        # Just a dash
+        assert clean_prerequisite_id("-") == "-"  # Single dash is not a valid prefix format
+
+        # Dash at wrong position
+        assert clean_prerequisite_id("TE-ST") == "TE-ST"  # Dash at position 2
+        assert clean_prerequisite_id("TEST-") == "TEST-"  # Dash at end
+
+        # Multiple dashes
+        assert clean_prerequisite_id("T-test-name") == "test-name"
+        assert clean_prerequisite_id("P-project-with-dashes") == "project-with-dashes"
+
+    def test_prefix_only(self):
+        """Test IDs that are just prefix and dash."""
+        assert clean_prerequisite_id("T-") == ""
+        assert clean_prerequisite_id("P-") == ""
+        assert clean_prerequisite_id("E-") == ""
+        assert clean_prerequisite_id("F-") == ""
+
+    def test_whitespace_handling(self):
+        """Test handling of whitespace in IDs."""
+        assert clean_prerequisite_id("T-task name") == "task name"
+        assert clean_prerequisite_id("P- project") == " project"
+        assert (
+            clean_prerequisite_id(" T-task") == " T-task"
+        )  # Leading space prevents prefix detection
+
+    def test_case_sensitivity(self):
+        """Test that function is case sensitive."""
+        assert clean_prerequisite_id("t-task") == "task"  # lowercase works
+        assert clean_prerequisite_id("T-task") == "task"  # uppercase works
+        assert (
+            clean_prerequisite_id("Task-name") == "Task-name"
+        )  # No prefix because position 1 is not a dash
+
+    def test_numeric_ids(self):
+        """Test cleaning numeric IDs."""
+        assert clean_prerequisite_id("T-123") == "123"
+        assert clean_prerequisite_id("P-456-789") == "456-789"
+        assert clean_prerequisite_id("123-456") == "123-456"  # No single-char prefix
+
+    def test_complex_ids(self):
+        """Test cleaning complex, realistic IDs."""
+        assert clean_prerequisite_id("T-user-authentication-system") == "user-authentication-system"
+        assert clean_prerequisite_id("F-api-endpoint-v2") == "api-endpoint-v2"
+        assert clean_prerequisite_id("E-backend-infrastructure") == "backend-infrastructure"
+        assert clean_prerequisite_id("P-webapp-redesign-2024") == "webapp-redesign-2024"

@@ -188,6 +188,42 @@ def generate_id(kind: str, title: str, project_root: Path = Path("./planning")) 
     raise DuplicateIDError(f"Cannot generate unique ID for '{title}' after {max_attempts} attempts")
 
 
+def clean_prerequisite_id(prereq_id: str) -> str:
+    """Clean prerequisite ID by removing prefix if present.
+
+    Removes single-character prefixes (like P-, E-, F-, T-) from object IDs
+    to get the clean ID for prerequisite graph processing. Handles edge cases
+    like empty strings or malformed IDs gracefully.
+
+    Args:
+        prereq_id: The prerequisite ID to clean (e.g., "T-task-name")
+
+    Returns:
+        The clean ID without prefix (e.g., "task-name") or the original ID
+        if no valid prefix is detected
+
+    Example:
+        >>> clean_prerequisite_id("T-task-name")
+        'task-name'
+        >>> clean_prerequisite_id("P-project-name")
+        'project-name'
+        >>> clean_prerequisite_id("task-name")
+        'task-name'
+        >>> clean_prerequisite_id("")
+        ''
+        >>> clean_prerequisite_id("T")
+        'T'
+    """
+    if not prereq_id:
+        return prereq_id
+
+    # Check if ID has format "X-YYYY" where X is any single character
+    if len(prereq_id) > 1 and prereq_id[1] == "-":
+        return prereq_id[2:]  # Remove "X-" prefix
+
+    return prereq_id  # Return as-is if no prefix detected
+
+
 def _id_exists(kind: str, obj_id: str, project_root: Path) -> bool:
     """Check if an object with the given ID already exists.
 
