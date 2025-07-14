@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  quality-checks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    
+    - name: Install dependencies
+      run: |
+        uv pip install -e .
+        uv pip install -r pyproject.toml --extra dev
+    
+    - name: Run Black formatter check
+      run: uv run black --check --config pyproject.toml src/
+    
+    - name: Run Flake8 linter
+      run: uv run flake8 src/
+    
+    - name: Run Pyright type checker
+      run: uv run pyright src/ tests/
+    
+    - name: Run pytest tests
+      run: uv run pytest -q

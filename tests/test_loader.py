@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import pytest
 import yaml
+from pydantic.fields import FieldInfo
 
 from trellis_mcp.loader import (
     ConfigLoader,
@@ -75,13 +77,13 @@ class TestYamlConfigSettingsSource:
         source = YamlConfigSettingsSource(Settings, config_file)
 
         # Test existing field
-        value, field_name, found = source.get_field_value(None, "host")
+        value, field_name, found = source.get_field_value(cast(FieldInfo, None), "host")
         assert value == "0.0.0.0"
         assert field_name == "host"
         assert found is True
 
         # Test missing field
-        value, field_name, found = source.get_field_value(None, "missing")
+        value, field_name, found = source.get_field_value(cast(FieldInfo, None), "missing")
         assert value is None
         assert field_name == "missing"
         assert found is False
@@ -142,13 +144,13 @@ port = 9000
         source = TomlConfigSettingsSource(Settings, config_file)
 
         # Test existing field
-        value, field_name, found = source.get_field_value(None, "host")
+        value, field_name, found = source.get_field_value(cast(FieldInfo, None), "host")
         assert value == "0.0.0.0"
         assert field_name == "host"
         assert found is True
 
         # Test missing field
-        value, field_name, found = source.get_field_value(None, "missing")
+        value, field_name, found = source.get_field_value(cast(FieldInfo, None), "missing")
         assert value is None
         assert field_name == "missing"
         assert found is False
@@ -294,6 +296,7 @@ log_level = "DEBUG"
         found_file = loader.find_config_file(search_dirs=[temp_dir, config_dir])
 
         # Resolve paths to handle symlinks (macOS temp dirs)
+        assert found_file is not None
         assert found_file.resolve() == config_file.resolve()
 
     def test_find_config_file_not_found(self, temp_dir: Path) -> None:
@@ -318,6 +321,7 @@ log_level = "DEBUG"
         found_file = loader.find_config_file(search_dirs=[config_dir])
 
         # trellis-mcp should be found first (resolve paths for symlinks)
+        assert found_file is not None
         assert found_file.resolve() == config1.resolve()
 
     def test_path_types(self, temp_dir: Path) -> None:
