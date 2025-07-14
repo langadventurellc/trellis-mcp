@@ -285,45 +285,6 @@ log_level = "DEBUG"
         with pytest.raises(ValueError, match="Unsupported config format"):
             loader.load_settings("config.json")
 
-    def test_find_config_file(self, temp_dir: Path) -> None:
-        """Test finding configuration files in search directories."""
-        config_dir = temp_dir / "subdir"
-        config_dir.mkdir()
-        config_file = config_dir / "trellis-mcp.yaml"
-        config_file.write_text("host: test")
-
-        loader = ConfigLoader()
-        found_file = loader.find_config_file(search_dirs=[temp_dir, config_dir])
-
-        # Resolve paths to handle symlinks (macOS temp dirs)
-        assert found_file is not None
-        assert found_file.resolve() == config_file.resolve()
-
-    def test_find_config_file_not_found(self, temp_dir: Path) -> None:
-        """Test finding configuration files when none exist."""
-        loader = ConfigLoader()
-        found_file = loader.find_config_file(search_dirs=[temp_dir])
-
-        assert found_file is None
-
-    def test_find_config_file_precedence(self, temp_dir: Path) -> None:
-        """Test config file name precedence."""
-        config_dir = temp_dir
-
-        # Create files in order of precedence
-        config1 = config_dir / "trellis-mcp.yaml"
-        config2 = config_dir / "config.yaml"
-
-        config2.write_text("host: config")
-        config1.write_text("host: trellis-mcp")
-
-        loader = ConfigLoader()
-        found_file = loader.find_config_file(search_dirs=[config_dir])
-
-        # trellis-mcp should be found first (resolve paths for symlinks)
-        assert found_file is not None
-        assert found_file.resolve() == config1.resolve()
-
     def test_path_types(self, temp_dir: Path) -> None:
         """Test that both string and Path objects work."""
         config_file = temp_dir / "config.yaml"

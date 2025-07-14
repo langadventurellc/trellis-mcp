@@ -254,38 +254,3 @@ class ConfigLoader:
             )
 
         return path
-
-    def find_config_file(
-        self,
-        search_dirs: list[str | Path] | None = None,
-        config_names: list[str] | None = None,
-    ) -> Path | None:
-        """Find configuration file in common locations.
-
-        Args:
-            search_dirs: Directories to search.
-                Defaults to ['.', '~/.config/trellis-mcp'].
-            config_names: Config file names to search.
-                Defaults to ['trellis-mcp', 'config'].
-
-        Returns:
-            Path to first found config file or None.
-        """
-        if search_dirs is None:
-            search_dirs = [Path.cwd(), Path.home() / ".config" / "trellis-mcp"]
-
-        if config_names is None:
-            config_names = ["trellis-mcp", "config"]
-
-        for search_dir in search_dirs:
-            dir_path = Path(search_dir).expanduser().resolve()
-            if not dir_path.exists():
-                continue
-
-            for config_name in config_names:
-                for ext in [".yaml", ".yml", ".toml"]:
-                    config_path = dir_path / f"{config_name}{ext}"
-                    if config_path.exists():
-                        return config_path
-
-        return None
