@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trellis-mcp"
+version = "0.1.0"
+description = "File-backed MCP server for hierarchical project management (Projects → Epics → Features → Tasks)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [
+    {name = "Lang Adventure LLC"}
+]
+keywords = ["mcp", "project-management", "planning", "tasks", "development"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Office/Business :: Scheduling",
+]
+
+dependencies = [
+    "click>=8.1",
+    "fastmcp>=0.7",
+    "pydantic-settings>=2.0.0",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "flake8",
+    "flake8-pyproject",
+    "pyright",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pre-commit",
+]
+
+[project.scripts]
+trellis-mcp = "trellis_mcp.cli:cli"
+
+[project.urls]
+Homepage = "https://github.com/langadventurellc/trellis-mcp"
+Repository = "https://github.com/langadventurellc/trellis-mcp"
+Issues = "https://github.com/langadventurellc/trellis-mcp/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+ensure_newline_before_comments = true
+split_on_trailing_comma = true
+force_grid_wrap = 0
+line_length = 100
+src_paths = ["src"]
+
+[tool.black]
+line-length = 100
+
+[tool.flake8]
+exclude = ["bin/*", "temp", ".venv"]
+max-line-length = 100
+
+[tool.pyright]
+include = ["src/trellis_mcp"]
+exclude = ["bin", "temp", ".venv"]

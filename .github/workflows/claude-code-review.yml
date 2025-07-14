@@ -1,0 +1,63 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  packages: read
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    name: Claude Code Review
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          uv pip install --system -e .[dev]
+
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@beta
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          allowed_tools: 'View,GlobTool,GrepTool,BatchTool'
+          direct_prompt: |
+            Please review only the code changes in this pull request and provide feedback.
+
+            IMPORTANT: Check the current CI status first. If all CI checks are passing (SUCCESS), ignore any historical comments about code quality failures. Only address current, real issues.
+
+            Focus on:
+            - Code quality and Python best practices
+            - Security vulnerabilities and potential issues
+            - Performance considerations
+            - Adherence to the project's coding standards in CLAUDE.md
+            - FastMCP server best practices
+            - Type safety and proper type annotations
+            - Async/await patterns and error handling
+
+            Consider the project context:
+            - This is a Python 3.12 MCP server using FastMCP framework
+            - Implements hierarchical project management (Projects → Epics → Features → Tasks)
+            - Uses Pydantic for data validation and YAML/Markdown for file storage
+            - Follows strict typing with pyright
+            - Uses black for formatting, flake8 for linting, and pytest for testing
+
+            Avoid reviewing files in: .venv/, __pycache__/, *.egg-info/, .pytest_cache/, temp/, bin/

@@ -1,0 +1,32 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: local
+    hooks:
+      - id: black
+        name: Black Code Formatter
+        entry: uv run black
+        language: system
+        types: [python]
+        require_serial: true
+        args: [--config, pyproject.toml]
+      - id: flake8
+        name: Flake8 Linter
+        entry: uv run flake8
+        language: system
+        types: [python]
+        require_serial: true
+        args: [src/]
+      - id: pyright
+        name: Pyright Type Checker
+        entry: uv run pyright src/ tests/
+        language: system
+        files: ^(src/|tests/).*\.py$
+        require_serial: true
+        pass_filenames: false
+      - id: pytest
+        name: pytest Tests
+        entry: bash -c 'if [ -d "tests" ] && [ -n "$(find tests -name "*.py" -not -name "__*" 2>/dev/null)" ]; then uv run pytest -q; else echo "No tests found, skipping pytest"; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
