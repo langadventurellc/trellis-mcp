@@ -1067,3 +1067,469 @@ class TestRoundTripConversion:
 
             assert result_kind == kind
             assert result_id == obj_id
+
+
+class TestResolvePathForNewObject:
+    """Test cases for the resolve_path_for_new_object function."""
+
+    def test_project_path_resolution(self, temp_dir):
+        """Test resolving project paths for new objects."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("project", "user-auth", None, project_root)
+        expected = project_root / "projects" / "P-user-auth" / "project.md"
+
+        assert result == expected
+
+    def test_project_with_prefix_id(self, temp_dir):
+        """Test project path resolution when ID has prefix."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("project", "P-user-auth", None, project_root)
+        expected = project_root / "projects" / "P-user-auth" / "project.md"
+
+        assert result == expected
+
+    def test_epic_path_resolution(self, temp_dir):
+        """Test resolving epic paths for new objects."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("epic", "authentication", "user-auth", project_root)
+        expected = (
+            project_root / "projects" / "P-user-auth" / "epics" / "E-authentication" / "epic.md"
+        )
+
+        assert result == expected
+
+    def test_epic_with_prefix_parent(self, temp_dir):
+        """Test epic path resolution when parent ID has prefix."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("epic", "authentication", "P-user-auth", project_root)
+        expected = (
+            project_root / "projects" / "P-user-auth" / "epics" / "E-authentication" / "epic.md"
+        )
+
+        assert result == expected
+
+    def test_feature_path_resolution(self, temp_dir):
+        """Test resolving feature paths for new objects."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        # Create parent epic structure
+        epic_dir = project_root / "projects" / "P-user-auth" / "epics" / "E-authentication"
+        epic_dir.mkdir(parents=True)
+        epic_file = epic_dir / "epic.md"
+        epic_file.write_text("# Authentication Epic")
+
+        result = resolve_path_for_new_object("feature", "login", "authentication", project_root)
+        expected = (
+            project_root
+            / "projects"
+            / "P-user-auth"
+            / "epics"
+            / "E-authentication"
+            / "features"
+            / "F-login"
+            / "feature.md"
+        )
+
+        assert result == expected
+
+    def test_feature_with_prefix_parent(self, temp_dir):
+        """Test feature path resolution when parent ID has prefix."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        # Create parent epic structure
+        epic_dir = project_root / "projects" / "P-user-auth" / "epics" / "E-authentication"
+        epic_dir.mkdir(parents=True)
+        epic_file = epic_dir / "epic.md"
+        epic_file.write_text("# Authentication Epic")
+
+        result = resolve_path_for_new_object("feature", "login", "E-authentication", project_root)
+        expected = (
+            project_root
+            / "projects"
+            / "P-user-auth"
+            / "epics"
+            / "E-authentication"
+            / "features"
+            / "F-login"
+            / "feature.md"
+        )
+
+        assert result == expected
+
+    def test_task_path_resolution_open_status(self, temp_dir):
+        """Test resolving task paths for new objects with open status."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        # Create parent feature structure
+        feature_dir = (
+            project_root
+            / "projects"
+            / "P-user-auth"
+            / "epics"
+            / "E-authentication"
+            / "features"
+            / "F-login"
+        )
+        feature_dir.mkdir(parents=True)
+        feature_file = feature_dir / "feature.md"
+        feature_file.write_text("# Login Feature")
+
+        result = resolve_path_for_new_object("task", "implement-jwt", "login", project_root, "open")
+        expected = (
+            project_root
+            / "projects"
+            / "P-user-auth"
+            / "epics"
+            / "E-authentication"
+            / "features"
+            / "F-login"
+            / "tasks-open"
+            / "T-implement-jwt.md"
+        )
+
+        assert result == expected
+
+    def test_task_path_resolution_default_status(self, temp_dir):
+        """Test resolving task paths for new objects with default status (no status specified)."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        # Create parent feature structure
+        feature_dir = (
+            project_root
+            / "projects"
+            / "P-user-auth"
+            / "epics"
+            / "E-authentication"
+            / "features"
+            / "F-login"
+        )
+        feature_dir.mkdir(parents=True)
+        feature_file = feature_dir / "feature.md"
+        feature_file.write_text("# Login Feature")
+
+        result = resolve_path_for_new_object("task", "implement-jwt", "login", project_root)
+        expected = (
+            project_root
+            / "projects"
+            / "P-user-auth"
+            / "epics"
+            / "E-authentication"
+            / "features"
+            / "F-login"
+            / "tasks-open"
+            / "T-implement-jwt.md"
+        )
+
+        assert result == expected
+
+    def test_task_path_resolution_done_status(self, temp_dir):
+        """Test resolving task paths for new objects with done status."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        # Create parent feature structure
+        feature_dir = (
+            project_root
+            / "projects"
+            / "P-user-auth"
+            / "epics"
+            / "E-authentication"
+            / "features"
+            / "F-login"
+        )
+        feature_dir.mkdir(parents=True)
+        feature_file = feature_dir / "feature.md"
+        feature_file.write_text("# Login Feature")
+
+        result = resolve_path_for_new_object("task", "implement-jwt", "login", project_root, "done")
+
+        # Should be in tasks-done directory with timestamp prefix
+        assert (
+            result.parent
+            == project_root
+            / "projects"
+            / "P-user-auth"
+            / "epics"
+            / "E-authentication"
+            / "features"
+            / "F-login"
+            / "tasks-done"
+        )
+        assert result.name.endswith("-T-implement-jwt.md")
+        assert len(result.name.split("-")) >= 3  # timestamp format should have hyphens
+
+    def test_task_with_prefix_parent(self, temp_dir):
+        """Test task path resolution when parent ID has prefix."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        # Create parent feature structure
+        feature_dir = (
+            project_root
+            / "projects"
+            / "P-user-auth"
+            / "epics"
+            / "E-authentication"
+            / "features"
+            / "F-login"
+        )
+        feature_dir.mkdir(parents=True)
+        feature_file = feature_dir / "feature.md"
+        feature_file.write_text("# Login Feature")
+
+        result = resolve_path_for_new_object(
+            "task", "implement-jwt", "F-login", project_root, "open"
+        )
+        expected = (
+            project_root
+            / "projects"
+            / "P-user-auth"
+            / "epics"
+            / "E-authentication"
+            / "features"
+            / "F-login"
+            / "tasks-open"
+            / "T-implement-jwt.md"
+        )
+
+        assert result == expected
+
+    def test_invalid_kind_error(self, temp_dir):
+        """Test that invalid kinds raise ValueError."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+        import pytest
+
+        project_root = temp_dir / "planning"
+
+        with pytest.raises(ValueError, match="Invalid kind 'invalid'"):
+            resolve_path_for_new_object("invalid", "some-id", None, project_root)
+
+    def test_empty_kind_error(self, temp_dir):
+        """Test that empty kind raises ValueError."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+        import pytest
+
+        project_root = temp_dir / "planning"
+
+        with pytest.raises(ValueError, match="Invalid kind ''"):
+            resolve_path_for_new_object("", "some-id", None, project_root)
+
+    def test_empty_id_error(self, temp_dir):
+        """Test that empty ID raises ValueError."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+        import pytest
+
+        project_root = temp_dir / "planning"
+
+        with pytest.raises(ValueError, match="Object ID cannot be empty"):
+            resolve_path_for_new_object("project", "", None, project_root)
+
+    def test_whitespace_id_error(self, temp_dir):
+        """Test that whitespace-only ID raises ValueError."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+        import pytest
+
+        project_root = temp_dir / "planning"
+
+        with pytest.raises(ValueError, match="Object ID cannot be empty"):
+            resolve_path_for_new_object("project", "   ", None, project_root)
+
+    def test_epic_missing_parent_error(self, temp_dir):
+        """Test that epic without parent raises ValueError."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+        import pytest
+
+        project_root = temp_dir / "planning"
+
+        with pytest.raises(ValueError, match="Parent is required for epic objects"):
+            resolve_path_for_new_object("epic", "some-epic", None, project_root)
+
+    def test_feature_missing_parent_error(self, temp_dir):
+        """Test that feature without parent raises ValueError."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+        import pytest
+
+        project_root = temp_dir / "planning"
+
+        with pytest.raises(ValueError, match="Parent is required for feature objects"):
+            resolve_path_for_new_object("feature", "some-feature", None, project_root)
+
+    def test_task_missing_parent_error(self, temp_dir):
+        """Test that task without parent raises ValueError."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+        import pytest
+
+        project_root = temp_dir / "planning"
+
+        with pytest.raises(ValueError, match="Parent is required for task objects"):
+            resolve_path_for_new_object("task", "some-task", None, project_root)
+
+    def test_feature_nonexistent_parent_error(self, temp_dir):
+        """Test that feature with nonexistent parent raises ValueError."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+        import pytest
+
+        project_root = temp_dir / "planning"
+        project_root.mkdir(parents=True)
+
+        with pytest.raises(ValueError, match="Parent epic 'nonexistent' not found"):
+            resolve_path_for_new_object("feature", "some-feature", "nonexistent", project_root)
+
+    def test_task_nonexistent_parent_error(self, temp_dir):
+        """Test that task with nonexistent parent raises ValueError."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+        import pytest
+
+        project_root = temp_dir / "planning"
+        project_root.mkdir(parents=True)
+
+        with pytest.raises(ValueError, match="Parent feature 'nonexistent' not found"):
+            resolve_path_for_new_object("task", "some-task", "nonexistent", project_root)
+
+    def test_complex_hierarchy_path_resolution(self, temp_dir):
+        """Test resolving paths in a complex hierarchy."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        # Create complex feature structure
+        feature_dir = (
+            project_root
+            / "projects"
+            / "P-ecommerce"
+            / "epics"
+            / "E-user-management"
+            / "features"
+            / "F-user-profile"
+        )
+        feature_dir.mkdir(parents=True)
+        feature_file = feature_dir / "feature.md"
+        feature_file.write_text("# User Profile Feature")
+
+        # Test task creation in this hierarchy
+        result = resolve_path_for_new_object("task", "update-avatar", "user-profile", project_root)
+        expected = (
+            project_root
+            / "projects"
+            / "P-ecommerce"
+            / "epics"
+            / "E-user-management"
+            / "features"
+            / "F-user-profile"
+            / "tasks-open"
+            / "T-update-avatar.md"
+        )
+
+        assert result == expected
+
+    def test_multiple_hyphens_in_ids(self, temp_dir):
+        """Test path resolution with complex IDs containing multiple hyphens."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        # Test project with complex ID
+        result = resolve_path_for_new_object("project", "user-auth-system", None, project_root)
+        expected = project_root / "projects" / "P-user-auth-system" / "project.md"
+
+        assert result == expected
+
+        # Test epic with complex ID
+        result = resolve_path_for_new_object(
+            "epic", "jwt-token-management", "user-auth-system", project_root
+        )
+        expected = (
+            project_root
+            / "projects"
+            / "P-user-auth-system"
+            / "epics"
+            / "E-jwt-token-management"
+            / "epic.md"
+        )
+
+        assert result == expected
+
+    def test_id_prefix_stripping(self, temp_dir):
+        """Test that ID prefixes are properly stripped."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        # Test all prefixes are stripped
+        test_cases = [
+            ("P-test-project", "project"),
+            ("E-test-project", "project"),  # Wrong prefix but should still work
+            ("F-test-project", "project"),
+            ("T-test-project", "project"),
+            ("test-project", "project"),  # No prefix
+        ]
+
+        for test_id, kind in test_cases:
+            result = resolve_path_for_new_object(kind, test_id, None, project_root)
+            expected = project_root / "projects" / "P-test-project" / "project.md"
+            assert result == expected
+
+    def test_consistency_with_createobject_patterns(self, temp_dir):
+        """Test that the function produces paths consistent with createObject patterns."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        # Create a complete hierarchy to test against
+        project_dir = project_root / "projects" / "P-web-app"
+        project_dir.mkdir(parents=True)
+        project_file = project_dir / "project.md"
+        project_file.write_text("# Web App")
+
+        epic_dir = project_dir / "epics" / "E-frontend"
+        epic_dir.mkdir(parents=True)
+        epic_file = epic_dir / "epic.md"
+        epic_file.write_text("# Frontend")
+
+        feature_dir = epic_dir / "features" / "F-ui-components"
+        feature_dir.mkdir(parents=True)
+        feature_file = feature_dir / "feature.md"
+        feature_file.write_text("# UI Components")
+
+        # Test that resolve_path_for_new_object produces correct paths
+        project_path = resolve_path_for_new_object("project", "web-app", None, project_root)
+        epic_path = resolve_path_for_new_object("epic", "frontend", "web-app", project_root)
+        feature_path = resolve_path_for_new_object(
+            "feature", "ui-components", "frontend", project_root
+        )
+        task_open_path = resolve_path_for_new_object(
+            "task", "create-button", "ui-components", project_root, "open"
+        )
+        task_done_path = resolve_path_for_new_object(
+            "task", "create-button", "ui-components", project_root, "done"
+        )
+
+        # Verify paths match expected patterns
+        assert project_path == project_file
+        assert epic_path == epic_file
+        assert feature_path == feature_file
+        assert task_open_path == feature_dir / "tasks-open" / "T-create-button.md"
+        assert task_done_path.parent == feature_dir / "tasks-done"
+        assert task_done_path.name.endswith("-T-create-button.md")

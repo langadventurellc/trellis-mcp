@@ -15,14 +15,16 @@ from fastmcp import FastMCP
 from .settings import Settings
 from .id_utils import generate_id
 from .fs_utils import ensure_parent_dirs
-from .path_resolver import id_to_path
+from .path_resolver import id_to_path, resolve_path_for_new_object
 from .io_utils import write_markdown, read_markdown
 from .validation import (
     validate_front_matter,
     validate_object_data,
     check_prereq_cycles,
+    check_prereq_cycles_in_memory,
     enforce_status_transition,
     TrellisValidationError,
+    CircularDependencyError,
 )
 
 
@@ -186,79 +188,28 @@ def create_server(settings: Settings) -> FastMCP:
         except Exception as e:
             raise TrellisValidationError([f"Object validation failed: {str(e)}"])
 
-        # Determine file path based on kind
-        if kind == "project":
-            file_path = project_root_path / "projects" / f"P-{id}" / "project.md"
-        elif kind == "epic":
-            # For epics, the parent should be a project
-            if parent is None:
-                raise ValueError("Parent is required for epic objects")
-            # Remove prefix if present to get clean parent ID
-            parent_clean = parent.replace("P-", "") if parent.startswith("P-") else parent
-            file_path = (
-                project_root_path
-                / "projects"
-                / f"P-{parent_clean}"
-                / "epics"
-                / f"E-{id}"
-                / "epic.md"
-            )
-        elif kind == "feature":
-            # For features, we need to find the parent epic and its project
-            if parent is None:
-                raise ValueError("Parent is required for feature objects")
-            # Remove prefix if present to get clean parent ID
-            parent_clean = parent.replace("E-", "") if parent.startswith("E-") else parent
-
-            # Find the parent epic's path to determine the project
-            try:
-                epic_path = id_to_path(project_root_path, "epic", parent_clean)
-                # Extract project directory from epic path
-                project_dir = epic_path.parts[epic_path.parts.index("projects") + 1]
-                file_path = (
-                    project_root_path
-                    / "projects"
-                    / project_dir
-                    / "epics"
-                    / f"E-{parent_clean}"
-                    / "features"
-                    / f"F-{id}"
-                    / "feature.md"
-                )
-            except FileNotFoundError:
-                raise ValueError(f"Parent epic '{parent}' not found")
-        elif kind == "task":
-            # For tasks, we need to find the parent feature and its path
-            if parent is None:
-                raise ValueError("Parent is required for task objects")
-            # Remove prefix if present to get clean parent ID
-            parent_clean = parent.replace("F-", "") if parent.startswith("F-") else parent
-
-            # Find the parent feature's path to determine the project and epic
-            try:
-                feature_path = id_to_path(project_root_path, "feature", parent_clean)
-                # Extract project and epic directories from feature path
-                project_dir = feature_path.parts[feature_path.parts.index("projects") + 1]
-                epic_dir = feature_path.parts[feature_path.parts.index("epics") + 1]
-                file_path = (
-                    project_root_path
-                    / "projects"
-                    / project_dir
-                    / "epics"
-                    / epic_dir
-                    / "features"
-                    / f"F-{parent_clean}"
-                    / "tasks-open"
-                    / f"T-{id}.md"
-                )
-            except FileNotFoundError:
-                raise ValueError(f"Parent feature '{parent}' not found")
-        else:
-            raise ValueError(f"Invalid kind: {kind}")
+        # Determine file path using centralized path logic
+        try:
+            file_path = resolve_path_for_new_object(kind, id, parent, project_root_path, status)
+        except ValueError as e:
+            raise ValueError(str(e))
+        except FileNotFoundError as e:
+            raise ValueError(str(e))
 
         # Check if file already exists
         if file_path.exists():
             raise FileExistsError(f"Object with ID '{id}' already exists at {file_path}")
+
+        # Check for cycles in memory BEFORE writing any files
+        # This prevents unnecessary file operations when cycles would be detected
+        try:
+            check_prereq_cycles_in_memory(project_root_path, front_matter, "create")
+        except CircularDependencyError:
+            raise TrellisValidationError(
+                ["Creating this object would introduce circular dependencies in prerequisites"]
+            )
+        except Exception as e:
+            raise TrellisValidationError([f"Failed to validate prerequisites: {str(e)}"])
 
         # Ensure parent directories exist
         ensure_parent_dirs(file_path)
@@ -275,8 +226,8 @@ def create_server(settings: Settings) -> FastMCP:
         except OSError as e:
             raise OSError(f"Failed to create object file: {e}") from e
 
-        # Validate acyclic prerequisites after file creation
-        # This ensures the newly created object doesn't introduce cycles
+        # Validate acyclic prerequisites after file creation as fallback safety measure
+        # This ensures the newly created object doesn't introduce cycles (defense in depth)
         try:
             if not check_prereq_cycles(project_root_path):
                 # If cycles are detected, remove the created file and raise error
@@ -534,14 +485,25 @@ def create_server(settings: Settings) -> FastMCP:
             except ValueError as e:
                 raise TrellisValidationError([f"Status transition validation failed: {str(e)}"])
 
+        # Check for cycles in memory BEFORE writing any files
+        # This prevents unnecessary file operations when cycles would be detected
+        try:
+            check_prereq_cycles_in_memory(project_root_path, updated_yaml, "update")
+        except CircularDependencyError:
+            raise TrellisValidationError(
+                ["Updating this object would introduce circular dependencies in prerequisites"]
+            )
+        except Exception as e:
+            raise TrellisValidationError([f"Failed to validate prerequisites: {str(e)}"])
+
         # Write the updated file atomically
         try:
             write_markdown(file_path, updated_yaml, updated_body)
         except OSError as e:
             raise OSError(f"Failed to write updated object file: {e}")
 
-        # Validate acyclic prerequisites after file update
-        # This ensures the update doesn't introduce cycles
+        # Validate acyclic prerequisites after file update as fallback safety measure
+        # This ensures the update doesn't introduce cycles (defense in depth)
         try:
             if not check_prereq_cycles(project_root_path):
                 # If cycles are detected, restore the original file and raise error
@@ -582,7 +544,7 @@ def create_server(settings: Settings) -> FastMCP:
         scope: str | None = None,
         status: str | None = None,
         priority: str | None = None,
-    ) -> dict[str, list[dict[str, str]]]:
+    ):
         """List tasks filtered by scope, status, and priority.
 
         Searches through the planning directory structure to find tasks and filters them

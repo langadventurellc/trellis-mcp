@@ -21,6 +21,10 @@ from .validation import (
     get_all_objects,
     build_prerequisites_graph,
     detect_cycle_dfs,
+    benchmark_cycle_detection,
+    get_cache_stats,
+    clear_dependency_cache,
+    PerformanceBenchmark,
 )
 
 __version__ = "0.1.0"
@@ -44,4 +48,8 @@ __all__ = [
     "get_all_objects",
     "build_prerequisites_graph",
     "detect_cycle_dfs",
+    "benchmark_cycle_detection",
+    "get_cache_stats",
+    "clear_dependency_cache",
+    "PerformanceBenchmark",
 ]

@@ -9,6 +9,7 @@ from pydantic import Field
 
 from .base_schema import BaseSchemaModel
 from .kind_enum import KindEnum
+from .status_enum import StatusEnum
 
 
 class EpicModel(BaseSchemaModel):
@@ -19,3 +20,10 @@ class EpicModel(BaseSchemaModel):
     """
 
     kind: KindEnum = Field(KindEnum.EPIC, description="Must be 'epic'")
+
+    # Status transition matrix for epics
+    _valid_transitions = {
+        StatusEnum.DRAFT: {StatusEnum.IN_PROGRESS},
+        StatusEnum.IN_PROGRESS: {StatusEnum.DONE},
+        StatusEnum.DONE: set(),  # No transitions from done
+    }

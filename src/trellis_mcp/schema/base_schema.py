@@ -6,9 +6,10 @@ Provides common fields and validation for all Trellis MCP schema objects.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import ClassVar, Dict, List, Literal, Optional, Set
+from typing_extensions import Self
 
-from pydantic import Field, ValidationInfo, field_validator
+from pydantic import Field, ValidationInfo, field_validator, model_validator
 
 from .base import TrellisBaseModel
 from .kind_enum import KindEnum
@@ -23,9 +24,14 @@ class BaseSchemaModel(TrellisBaseModel):
     projects, epics, features, and tasks.
     """
 
+    # Type annotation for transition matrix (overridden in subclasses)
+    _valid_transitions: ClassVar[Dict[StatusEnum, Set[StatusEnum]]] = {}
+
     kind: KindEnum = Field(..., description="The type of object")
     id: str = Field(..., description="Unique identifier for the object")
-    parent: Optional[str] = Field(None, description="Parent object ID (absent for projects)")
+    parent: Optional[str] = Field(
+        None, description="Parent object ID (absent for projects)", validate_default=True
+    )
     status: StatusEnum = Field(..., description="Current status of the object")
     title: str = Field(..., description="Human-readable title")
     priority: PriorityEnum = Field(
@@ -119,3 +125,83 @@ class BaseSchemaModel(TrellisBaseModel):
                         raise ValueError("Tasks must have a parent feature ID")
 
         return v
+
+    @classmethod
+    def validate_status_transition(cls, old_status: StatusEnum, new_status: StatusEnum) -> bool:
+        """Validate status transition for this model class.
+
+        Args:
+            old_status: The current status
+            new_status: The new status to transition to
+
+        Returns:
+            True if the transition is valid
+
+        Raises:
+            ValueError: If the transition is invalid
+        """
+        # If old and new are the same, transition is always valid
+        if old_status == new_status:
+            return True
+
+        # Get transition matrix for this model class
+        if not hasattr(cls, "_valid_transitions"):
+            raise ValueError(
+                f"No transition matrix defined for {cls.__name__}. "
+                "This should not happen - check model definition."
+            )
+
+        valid_next_statuses: Set[StatusEnum] = cls._valid_transitions.get(old_status, set())
+
+        # Check if the new status is allowed
+        if new_status not in valid_next_statuses:
+            # Build helpful error message
+            if valid_next_statuses:
+                # Sort valid transitions for consistent error messages
+                valid_values = ", ".join(
+                    s.value for s in sorted(valid_next_statuses, key=lambda x: x.value)
+                )
+                # Extract kind from class name (e.g., "ProjectModel" -> "project")
+                kind_name = cls.__name__.replace("Model", "").lower()
+                raise ValueError(
+                    f"Invalid status transition for {kind_name}: "
+                    f"'{old_status.value}' cannot transition to '{new_status.value}'. "
+                    f"Valid transitions: {valid_values}"
+                )
+            else:
+                # Extract kind from class name
+                kind_name = cls.__name__.replace("Model", "").lower()
+                raise ValueError(
+                    f"Invalid status transition for {kind_name}: "
+                    f"'{old_status.value}' is a terminal status with no valid transitions."
+                )
+
+        return True
+
+    @model_validator(mode="after")
+    def validate_status_transitions_from_context(self) -> Self:
+        """Validate status transitions when old status is available in context.
+
+        This model validator checks for status transitions when the original status
+        is provided in the validation context. This enables model-level validation
+        for scenarios where the old status is known.
+        """
+        # Check if we have validation context with original status
+        if (
+            hasattr(self, "__pydantic_private__")
+            and self.__pydantic_private__
+            and "original_status" in self.__pydantic_private__
+        ):
+            original_status = self.__pydantic_private__["original_status"]
+            if original_status and original_status != self.status:
+                try:
+                    # Convert string to enum if needed
+                    if isinstance(original_status, str):
+                        original_status = StatusEnum(original_status)
+
+                    # Validate the transition using the model's transition matrix
+                    self.__class__.validate_status_transition(original_status, self.status)
+                except ValueError as e:
+                    raise ValueError(f"Status transition validation failed: {str(e)}")
+
+        return self
