@@ -44,9 +44,11 @@ async def test_integration_load_sample_repo_tree(temp_dir: Path) -> None:
     # Validate each object's data
     parsed_objects = []
     for obj_id, obj_data in loaded_objects.items():
-        # Validate object data
-        validation_errors = validate_object_data(obj_data, planning_root)
-        assert not validation_errors, f"Object {obj_id} failed validation: {validation_errors}"
+        # Validate object data (should not raise exception for valid data)
+        try:
+            validate_object_data(obj_data, planning_root)
+        except Exception as e:
+            assert False, f"Object {obj_id} failed validation: {e}"
 
         # Parse to model instance for type checking
         from trellis_mcp.schema.project import ProjectModel

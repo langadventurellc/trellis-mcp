@@ -6,14 +6,19 @@ and constraints beyond basic field validation.
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .path_resolver import id_to_path
+from .id_utils import clean_prerequisite_id
 from .schema.kind_enum import KindEnum
 from .schema.status_enum import StatusEnum
 from .schema.priority_enum import PriorityEnum
+
+# Configure logger for this module
+logger = logging.getLogger(__name__)
 
 
 class CircularDependencyError(ValueError):
@@ -30,8 +35,21 @@ class CircularDependencyError(ValueError):
         super().__init__(f"Circular dependency detected: {cycle_str}")
 
 
+class TrellisValidationError(Exception):
+    """Custom validation error that can hold multiple error messages."""
+
+    def __init__(self, errors: List[str]):
+        """Initialize validation error.
+
+        Args:
+            errors: List of validation error messages
+        """
+        self.errors = errors
+        super().__init__(f"Validation failed: {'; '.join(errors)}")
+
+
 def get_all_objects(project_root: str | Path) -> Dict[str, Dict[str, Any]]:
-    """Load all objects from the filesystem and return as a dictionary.
+    """Load all objects from the filesystem using glob patterns for resilient discovery.
 
     Args:
         project_root: The root directory of the project
@@ -51,64 +69,23 @@ def get_all_objects(project_root: str | Path) -> Dict[str, Dict[str, Any]]:
 
     objects = {}
 
-    # Scan for all object files
-    projects_dir = project_root_path / "projects"
-    if not projects_dir.exists():
-        return objects
+    # Use glob patterns to find all object files more efficiently
+    patterns = [
+        "projects/P-*/project.md",  # Projects
+        "projects/P-*/epics/E-*/epic.md",  # Epics
+        "projects/P-*/epics/E-*/features/F-*/feature.md",  # Features
+        "projects/P-*/epics/E-*/features/F-*/tasks-open/T-*.md",  # Open tasks
+        "projects/P-*/epics/E-*/features/F-*/tasks-done/*-T-*.md",  # Done tasks
+    ]
 
-    # Find all projects
-    for project_dir in projects_dir.iterdir():
-        if project_dir.is_dir() and project_dir.name.startswith("P-"):
-            project_file = project_dir / "project.md"
-            if project_file.exists():
-                try:
-                    obj = parse_object(project_file)
-                    objects[obj.id] = obj.model_dump()
-                except Exception:
-                    # Skip invalid objects
-                    continue
-
-            # Find all epics in this project
-            epics_dir = project_dir / "epics"
-            if epics_dir.exists():
-                for epic_dir in epics_dir.iterdir():
-                    if epic_dir.is_dir() and epic_dir.name.startswith("E-"):
-                        epic_file = epic_dir / "epic.md"
-                        if epic_file.exists():
-                            try:
-                                obj = parse_object(epic_file)
-                                objects[obj.id] = obj.model_dump()
-                            except Exception:
-                                continue
-
-                        # Find all features in this epic
-                        features_dir = epic_dir / "features"
-                        if features_dir.exists():
-                            for feature_dir in features_dir.iterdir():
-                                if feature_dir.is_dir() and feature_dir.name.startswith("F-"):
-                                    feature_file = feature_dir / "feature.md"
-                                    if feature_file.exists():
-                                        try:
-                                            obj = parse_object(feature_file)
-                                            objects[obj.id] = obj.model_dump()
-                                        except Exception:
-                                            continue
-
-                                    # Find all tasks in this feature
-                                    for task_dir in ["tasks-open", "tasks-done"]:
-                                        task_path = feature_dir / task_dir
-                                        if task_path.exists():
-                                            for task_file in task_path.iterdir():
-                                                if (
-                                                    task_file.is_file()
-                                                    and task_file.name.endswith(".md")
-                                                    and ("T-" in task_file.name)
-                                                ):
-                                                    try:
-                                                        obj = parse_object(task_file)
-                                                        objects[obj.id] = obj.model_dump()
-                                                    except Exception:
-                                                        continue
+    for pattern in patterns:
+        for file_path in project_root_path.glob(pattern):
+            try:
+                obj = parse_object(file_path)
+                objects[obj.id] = obj.model_dump()
+            except Exception as e:
+                logger.warning(f"Skipping invalid file {file_path}: {e}")
+                continue
 
     return objects
 
@@ -126,18 +103,11 @@ def build_prerequisites_graph(objects: Dict[str, Dict[str, Any]]) -> Dict[str, L
 
     for obj_id, obj_data in objects.items():
         prerequisites = obj_data.get("prerequisites", [])
-        # Clean prerequisite IDs (remove prefixes if present)
-        clean_prereqs = []
-        for prereq in prerequisites:
-            if prereq.startswith(("P-", "E-", "F-", "T-")):
-                clean_prereqs.append(prereq[2:])
-            else:
-                clean_prereqs.append(prereq)
+        # Clean prerequisite IDs using robust prefix removal
+        clean_prereqs = [clean_prerequisite_id(prereq) for prereq in prerequisites]
 
         # Clean our own ID too
-        clean_obj_id = obj_id
-        if clean_obj_id.startswith(("P-", "E-", "F-", "T-")):
-            clean_obj_id = clean_obj_id[2:]
+        clean_obj_id = clean_prerequisite_id(obj_id)
 
         graph[clean_obj_id] = clean_prereqs
 
@@ -285,14 +255,8 @@ def validate_parent_exists_for_object(
     if parent_id is None:
         raise ValueError(f"{object_kind.value} objects must have a parent")
 
-    # Clean parent ID (remove prefix if present)
-    clean_parent_id = parent_id
-    if object_kind == KindEnum.EPIC and parent_id.startswith("P-"):
-        clean_parent_id = parent_id[2:]
-    elif object_kind == KindEnum.FEATURE and parent_id.startswith("E-"):
-        clean_parent_id = parent_id[2:]
-    elif object_kind == KindEnum.TASK and parent_id.startswith("F-"):
-        clean_parent_id = parent_id[2:]
+    # Clean parent ID using robust prefix removal
+    clean_parent_id = clean_prerequisite_id(parent_id)
 
     # Determine expected parent kind
     if object_kind == KindEnum.EPIC:
@@ -422,7 +386,7 @@ def validate_status_for_kind(status: StatusEnum, object_kind: KindEnum) -> bool:
     return True
 
 
-def validate_object_data(data: Dict[str, Any], project_root: str | Path) -> List[str]:
+def validate_object_data(data: Dict[str, Any], project_root: str | Path) -> None:
     """Comprehensive validation of object data.
 
     Validates required fields, enum membership, and parent existence.
@@ -431,8 +395,8 @@ def validate_object_data(data: Dict[str, Any], project_root: str | Path) -> List
         data: The object data dictionary
         project_root: The root directory of the project
 
-    Returns:
-        List of validation errors (empty if all validations pass)
+    Raises:
+        TrellisValidationError: If validation fails
     """
     errors = []
 
@@ -440,13 +404,13 @@ def validate_object_data(data: Dict[str, Any], project_root: str | Path) -> List
     kind_value = data.get("kind")
     if not kind_value:
         errors.append("Missing 'kind' field")
-        return errors
+        raise TrellisValidationError(errors)
 
     try:
         object_kind = KindEnum(kind_value)
     except ValueError:
         errors.append(f"Invalid kind '{kind_value}'")
-        return errors
+        raise TrellisValidationError(errors)
 
     # Validate required fields
     missing_fields = validate_required_fields_per_kind(data, object_kind)
@@ -472,52 +436,6 @@ def validate_object_data(data: Dict[str, Any], project_root: str | Path) -> List
         except ValueError as e:
             errors.append(str(e))
 
-    return errors
-
-
-def create_parent_validator(project_root: str | Path):
-    """Create a parent validator function for use with Pydantic field validators.
-
-    Args:
-        project_root: The root directory of the project
-
-    Returns:
-        A validator function that can be used with @field_validator
-    """
-
-    def validator(parent_id: Optional[str], info: Any) -> Optional[str]:
-        """Validate parent existence for Pydantic models.
-
-        Args:
-            parent_id: The parent ID to validate
-            info: Pydantic ValidationInfo object
-
-        Returns:
-            The validated parent_id
-
-        Raises:
-            ValueError: If parent validation fails
-        """
-        # Skip validation if we don't have context about the object kind
-        if not hasattr(info, "data") or not info.data:
-            return parent_id
-
-        # Get the object kind from the model data
-        object_kind = info.data.get("kind")
-        if not object_kind:
-            return parent_id
-
-        # Convert string to enum if needed
-        if isinstance(object_kind, str):
-            try:
-                object_kind = KindEnum(object_kind)
-            except ValueError:
-                # If kind is invalid, let the kind field validator handle it
-                return parent_id
-
-        # Validate parent existence
-        validate_parent_exists_for_object(parent_id, object_kind, project_root)
-
-        return parent_id
-
-    return validator
+    # Raise exception if any errors were found
+    if errors:
+        raise TrellisValidationError(errors)

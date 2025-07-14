@@ -17,8 +17,8 @@ from trellis_mcp.validation import (
     validate_enum_membership,
     validate_status_for_kind,
     validate_object_data,
-    create_parent_validator,
     CircularDependencyError,
+    TrellisValidationError,
     validate_acyclic_prerequisites,
     get_all_objects,
     build_prerequisites_graph,
@@ -328,8 +328,8 @@ class TestValidateObjectData:
             "schema_version": "1.0",
         }
 
-        errors = validate_object_data(data, tmp_path / "planning")
-        assert errors == []
+        # Should not raise any exception
+        validate_object_data(data, tmp_path / "planning")
 
     def test_validate_object_data_project_invalid_status(self, tmp_path: Path):
         """Test project with invalid status."""
@@ -343,9 +343,12 @@ class TestValidateObjectData:
             "schema_version": "1.0",
         }
 
-        errors = validate_object_data(data, tmp_path / "planning")
-        assert len(errors) == 1
-        assert "Invalid status" in errors[0]
+        with pytest.raises(TrellisValidationError) as exc_info:
+            validate_object_data(data, tmp_path / "planning")
+
+        error = exc_info.value
+        assert len(error.errors) == 1
+        assert "Invalid status" in error.errors[0]
 
     def test_validate_object_data_epic_with_existing_parent(self, tmp_path: Path):
         """Test epic with existing parent project."""
@@ -366,8 +369,8 @@ class TestValidateObjectData:
             "schema_version": "1.0",
         }
 
-        errors = validate_object_data(data, tmp_path / "planning")
-        assert errors == []
+        # Should not raise any exception
+        validate_object_data(data, tmp_path / "planning")
 
     def test_validate_object_data_epic_with_nonexistent_parent(self, tmp_path: Path):
         """Test epic with non-existent parent project."""
@@ -382,10 +385,13 @@ class TestValidateObjectData:
             "schema_version": "1.0",
         }
 
-        errors = validate_object_data(data, tmp_path / "planning")
-        assert len(errors) == 1
-        assert "Parent project with ID" in errors[0]
-        assert "does not exist" in errors[0]
+        with pytest.raises(TrellisValidationError) as exc_info:
+            validate_object_data(data, tmp_path / "planning")
+
+        error = exc_info.value
+        assert len(error.errors) == 1
+        assert "Parent project with ID" in error.errors[0]
+        assert "does not exist" in error.errors[0]
 
     def test_validate_object_data_missing_kind(self, tmp_path: Path):
         """Test data without kind field."""
@@ -395,9 +401,12 @@ class TestValidateObjectData:
             "title": "Test",
         }
 
-        errors = validate_object_data(data, tmp_path / "planning")
-        assert len(errors) == 1
-        assert "Missing 'kind' field" in errors[0]
+        with pytest.raises(TrellisValidationError) as exc_info:
+            validate_object_data(data, tmp_path / "planning")
+
+        error = exc_info.value
+        assert len(error.errors) == 1
+        assert "Missing 'kind' field" in error.errors[0]
 
     def test_validate_object_data_invalid_kind(self, tmp_path: Path):
         """Test data with invalid kind field."""
@@ -408,9 +417,12 @@ class TestValidateObjectData:
             "title": "Test",
         }
 
-        errors = validate_object_data(data, tmp_path / "planning")
-        assert len(errors) == 1
-        assert "Invalid kind 'invalid_kind'" in errors[0]
+        with pytest.raises(TrellisValidationError) as exc_info:
+            validate_object_data(data, tmp_path / "planning")
+
+        error = exc_info.value
+        assert len(error.errors) == 1
+        assert "Invalid kind 'invalid_kind'" in error.errors[0]
 
     def test_validate_object_data_missing_required_fields(self, tmp_path: Path):
         """Test data with missing required fields."""
@@ -419,9 +431,12 @@ class TestValidateObjectData:
             "title": "Test Project",
         }
 
-        errors = validate_object_data(data, tmp_path / "planning")
-        assert len(errors) == 1
-        assert "Missing required fields" in errors[0]
+        with pytest.raises(TrellisValidationError) as exc_info:
+            validate_object_data(data, tmp_path / "planning")
+
+        error = exc_info.value
+        assert len(error.errors) == 1
+        assert "Missing required fields" in error.errors[0]
 
     def test_validate_object_data_multiple_errors(self, tmp_path: Path):
         """Test data with multiple validation errors."""
@@ -437,63 +452,17 @@ class TestValidateObjectData:
             "schema_version": "1.0",
         }
 
-        errors = validate_object_data(data, tmp_path / "planning")
-        assert len(errors) >= 3  # Should have multiple errors
+        with pytest.raises(TrellisValidationError) as exc_info:
+            validate_object_data(data, tmp_path / "planning")
+
+        error = exc_info.value
+        assert len(error.errors) >= 3  # Should have multiple errors
 
         # Check that we have the expected error types
-        error_text = " ".join(errors)
+        error_text = " ".join(error.errors)
         assert "Invalid status" in error_text
         assert "Invalid priority" in error_text
         assert "does not exist" in error_text
-
-
-class TestCreateParentValidator:
-    """Test the Pydantic parent validator factory."""
-
-    def test_create_parent_validator_returns_function(self, tmp_path: Path):
-        """Test that create_parent_validator returns a function."""
-        validator = create_parent_validator(tmp_path / "planning")
-        assert callable(validator)
-
-    def test_parent_validator_with_no_context(self, tmp_path: Path):
-        """Test parent validator with no context information."""
-        validator = create_parent_validator(tmp_path / "planning")
-
-        # Mock ValidationInfo with no data
-        class MockInfo:
-            data = None
-
-        # Should return parent_id unchanged when no context
-        result = validator("test-parent", MockInfo())
-        assert result == "test-parent"
-
-    def test_parent_validator_with_project_kind(self, tmp_path: Path):
-        """Test parent validator with project kind."""
-        validator = create_parent_validator(tmp_path / "planning")
-
-        # Mock ValidationInfo with project kind
-        class MockInfo:
-            data = {"kind": "project"}
-
-        # Should pass for project with no parent
-        result = validator(None, MockInfo())
-        assert result is None
-
-        # Should raise for project with parent
-        with pytest.raises(ValueError, match="Projects cannot have parent objects"):
-            validator("some-parent", MockInfo())
-
-    def test_parent_validator_with_invalid_kind(self, tmp_path: Path):
-        """Test parent validator with invalid kind."""
-        validator = create_parent_validator(tmp_path / "planning")
-
-        # Mock ValidationInfo with invalid kind
-        class MockInfo:
-            data = {"kind": "invalid_kind"}
-
-        # Should return parent_id unchanged for invalid kind
-        result = validator("test-parent", MockInfo())
-        assert result == "test-parent"
 
 
 class TestCircularDependencyError:

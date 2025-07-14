@@ -7,6 +7,7 @@ YAML front-matter.
 
 from .object_parser import parse_object
 from .object_dumper import dump_object, write_object
+from .id_utils import clean_prerequisite_id
 from .validation import (
     validate_parent_exists,
     validate_parent_exists_for_object,
@@ -14,8 +15,8 @@ from .validation import (
     validate_enum_membership,
     validate_status_for_kind,
     validate_object_data,
-    create_parent_validator,
     CircularDependencyError,
+    TrellisValidationError,
     validate_acyclic_prerequisites,
     get_all_objects,
     build_prerequisites_graph,
@@ -30,14 +31,15 @@ __all__ = [
     "parse_object",
     "dump_object",
     "write_object",
+    "clean_prerequisite_id",
     "validate_parent_exists",
     "validate_parent_exists_for_object",
     "validate_required_fields_per_kind",
     "validate_enum_membership",
     "validate_status_for_kind",
     "validate_object_data",
-    "create_parent_validator",
     "CircularDependencyError",
+    "TrellisValidationError",
     "validate_acyclic_prerequisites",
     "get_all_objects",
     "build_prerequisites_graph",
