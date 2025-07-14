@@ -439,3 +439,180 @@ def validate_object_data(data: Dict[str, Any], project_root: str | Path) -> None
     # Raise exception if any errors were found
     if errors:
         raise TrellisValidationError(errors)
+
+
+def enforce_status_transition(
+    old: str | StatusEnum, new: str | StatusEnum, kind: str | KindEnum
+) -> bool:
+    """Enforce status transition rules per lifecycle table.
+
+    Validates that the transition from old status to new status is allowed
+    for the given object kind according to the lifecycle specifications.
+
+    Args:
+        old: The current status (string or StatusEnum)
+        new: The new status to transition to (string or StatusEnum)
+        kind: The object kind (string or KindEnum)
+
+    Returns:
+        True if the transition is valid
+
+    Raises:
+        ValueError: If the transition is invalid for the given kind
+    """
+    # Convert string parameters to enums
+    if isinstance(old, str):
+        try:
+            old_status = StatusEnum(old)
+        except ValueError:
+            raise ValueError(f"Invalid old status '{old}'. Must be a valid StatusEnum value.")
+    else:
+        old_status = old
+
+    if isinstance(new, str):
+        try:
+            new_status = StatusEnum(new)
+        except ValueError:
+            raise ValueError(f"Invalid new status '{new}'. Must be a valid StatusEnum value.")
+    else:
+        new_status = new
+
+    if isinstance(kind, str):
+        try:
+            kind_enum = KindEnum(kind)
+        except ValueError:
+            raise ValueError(f"Invalid kind '{kind}'. Must be a valid KindEnum value.")
+    else:
+        kind_enum = kind
+
+    # If old and new are the same, transition is always valid
+    if old_status == new_status:
+        return True
+
+    # Define allowed transitions per kind
+    allowed_transitions = {
+        KindEnum.TASK: {
+            StatusEnum.OPEN: {StatusEnum.IN_PROGRESS, StatusEnum.DONE},
+            StatusEnum.IN_PROGRESS: {StatusEnum.REVIEW, StatusEnum.DONE},
+            StatusEnum.REVIEW: {StatusEnum.DONE},
+            StatusEnum.DONE: set(),  # No transitions from done
+        },
+        KindEnum.FEATURE: {
+            StatusEnum.DRAFT: {StatusEnum.IN_PROGRESS},
+            StatusEnum.IN_PROGRESS: {StatusEnum.DONE},
+            StatusEnum.DONE: set(),  # No transitions from done
+        },
+        KindEnum.EPIC: {
+            StatusEnum.DRAFT: {StatusEnum.IN_PROGRESS},
+            StatusEnum.IN_PROGRESS: {StatusEnum.DONE},
+            StatusEnum.DONE: set(),  # No transitions from done
+        },
+        KindEnum.PROJECT: {
+            StatusEnum.DRAFT: {StatusEnum.IN_PROGRESS},
+            StatusEnum.IN_PROGRESS: {StatusEnum.DONE},
+            StatusEnum.DONE: set(),  # No transitions from done
+        },
+    }
+
+    # Get allowed transitions for the current status and kind
+    kind_transitions = allowed_transitions.get(kind_enum, {})
+    valid_next_statuses = kind_transitions.get(old_status, set())
+
+    # Check if the new status is allowed
+    if new_status not in valid_next_statuses:
+        # Build helpful error message
+        if valid_next_statuses:
+            # Sort valid transitions for consistent error messages
+            valid_values = ", ".join(
+                s.value for s in sorted(valid_next_statuses, key=lambda x: x.value)
+            )
+            raise ValueError(
+                f"Invalid status transition for {kind_enum.value}: "
+                f"'{old_status.value}' cannot transition to '{new_status.value}'. "
+                f"Valid transitions: {valid_values}"
+            )
+        else:
+            raise ValueError(
+                f"Invalid status transition for {kind_enum.value}: "
+                f"'{old_status.value}' is a terminal status with no valid transitions."
+            )
+
+    return True
+
+
+def check_prereq_cycles(project_root: str | Path) -> bool:
+    """Check if there are cycles in prerequisites.
+
+    This is a simple boolean wrapper around validate_acyclic_prerequisites.
+
+    Args:
+        project_root: The root directory of the project
+
+    Returns:
+        True if there are no cycles, False if cycles are detected
+    """
+    try:
+        errors = validate_acyclic_prerequisites(project_root)
+        return len(errors) == 0  # No cycles if no errors
+    except CircularDependencyError:
+        return False  # Cycles detected
+    except Exception:
+        return False  # Other errors (treat as validation failure)
+
+
+def validate_front_matter(yaml_dict: Dict[str, Any], kind: str | KindEnum) -> List[str]:
+    """Validate front matter for required fields and enum values.
+
+    This function validates YAML front matter without requiring project_root context.
+    It focuses on field presence and enum validation, not parent existence.
+
+    Args:
+        yaml_dict: Dictionary containing the parsed YAML front matter
+        kind: The object kind (string or KindEnum)
+
+    Returns:
+        List of validation error messages (empty if valid)
+    """
+    errors = []
+
+    # Convert kind to enum if it's a string
+    if isinstance(kind, str):
+        try:
+            kind_enum = KindEnum(kind)
+        except ValueError:
+            errors.append(f"Invalid kind '{kind}'. Must be one of: {[k.value for k in KindEnum]}")
+            return errors
+    else:
+        kind_enum = kind
+
+    # Validate required fields for the kind
+    missing_fields = validate_required_fields_per_kind(yaml_dict, kind_enum)
+    if missing_fields:
+        errors.append(f"Missing required fields: {', '.join(missing_fields)}")
+
+    # Only validate enum membership if required fields are present
+    # This avoids duplicate errors for missing fields
+    if "status" not in missing_fields:
+        enum_errors = validate_enum_membership(yaml_dict)
+        errors.extend(enum_errors)
+
+        # Validate status for kind (if status is present and valid)
+        # Only validate status-for-kind if status is present and is a valid enum
+        if "status" in yaml_dict and yaml_dict["status"] is not None:
+            try:
+                status = StatusEnum(yaml_dict["status"])
+                # Only validate status-for-kind if we didn't already get enum errors for status
+                if not any("Invalid status" in error for error in enum_errors):
+                    validate_status_for_kind(status, kind_enum)
+            except ValueError as e:
+                # Only add this error if we didn't already get it from enum validation
+                if not any("Invalid status" in error for error in enum_errors):
+                    errors.append(str(e))
+    else:
+        # If status is missing, still validate other enums (kind, priority)
+        # Create a copy without status to avoid enum validation errors for missing status
+        yaml_dict_copy = {k: v for k, v in yaml_dict.items() if k != "status"}
+        enum_errors = validate_enum_membership(yaml_dict_copy)
+        errors.extend(enum_errors)
+
+    return errors
