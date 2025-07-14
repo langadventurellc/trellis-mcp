@@ -91,5 +91,4 @@ If you encounter issues:
 
 ---
 
-Happy coding! Keep it clean, typed, and green. 🛠️✅
-
+The current year is 2025.
