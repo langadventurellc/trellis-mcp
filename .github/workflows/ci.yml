@@ -28,13 +28,13 @@ jobs:
         uv pip install --system -e .[dev]
     
     - name: Run Black formatter check
-      run: uv run black --check --config pyproject.toml src/
+      run: black --check --config pyproject.toml src/
     
     - name: Run Flake8 linter
-      run: uv run flake8 src/
+      run: flake8 src/
     
     - name: Run Pyright type checker
-      run: uv run pyright src/ tests/
+      run: pyright src/ tests/
     
     - name: Run pytest tests
-      run: uv run pytest -q
+      run: pytest -q
