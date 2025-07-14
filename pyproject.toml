@@ -27,6 +27,7 @@ dependencies = [
     "click>=8.1",
     "fastmcp>=0.7",
     "pydantic-settings>=2.0.0",
+    "python-slugify>=8.0.4",
     "PyYAML>=6.0",
 ]
 
@@ -71,6 +72,7 @@ line-length = 100
 [tool.flake8]
 exclude = ["bin/*", "temp", ".venv"]
 max-line-length = 100
+ignore = ["E203", "W503"]
 
 [tool.pyright]
 include = ["src/trellis_mcp"]
