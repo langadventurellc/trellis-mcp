@@ -17,12 +17,15 @@ from trellis_mcp.validation import (
     validate_enum_membership,
     validate_status_for_kind,
     validate_object_data,
+    validate_front_matter,
+    enforce_status_transition,
     CircularDependencyError,
     TrellisValidationError,
     validate_acyclic_prerequisites,
     get_all_objects,
     build_prerequisites_graph,
     detect_cycle_dfs,
+    check_prereq_cycles,
 )
 from trellis_mcp.schema.kind_enum import KindEnum
 from trellis_mcp.schema.status_enum import StatusEnum
@@ -930,3 +933,1001 @@ Task 1 description
         errors = validate_acyclic_prerequisites(nonexistent_dir)
         assert len(errors) == 1
         assert "Error validating prerequisites" in errors[0]
+
+
+class TestCheckPrereqCycles:
+    """Test the check_prereq_cycles function."""
+
+    def test_check_prereq_cycles_empty_project(self, tmp_path: Path):
+        """Test cycle check with empty project."""
+        planning_dir = tmp_path / "planning"
+        planning_dir.mkdir()
+
+        result = check_prereq_cycles(planning_dir)
+        assert result is True
+
+    def test_check_prereq_cycles_no_cycles(self, tmp_path: Path):
+        """Test cycle check with no cycles."""
+        # Create project structure with no cycles
+        project_dir = tmp_path / "planning" / "projects" / "P-test-project"
+        project_dir.mkdir(parents=True)
+
+        # Create epic
+        epic_dir = project_dir / "epics" / "E-test-epic"
+        epic_dir.mkdir(parents=True)
+
+        # Create feature
+        feature_dir = epic_dir / "features" / "F-test-feature"
+        feature_dir.mkdir(parents=True)
+
+        # Create tasks with linear dependencies
+        task_dir = feature_dir / "tasks-open"
+        task_dir.mkdir(parents=True)
+
+        # Task 1 (no prerequisites)
+        task1_file = task_dir / "T-task1.md"
+        task1_file.write_text(
+            """---
+kind: task
+id: task1
+parent: test-feature
+status: open
+title: Task 1
+priority: normal
+prerequisites: []
+created: 2023-01-01T00:00:00Z
+updated: 2023-01-01T00:00:00Z
+schema_version: "1.0"
+---
+Task 1 description
+"""
+        )
+
+        # Task 2 (depends on task1)
+        task2_file = task_dir / "T-task2.md"
+        task2_file.write_text(
+            """---
+kind: task
+id: task2
+parent: test-feature
+status: open
+title: Task 2
+priority: normal
+prerequisites: ["task1"]
+created: 2023-01-01T00:00:00Z
+updated: 2023-01-01T00:00:00Z
+schema_version: "1.0"
+---
+Task 2 description
+"""
+        )
+
+        result = check_prereq_cycles(tmp_path / "planning")
+        assert result is True
+
+    def test_check_prereq_cycles_with_cycle(self, tmp_path: Path):
+        """Test cycle check with cycle detection."""
+        # Create project structure with cycle
+        project_dir = tmp_path / "planning" / "projects" / "P-test-project"
+        project_dir.mkdir(parents=True)
+
+        # Create epic
+        epic_dir = project_dir / "epics" / "E-test-epic"
+        epic_dir.mkdir(parents=True)
+
+        # Create feature
+        feature_dir = epic_dir / "features" / "F-test-feature"
+        feature_dir.mkdir(parents=True)
+
+        # Create tasks with circular dependencies
+        task_dir = feature_dir / "tasks-open"
+        task_dir.mkdir(parents=True)
+
+        # Task 1 (depends on task2)
+        task1_file = task_dir / "T-task1.md"
+        task1_file.write_text(
+            """---
+kind: task
+id: task1
+parent: test-feature
+status: open
+title: Task 1
+priority: normal
+prerequisites: ["task2"]
+created: 2023-01-01T00:00:00Z
+updated: 2023-01-01T00:00:00Z
+schema_version: "1.0"
+---
+Task 1 description
+"""
+        )
+
+        # Task 2 (depends on task1 - creates cycle)
+        task2_file = task_dir / "T-task2.md"
+        task2_file.write_text(
+            """---
+kind: task
+id: task2
+parent: test-feature
+status: open
+title: Task 2
+priority: normal
+prerequisites: ["task1"]
+created: 2023-01-01T00:00:00Z
+updated: 2023-01-01T00:00:00Z
+schema_version: "1.0"
+---
+Task 2 description
+"""
+        )
+
+        result = check_prereq_cycles(tmp_path / "planning")
+        assert result is False
+
+    def test_check_prereq_cycles_self_reference(self, tmp_path: Path):
+        """Test cycle check with self-referencing cycle."""
+        # Create project structure with self-referencing task
+        project_dir = tmp_path / "planning" / "projects" / "P-test-project"
+        project_dir.mkdir(parents=True)
+
+        # Create epic
+        epic_dir = project_dir / "epics" / "E-test-epic"
+        epic_dir.mkdir(parents=True)
+
+        # Create feature
+        feature_dir = epic_dir / "features" / "F-test-feature"
+        feature_dir.mkdir(parents=True)
+
+        # Create task that depends on itself
+        task_dir = feature_dir / "tasks-open"
+        task_dir.mkdir(parents=True)
+
+        task_file = task_dir / "T-task1.md"
+        task_file.write_text(
+            """---
+kind: task
+id: task1
+parent: test-feature
+status: open
+title: Task 1
+priority: normal
+prerequisites: ["task1"]
+created: 2023-01-01T00:00:00Z
+updated: 2023-01-01T00:00:00Z
+schema_version: "1.0"
+---
+Task 1 description
+"""
+        )
+
+        result = check_prereq_cycles(tmp_path / "planning")
+        assert result is False
+
+    def test_check_prereq_cycles_nonexistent_directory(self, tmp_path: Path):
+        """Test cycle check with non-existent directory."""
+        nonexistent_dir = tmp_path / "nonexistent"
+
+        result = check_prereq_cycles(nonexistent_dir)
+        assert result is False
+
+    def test_check_prereq_cycles_complex_valid_structure(self, tmp_path: Path):
+        """Test cycle check with complex valid structure."""
+        # Create project structure with multiple features and tasks
+        project_dir = tmp_path / "planning" / "projects" / "P-test-project"
+        project_dir.mkdir(parents=True)
+
+        # Create epic
+        epic_dir = project_dir / "epics" / "E-test-epic"
+        epic_dir.mkdir(parents=True)
+
+        # Create feature 1
+        feature1_dir = epic_dir / "features" / "F-feature1"
+        feature1_dir.mkdir(parents=True)
+        task1_dir = feature1_dir / "tasks-open"
+        task1_dir.mkdir(parents=True)
+
+        # Create feature 2
+        feature2_dir = epic_dir / "features" / "F-feature2"
+        feature2_dir.mkdir(parents=True)
+        task2_dir = feature2_dir / "tasks-open"
+        task2_dir.mkdir(parents=True)
+
+        # Task in feature 1
+        task1_file = task1_dir / "T-task1.md"
+        task1_file.write_text(
+            """---
+kind: task
+id: task1
+parent: feature1
+status: open
+title: Task 1
+priority: normal
+prerequisites: []
+created: 2023-01-01T00:00:00Z
+updated: 2023-01-01T00:00:00Z
+schema_version: "1.0"
+---
+Task 1 description
+"""
+        )
+
+        # Task in feature 2 that depends on task1
+        task2_file = task2_dir / "T-task2.md"
+        task2_file.write_text(
+            """---
+kind: task
+id: task2
+parent: feature2
+status: open
+title: Task 2
+priority: normal
+prerequisites: ["task1"]
+created: 2023-01-01T00:00:00Z
+updated: 2023-01-01T00:00:00Z
+schema_version: "1.0"
+---
+Task 2 description
+"""
+        )
+
+        result = check_prereq_cycles(tmp_path / "planning")
+        assert result is True
+
+    def test_check_prereq_cycles_with_string_path(self, tmp_path: Path):
+        """Test cycle check with string path parameter."""
+        planning_dir = tmp_path / "planning"
+        planning_dir.mkdir()
+
+        # Test with string path
+        result = check_prereq_cycles(str(planning_dir))
+        assert result is True
+
+    def test_check_prereq_cycles_with_path_object(self, tmp_path: Path):
+        """Test cycle check with Path object parameter."""
+        planning_dir = tmp_path / "planning"
+        planning_dir.mkdir()
+
+        # Test with Path object
+        result = check_prereq_cycles(planning_dir)
+        assert result is True
+
+
+class TestValidateFrontMatter:
+    """Test the validate_front_matter function."""
+
+    def test_validate_front_matter_valid_project(self):
+        """Test valid project front matter."""
+        yaml_dict = {
+            "kind": "project",
+            "id": "test-project",
+            "status": "draft",
+            "title": "Test Project",
+            "priority": "normal",
+            "prerequisites": [],
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        errors = validate_front_matter(yaml_dict, "project")
+        assert errors == []
+
+    def test_validate_front_matter_valid_project_with_enum(self):
+        """Test valid project front matter with KindEnum."""
+        yaml_dict = {
+            "kind": "project",
+            "id": "test-project",
+            "status": "draft",
+            "title": "Test Project",
+            "priority": "normal",
+            "prerequisites": [],
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        errors = validate_front_matter(yaml_dict, KindEnum.PROJECT)
+        assert errors == []
+
+    def test_validate_front_matter_valid_task(self):
+        """Test valid task front matter."""
+        yaml_dict = {
+            "kind": "task",
+            "id": "test-task",
+            "parent": "test-feature",
+            "status": "open",
+            "title": "Test Task",
+            "priority": "high",
+            "prerequisites": [],
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        errors = validate_front_matter(yaml_dict, "task")
+        assert errors == []
+
+    def test_validate_front_matter_valid_epic(self):
+        """Test valid epic front matter."""
+        yaml_dict = {
+            "kind": "epic",
+            "id": "test-epic",
+            "parent": "test-project",
+            "status": "draft",
+            "title": "Test Epic",
+            "priority": "low",
+            "prerequisites": ["other-epic"],
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        errors = validate_front_matter(yaml_dict, "epic")
+        assert errors == []
+
+    def test_validate_front_matter_valid_feature(self):
+        """Test valid feature front matter."""
+        yaml_dict = {
+            "kind": "feature",
+            "id": "test-feature",
+            "parent": "test-epic",
+            "status": "in-progress",
+            "title": "Test Feature",
+            "priority": "normal",
+            "prerequisites": [],
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        errors = validate_front_matter(yaml_dict, "feature")
+        assert errors == []
+
+    def test_validate_front_matter_invalid_kind(self):
+        """Test invalid kind parameter."""
+        yaml_dict = {
+            "kind": "project",
+            "id": "test-project",
+            "status": "draft",
+            "title": "Test Project",
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        errors = validate_front_matter(yaml_dict, "invalid-kind")
+        assert len(errors) == 1
+        assert "Invalid kind 'invalid-kind'" in errors[0]
+
+    def test_validate_front_matter_missing_required_fields(self):
+        """Test missing required fields."""
+        yaml_dict = {
+            "kind": "project",
+            "title": "Test Project",
+        }
+
+        errors = validate_front_matter(yaml_dict, "project")
+        assert len(errors) == 1
+        assert "Missing required fields" in errors[0]
+        assert "id" in errors[0]
+        assert "status" in errors[0]
+
+    def test_validate_front_matter_missing_parent_for_epic(self):
+        """Test missing parent field for epic."""
+        yaml_dict = {
+            "kind": "epic",
+            "id": "test-epic",
+            "status": "draft",
+            "title": "Test Epic",
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        errors = validate_front_matter(yaml_dict, "epic")
+        assert len(errors) == 1
+        assert "Missing required fields" in errors[0]
+        assert "parent" in errors[0]
+
+    def test_validate_front_matter_missing_parent_for_feature(self):
+        """Test missing parent field for feature."""
+        yaml_dict = {
+            "kind": "feature",
+            "id": "test-feature",
+            "status": "draft",
+            "title": "Test Feature",
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        errors = validate_front_matter(yaml_dict, "feature")
+        assert len(errors) == 1
+        assert "Missing required fields" in errors[0]
+        assert "parent" in errors[0]
+
+    def test_validate_front_matter_missing_parent_for_task(self):
+        """Test missing parent field for task."""
+        yaml_dict = {
+            "kind": "task",
+            "id": "test-task",
+            "status": "open",
+            "title": "Test Task",
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        errors = validate_front_matter(yaml_dict, "task")
+        assert len(errors) == 1
+        assert "Missing required fields" in errors[0]
+        assert "parent" in errors[0]
+
+    def test_validate_front_matter_invalid_enum_values(self):
+        """Test invalid enum values."""
+        yaml_dict = {
+            "kind": "invalid-kind",
+            "id": "test-project",
+            "status": "invalid-status",
+            "title": "Test Project",
+            "priority": "invalid-priority",
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        errors = validate_front_matter(yaml_dict, "project")
+        assert len(errors) == 3
+
+        # Check that we have all expected errors
+        error_text = " ".join(errors)
+        assert "Invalid kind" in error_text
+        assert "Invalid status" in error_text
+        assert "Invalid priority" in error_text
+
+    def test_validate_front_matter_invalid_status_for_kind(self):
+        """Test invalid status for specific kind."""
+        yaml_dict = {
+            "kind": "project",
+            "id": "test-project",
+            "status": "open",  # Invalid for project
+            "title": "Test Project",
+            "priority": "normal",
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        errors = validate_front_matter(yaml_dict, "project")
+        assert len(errors) == 1
+        assert "Invalid status 'open' for project" in errors[0]
+
+    def test_validate_front_matter_invalid_task_status(self):
+        """Test invalid status for task."""
+        yaml_dict = {
+            "kind": "task",
+            "id": "test-task",
+            "parent": "test-feature",
+            "status": "draft",  # Invalid for task
+            "title": "Test Task",
+            "priority": "normal",
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        errors = validate_front_matter(yaml_dict, "task")
+        assert len(errors) == 1
+        assert "Invalid status 'draft' for task" in errors[0]
+
+    def test_validate_front_matter_valid_all_task_statuses(self):
+        """Test all valid task statuses."""
+        valid_statuses = ["open", "in-progress", "review", "done"]
+
+        for status in valid_statuses:
+            yaml_dict = {
+                "kind": "task",
+                "id": "test-task",
+                "parent": "test-feature",
+                "status": status,
+                "title": "Test Task",
+                "priority": "normal",
+                "created": "2023-01-01T00:00:00Z",
+                "updated": "2023-01-01T00:00:00Z",
+                "schema_version": "1.0",
+            }
+
+            errors = validate_front_matter(yaml_dict, "task")
+            assert errors == [], f"Expected no errors for status '{status}', got: {errors}"
+
+    def test_validate_front_matter_valid_all_project_statuses(self):
+        """Test all valid project statuses."""
+        valid_statuses = ["draft", "in-progress", "done"]
+
+        for status in valid_statuses:
+            yaml_dict = {
+                "kind": "project",
+                "id": "test-project",
+                "status": status,
+                "title": "Test Project",
+                "priority": "normal",
+                "created": "2023-01-01T00:00:00Z",
+                "updated": "2023-01-01T00:00:00Z",
+                "schema_version": "1.0",
+            }
+
+            errors = validate_front_matter(yaml_dict, "project")
+            assert errors == [], f"Expected no errors for status '{status}', got: {errors}"
+
+    def test_validate_front_matter_missing_status(self):
+        """Test missing status field."""
+        yaml_dict = {
+            "kind": "project",
+            "id": "test-project",
+            "title": "Test Project",
+            "priority": "normal",
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        errors = validate_front_matter(yaml_dict, "project")
+        assert len(errors) == 1
+        assert "Missing required fields" in errors[0]
+        assert "status" in errors[0]
+
+    def test_validate_front_matter_null_status(self):
+        """Test null status field."""
+        yaml_dict = {
+            "kind": "project",
+            "id": "test-project",
+            "status": None,
+            "title": "Test Project",
+            "priority": "normal",
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        errors = validate_front_matter(yaml_dict, "project")
+        assert len(errors) == 1
+        assert "Missing required fields" in errors[0]
+        assert "status" in errors[0]
+
+    def test_validate_front_matter_multiple_errors(self):
+        """Test multiple validation errors."""
+        yaml_dict = {
+            "kind": "epic",
+            "id": "test-epic",
+            "status": "open",  # Invalid for epic
+            "title": "Test Epic",
+            "priority": "invalid-priority",  # Invalid priority
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        errors = validate_front_matter(yaml_dict, "epic")
+        assert len(errors) == 3
+
+        # Check that we have all expected errors
+        error_text = " ".join(errors)
+        assert "Missing required fields" in error_text
+        assert "parent" in error_text
+        assert "Invalid priority" in error_text
+        assert "Invalid status" in error_text
+
+    def test_validate_front_matter_empty_dict(self):
+        """Test empty YAML dictionary."""
+        yaml_dict = {}
+
+        errors = validate_front_matter(yaml_dict, "project")
+        assert len(errors) == 1
+        assert "Missing required fields" in errors[0]
+
+    def test_validate_front_matter_valid_priorities(self):
+        """Test all valid priority values."""
+        valid_priorities = ["high", "normal", "low"]
+
+        for priority in valid_priorities:
+            yaml_dict = {
+                "kind": "project",
+                "id": "test-project",
+                "status": "draft",
+                "title": "Test Project",
+                "priority": priority,
+                "created": "2023-01-01T00:00:00Z",
+                "updated": "2023-01-01T00:00:00Z",
+                "schema_version": "1.0",
+            }
+
+            errors = validate_front_matter(yaml_dict, "project")
+            assert errors == [], f"Expected no errors for priority '{priority}', got: {errors}"
+
+
+class TestEnforceStatusTransition:
+    """Test status transition enforcement function."""
+
+    def test_enforce_status_transition_same_status(self):
+        """Test transition from status to itself is always valid."""
+        # Same status should always be valid regardless of kind
+        assert enforce_status_transition(StatusEnum.OPEN, StatusEnum.OPEN, KindEnum.TASK) is True
+        assert enforce_status_transition("draft", "draft", "project") is True
+        assert enforce_status_transition(StatusEnum.DONE, StatusEnum.DONE, KindEnum.FEATURE) is True
+
+    def test_enforce_status_transition_task_valid_transitions(self):
+        """Test valid task status transitions."""
+        # open → in-progress
+        assert (
+            enforce_status_transition(StatusEnum.OPEN, StatusEnum.IN_PROGRESS, KindEnum.TASK)
+            is True
+        )
+        assert enforce_status_transition("open", "in-progress", "task") is True
+
+        # open → done
+        assert enforce_status_transition(StatusEnum.OPEN, StatusEnum.DONE, KindEnum.TASK) is True
+        assert enforce_status_transition("open", "done", "task") is True
+
+        # in-progress → review
+        assert (
+            enforce_status_transition(StatusEnum.IN_PROGRESS, StatusEnum.REVIEW, KindEnum.TASK)
+            is True
+        )
+        assert enforce_status_transition("in-progress", "review", "task") is True
+
+        # in-progress → done
+        assert (
+            enforce_status_transition(StatusEnum.IN_PROGRESS, StatusEnum.DONE, KindEnum.TASK)
+            is True
+        )
+        assert enforce_status_transition("in-progress", "done", "task") is True
+
+        # review → done
+        assert enforce_status_transition(StatusEnum.REVIEW, StatusEnum.DONE, KindEnum.TASK) is True
+        assert enforce_status_transition("review", "done", "task") is True
+
+    def test_enforce_status_transition_task_invalid_transitions(self):
+        """Test invalid task status transitions."""
+        # open → review (skipping in-progress)
+        with pytest.raises(ValueError, match="Invalid status transition for task"):
+            enforce_status_transition(StatusEnum.OPEN, StatusEnum.REVIEW, KindEnum.TASK)
+
+        # in-progress → open (backwards)
+        with pytest.raises(ValueError, match="Invalid status transition for task"):
+            enforce_status_transition("in-progress", "open", "task")
+
+        # review → open (backwards)
+        with pytest.raises(ValueError, match="Invalid status transition for task"):
+            enforce_status_transition("review", "open", "task")
+
+        # review → in-progress (backwards)
+        with pytest.raises(ValueError, match="Invalid status transition for task"):
+            enforce_status_transition("review", "in-progress", "task")
+
+        # done → any status (terminal)
+        with pytest.raises(ValueError, match="terminal status"):
+            enforce_status_transition(StatusEnum.DONE, StatusEnum.OPEN, KindEnum.TASK)
+
+        # open → draft (invalid status for task)
+        with pytest.raises(ValueError, match="Invalid status transition for task"):
+            enforce_status_transition("open", "draft", "task")
+
+        # draft → open (invalid status for task)
+        with pytest.raises(ValueError, match="Invalid status transition for task"):
+            enforce_status_transition("draft", "open", "task")
+
+    def test_enforce_status_transition_project_valid_transitions(self):
+        """Test valid project status transitions."""
+        # draft → in-progress
+        assert (
+            enforce_status_transition(StatusEnum.DRAFT, StatusEnum.IN_PROGRESS, KindEnum.PROJECT)
+            is True
+        )
+        assert enforce_status_transition("draft", "in-progress", "project") is True
+
+        # in-progress → done
+        assert (
+            enforce_status_transition(StatusEnum.IN_PROGRESS, StatusEnum.DONE, KindEnum.PROJECT)
+            is True
+        )
+        assert enforce_status_transition("in-progress", "done", "project") is True
+
+    def test_enforce_status_transition_project_invalid_transitions(self):
+        """Test invalid project status transitions."""
+        # draft → done (skipping in-progress)
+        with pytest.raises(ValueError, match="Invalid status transition for project"):
+            enforce_status_transition(StatusEnum.DRAFT, StatusEnum.DONE, KindEnum.PROJECT)
+
+        # in-progress → draft (backwards)
+        with pytest.raises(ValueError, match="Invalid status transition for project"):
+            enforce_status_transition("in-progress", "draft", "project")
+
+        # done → any status (terminal)
+        with pytest.raises(ValueError, match="terminal status"):
+            enforce_status_transition(StatusEnum.DONE, StatusEnum.DRAFT, KindEnum.PROJECT)
+
+        # draft → open (invalid status for project)
+        with pytest.raises(ValueError, match="Invalid status transition for project"):
+            enforce_status_transition("draft", "open", "project")
+
+    def test_enforce_status_transition_epic_valid_transitions(self):
+        """Test valid epic status transitions."""
+        # draft → in-progress
+        assert (
+            enforce_status_transition(StatusEnum.DRAFT, StatusEnum.IN_PROGRESS, KindEnum.EPIC)
+            is True
+        )
+        assert enforce_status_transition("draft", "in-progress", "epic") is True
+
+        # in-progress → done
+        assert (
+            enforce_status_transition(StatusEnum.IN_PROGRESS, StatusEnum.DONE, KindEnum.EPIC)
+            is True
+        )
+        assert enforce_status_transition("in-progress", "done", "epic") is True
+
+    def test_enforce_status_transition_epic_invalid_transitions(self):
+        """Test invalid epic status transitions."""
+        # draft → done (skipping in-progress)
+        with pytest.raises(ValueError, match="Invalid status transition for epic"):
+            enforce_status_transition(StatusEnum.DRAFT, StatusEnum.DONE, KindEnum.EPIC)
+
+        # in-progress → draft (backwards)
+        with pytest.raises(ValueError, match="Invalid status transition for epic"):
+            enforce_status_transition("in-progress", "draft", "epic")
+
+        # done → any status (terminal)
+        with pytest.raises(ValueError, match="terminal status"):
+            enforce_status_transition(StatusEnum.DONE, StatusEnum.DRAFT, KindEnum.EPIC)
+
+        # draft → review (invalid status for epic)
+        with pytest.raises(ValueError, match="Invalid status transition for epic"):
+            enforce_status_transition("draft", "review", "epic")
+
+    def test_enforce_status_transition_feature_valid_transitions(self):
+        """Test valid feature status transitions."""
+        # draft → in-progress
+        assert (
+            enforce_status_transition(StatusEnum.DRAFT, StatusEnum.IN_PROGRESS, KindEnum.FEATURE)
+            is True
+        )
+        assert enforce_status_transition("draft", "in-progress", "feature") is True
+
+        # in-progress → done
+        assert (
+            enforce_status_transition(StatusEnum.IN_PROGRESS, StatusEnum.DONE, KindEnum.FEATURE)
+            is True
+        )
+        assert enforce_status_transition("in-progress", "done", "feature") is True
+
+    def test_enforce_status_transition_feature_invalid_transitions(self):
+        """Test invalid feature status transitions."""
+        # draft → done (skipping in-progress)
+        with pytest.raises(ValueError, match="Invalid status transition for feature"):
+            enforce_status_transition(StatusEnum.DRAFT, StatusEnum.DONE, KindEnum.FEATURE)
+
+        # in-progress → draft (backwards)
+        with pytest.raises(ValueError, match="Invalid status transition for feature"):
+            enforce_status_transition("in-progress", "draft", "feature")
+
+        # done → any status (terminal)
+        with pytest.raises(ValueError, match="terminal status"):
+            enforce_status_transition(StatusEnum.DONE, StatusEnum.DRAFT, KindEnum.FEATURE)
+
+        # draft → open (invalid status for feature)
+        with pytest.raises(ValueError, match="Invalid status transition for feature"):
+            enforce_status_transition("draft", "open", "feature")
+
+    def test_enforce_status_transition_invalid_input_parameters(self):
+        """Test error handling for invalid input parameters."""
+        # Invalid old status
+        with pytest.raises(ValueError, match="Invalid old status"):
+            enforce_status_transition("invalid-status", "done", "task")
+
+        # Invalid new status
+        with pytest.raises(ValueError, match="Invalid new status"):
+            enforce_status_transition("open", "invalid-status", "task")
+
+        # Invalid kind
+        with pytest.raises(ValueError, match="Invalid kind"):
+            enforce_status_transition("open", "done", "invalid-kind")
+
+    def test_enforce_status_transition_mixed_string_enum_parameters(self):
+        """Test function works with mixed string and enum parameters."""
+        # Mix of string and enum parameters
+        assert enforce_status_transition(StatusEnum.OPEN, "in-progress", KindEnum.TASK) is True
+        assert enforce_status_transition("open", StatusEnum.IN_PROGRESS, "task") is True
+        assert enforce_status_transition(StatusEnum.OPEN, StatusEnum.IN_PROGRESS, "task") is True
+        assert enforce_status_transition("open", "in-progress", KindEnum.TASK) is True
+
+    def test_enforce_status_transition_error_messages(self):
+        """Test that error messages are clear and helpful."""
+        # Test error message format for invalid transitions
+        with pytest.raises(ValueError) as exc_info:
+            enforce_status_transition("open", "review", "task")
+
+        error_msg = str(exc_info.value)
+        assert "Invalid status transition for task" in error_msg
+        assert "'open' cannot transition to 'review'" in error_msg
+        assert "Valid transitions: done, in-progress" in error_msg
+
+        # Test error message for terminal status
+        with pytest.raises(ValueError) as exc_info:
+            enforce_status_transition("done", "open", "task")
+
+        error_msg = str(exc_info.value)
+        assert "Invalid status transition for task" in error_msg
+        assert "'done' is a terminal status" in error_msg
+
+    def test_enforce_status_transition_comprehensive_task_transitions(self):
+        """Test comprehensive task transition matrix."""
+        # Valid transitions
+        valid_transitions = [
+            ("open", "in-progress"),
+            ("open", "done"),
+            ("in-progress", "review"),
+            ("in-progress", "done"),
+            ("review", "done"),
+        ]
+
+        for old, new in valid_transitions:
+            assert enforce_status_transition(old, new, "task") is True
+
+        # Invalid transitions (not exhaustive, but covers key cases)
+        invalid_transitions = [
+            ("open", "review"),
+            ("in-progress", "open"),
+            ("review", "open"),
+            ("review", "in-progress"),
+            ("done", "open"),
+            ("done", "in-progress"),
+            ("done", "review"),
+        ]
+
+        for old, new in invalid_transitions:
+            with pytest.raises(ValueError):
+                enforce_status_transition(old, new, "task")
+
+    def test_enforce_status_transition_comprehensive_project_transitions(self):
+        """Test comprehensive project transition matrix."""
+        # Valid transitions
+        valid_transitions = [
+            ("draft", "in-progress"),
+            ("in-progress", "done"),
+        ]
+
+        for old, new in valid_transitions:
+            assert enforce_status_transition(old, new, "project") is True
+
+        # Invalid transitions
+        invalid_transitions = [
+            ("draft", "done"),
+            ("in-progress", "draft"),
+            ("done", "draft"),
+            ("done", "in-progress"),
+        ]
+
+        for old, new in invalid_transitions:
+            with pytest.raises(ValueError):
+                enforce_status_transition(old, new, "project")
+
+    def test_enforce_status_transition_comprehensive_epic_transitions(self):
+        """Test comprehensive epic transition matrix."""
+        # Valid transitions
+        valid_transitions = [
+            ("draft", "in-progress"),
+            ("in-progress", "done"),
+        ]
+
+        for old, new in valid_transitions:
+            assert enforce_status_transition(old, new, "epic") is True
+
+        # Invalid transitions
+        invalid_transitions = [
+            ("draft", "done"),
+            ("in-progress", "draft"),
+            ("done", "draft"),
+            ("done", "in-progress"),
+        ]
+
+        for old, new in invalid_transitions:
+            with pytest.raises(ValueError):
+                enforce_status_transition(old, new, "epic")
+
+    def test_enforce_status_transition_comprehensive_feature_transitions(self):
+        """Test comprehensive feature transition matrix."""
+        # Valid transitions
+        valid_transitions = [
+            ("draft", "in-progress"),
+            ("in-progress", "done"),
+        ]
+
+        for old, new in valid_transitions:
+            assert enforce_status_transition(old, new, "feature") is True
+
+        # Invalid transitions
+        invalid_transitions = [
+            ("draft", "done"),
+            ("in-progress", "draft"),
+            ("done", "draft"),
+            ("done", "in-progress"),
+        ]
+
+        for old, new in invalid_transitions:
+            with pytest.raises(ValueError):
+                enforce_status_transition(old, new, "feature")
+
+    def test_enforce_status_transition_edge_cases(self):
+        """Test edge cases for status transition enforcement."""
+        # Empty string parameters should raise ValueError
+        with pytest.raises(ValueError, match="Invalid old status"):
+            enforce_status_transition("", "done", "task")
+
+        with pytest.raises(ValueError, match="Invalid new status"):
+            enforce_status_transition("open", "", "task")
+
+        with pytest.raises(ValueError, match="Invalid kind"):
+            enforce_status_transition("open", "done", "")
+
+        # Whitespace-only strings should raise ValueError
+        with pytest.raises(ValueError, match="Invalid old status"):
+            enforce_status_transition("  ", "done", "task")
+
+        with pytest.raises(ValueError, match="Invalid new status"):
+            enforce_status_transition("open", "  ", "task")
+
+        with pytest.raises(ValueError, match="Invalid kind"):
+            enforce_status_transition("open", "done", "  ")
+
+    def test_enforce_status_transition_terminal_status_comprehensive(self):
+        """Test that 'done' is terminal for all object kinds."""
+        # done should be terminal for all kinds except same status (done -> done)
+        for kind in ["task", "project", "epic", "feature"]:
+            for status in ["open", "in-progress", "review", "draft"]:
+                with pytest.raises(ValueError, match="terminal status"):
+                    enforce_status_transition("done", status, kind)
+
+            # done -> done should be valid (same status)
+            assert enforce_status_transition("done", "done", kind) is True
+
+    def test_enforce_status_transition_cross_kind_invalid_statuses(self):
+        """Test that invalid statuses for specific kinds are properly rejected."""
+        # Task-specific statuses should not work with other kinds
+        task_only_statuses = ["open", "review"]
+        non_task_kinds = ["project", "epic", "feature"]
+
+        for status in task_only_statuses:
+            for kind in non_task_kinds:
+                with pytest.raises(ValueError, match=f"Invalid status transition for {kind}"):
+                    enforce_status_transition("draft", status, kind)
+
+        # Draft should not work with tasks
+        with pytest.raises(ValueError, match="Invalid status transition for task"):
+            enforce_status_transition("draft", "done", "task")
+
+    def test_enforce_status_transition_error_message_specificity(self):
+        """Test that error messages are specific and helpful for different scenarios."""
+        # Test invalid transition with available options
+        with pytest.raises(ValueError) as exc_info:
+            enforce_status_transition("draft", "done", "project")
+
+        error_msg = str(exc_info.value)
+        assert "Invalid status transition for project" in error_msg
+        assert "'draft' cannot transition to 'done'" in error_msg
+        assert "Valid transitions: in-progress" in error_msg
+
+        # Test terminal status error
+        with pytest.raises(ValueError) as exc_info:
+            enforce_status_transition("done", "draft", "epic")
+
+        error_msg = str(exc_info.value)
+        assert "Invalid status transition for epic" in error_msg
+        assert "'done' is a terminal status" in error_msg
+
+        # Test invalid status error
+        with pytest.raises(ValueError) as exc_info:
+            enforce_status_transition("invalid", "done", "task")
+
+        error_msg = str(exc_info.value)
+        assert "Invalid old status" in error_msg
+        assert "invalid" in error_msg

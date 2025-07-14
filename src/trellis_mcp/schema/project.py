@@ -9,6 +9,7 @@ from pydantic import Field
 
 from .base_schema import BaseSchemaModel
 from .kind_enum import KindEnum
+from .status_enum import StatusEnum
 
 
 class ProjectModel(BaseSchemaModel):
@@ -19,3 +20,10 @@ class ProjectModel(BaseSchemaModel):
     """
 
     kind: KindEnum = Field(KindEnum.PROJECT, description="Must be 'project'")
+
+    # Status transition matrix for projects
+    _valid_transitions = {
+        StatusEnum.DRAFT: {StatusEnum.IN_PROGRESS},
+        StatusEnum.IN_PROGRESS: {StatusEnum.DONE},
+        StatusEnum.DONE: set(),  # No transitions from done
+    }

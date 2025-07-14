@@ -9,6 +9,7 @@ from pydantic import Field
 
 from .base_schema import BaseSchemaModel
 from .kind_enum import KindEnum
+from .status_enum import StatusEnum
 
 
 class FeatureModel(BaseSchemaModel):
@@ -19,3 +20,10 @@ class FeatureModel(BaseSchemaModel):
     """
 
     kind: KindEnum = Field(KindEnum.FEATURE, description="Must be 'feature'")
+
+    # Status transition matrix for features
+    _valid_transitions = {
+        StatusEnum.DRAFT: {StatusEnum.IN_PROGRESS},
+        StatusEnum.IN_PROGRESS: {StatusEnum.DONE},
+        StatusEnum.DONE: set(),  # No transitions from done
+    }
