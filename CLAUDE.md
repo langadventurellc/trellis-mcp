@@ -16,28 +16,6 @@ planning/projects/P‑…/epics/E‑…/features/F‑…/tasks-open/T‑….md
 
 Consult `` (v 1.0) for schema & lifecycles.
 
----
-
-## ⚙️ Development Environment
-
-| Tool           | Why                              | Typical Command                          |
-| -------------- | -------------------------------- | ---------------------------------------- |
-| **uv**         | Fast, reproducible installs      | `uv pip install -r requirements.dev.txt` |
-| **pre-commit** | Auto‑run quality hooks           | `pre-commit run --all-files`             |
-| **flake8**     | Lint & format (PEP 8 + extras)   | `flake8 check .`  /  `flake8 format .`   |
-| **black**      | Opinionated formatter            |                                          |
-| **pyright**    | Static typing (strict)           | `pyright src/`                           |
-| **pytest**     | Unit tests                       | `pytest -q`                              |
-
-> **Install once:**
->
-> ```bash
-> uv pip install -r requirements.dev.txt
-> pre-commit install
-> ```
-
----
-
 ## 🚦 Quality Gate — “GREEN or STOP 🚫”
 
 Run **all** checks before committing:
@@ -64,10 +42,10 @@ Any ❌ = block. Fix → re‑run → commit.
 | Goal               | Command                                        |
 | ------------------ | ---------------------------------------------- |
 | Start server (dev) | `uv pip install -e . && python -m trellis_mcp` |
-| Run unit tests     | `pytest -q`                                    |
-| Lint & format      | `pre-commit run --all-files`                   |
-| Type check         | `pyright src/`                                 |
-| Generate docs      | `mkdocs serve`                                 |
+| Run unit tests     | `uv run pytest -q`                             |
+| Lint & format      | `uv run pre-commit run --all-files`            |
+| Type check         | `uv run pyright src/`                          |
+| Generate docs      | `uv run mkdocs serve`                          |
 
 ---
 
@@ -86,7 +64,7 @@ Any ❌ = block. Fix → re‑run → commit.
 
 | When                      | Action                                                |
 | ------------------------- | ----------------------------------------------------- |
-| Need a new hierarchy node | `createObject` via Trellis MCP                            |
+| Need a new hierarchy node | `createObject` via Trellis MCP                        |
 | Starting dev work         | `claimNextTask` (auto‑sets `in-progress`)             |
 | Task ready for PR         | Push branch → set `status=review` (or reviewer flips) |
 | Merging to main           | Run gate → `completeTask`                             |
