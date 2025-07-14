@@ -64,6 +64,9 @@ class DependencyGraphCache:
     def is_cache_valid(self, project_root: Path, cached_mtimes: Dict[str, float]) -> bool:
         """Check if cached graph is still valid by comparing file modification times.
 
+        Uses tolerance-based comparison (1ms) to avoid floating point precision
+        issues and filesystem timestamp resolution differences across platforms.
+
         Args:
             project_root: The project root path
             cached_mtimes: Cached file modification times
@@ -78,8 +81,8 @@ class DependencyGraphCache:
                     # File was deleted
                     return False
                 current_mtime = os.path.getmtime(file_path)
-                if current_mtime != cached_mtime:
-                    # File was modified
+                if abs(current_mtime - cached_mtime) > 0.001:
+                    # File was modified (using tolerance to avoid float precision issues)
                     return False
 
             # Check for new files that might have been added
