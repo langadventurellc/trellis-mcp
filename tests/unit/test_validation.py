@@ -1602,8 +1602,8 @@ class TestEnforceStatusTransition:
         with pytest.raises(ValueError, match="Invalid status transition for task"):
             enforce_status_transition("review", "in-progress", "task")
 
-        # done → any status (terminal)
-        with pytest.raises(ValueError, match="terminal status"):
+        # done → open (invalid - only deleted is allowed from done)
+        with pytest.raises(ValueError, match="Invalid status transition for task"):
             enforce_status_transition(StatusEnum.DONE, StatusEnum.OPEN, KindEnum.TASK)
 
         # open → draft (invalid status for task)
@@ -1640,8 +1640,8 @@ class TestEnforceStatusTransition:
         with pytest.raises(ValueError, match="Invalid status transition for project"):
             enforce_status_transition("in-progress", "draft", "project")
 
-        # done → any status (terminal)
-        with pytest.raises(ValueError, match="terminal status"):
+        # done → draft (invalid - only deleted is allowed from done)
+        with pytest.raises(ValueError, match="Invalid status transition for project"):
             enforce_status_transition(StatusEnum.DONE, StatusEnum.DRAFT, KindEnum.PROJECT)
 
         # draft → open (invalid status for project)
@@ -1674,8 +1674,8 @@ class TestEnforceStatusTransition:
         with pytest.raises(ValueError, match="Invalid status transition for epic"):
             enforce_status_transition("in-progress", "draft", "epic")
 
-        # done → any status (terminal)
-        with pytest.raises(ValueError, match="terminal status"):
+        # done → draft (invalid - only deleted is allowed from done)
+        with pytest.raises(ValueError, match="Invalid status transition for epic"):
             enforce_status_transition(StatusEnum.DONE, StatusEnum.DRAFT, KindEnum.EPIC)
 
         # draft → review (invalid status for epic)
@@ -1708,8 +1708,8 @@ class TestEnforceStatusTransition:
         with pytest.raises(ValueError, match="Invalid status transition for feature"):
             enforce_status_transition("in-progress", "draft", "feature")
 
-        # done → any status (terminal)
-        with pytest.raises(ValueError, match="terminal status"):
+        # done → draft (invalid - only deleted is allowed from done)
+        with pytest.raises(ValueError, match="Invalid status transition for feature"):
             enforce_status_transition(StatusEnum.DONE, StatusEnum.DRAFT, KindEnum.FEATURE)
 
         # draft → open (invalid status for feature)
@@ -1747,15 +1747,16 @@ class TestEnforceStatusTransition:
         error_msg = str(exc_info.value)
         assert "Invalid status transition for task" in error_msg
         assert "'open' cannot transition to 'review'" in error_msg
-        assert "Valid transitions: done, in-progress" in error_msg
+        assert "Valid transitions: deleted, done, in-progress" in error_msg
 
-        # Test error message for terminal status
+        # Test error message for done → open (invalid transition)
         with pytest.raises(ValueError) as exc_info:
             enforce_status_transition("done", "open", "task")
 
         error_msg = str(exc_info.value)
         assert "Invalid status transition for task" in error_msg
-        assert "'done' is a terminal status" in error_msg
+        assert "'done' cannot transition to 'open'" in error_msg
+        assert "Valid transitions: deleted" in error_msg
 
     def test_enforce_status_transition_comprehensive_task_transitions(self):
         """Test comprehensive task transition matrix."""
@@ -1879,10 +1880,10 @@ class TestEnforceStatusTransition:
 
     def test_enforce_status_transition_terminal_status_comprehensive(self):
         """Test that 'done' is terminal for all object kinds."""
-        # done should be terminal for all kinds except same status (done -> done)
+        # done should only allow transitions to deleted (and same status)
         for kind in ["task", "project", "epic", "feature"]:
             for status in ["open", "in-progress", "review", "draft"]:
-                with pytest.raises(ValueError, match="terminal status"):
+                with pytest.raises(ValueError, match="Invalid status transition"):
                     enforce_status_transition("done", status, kind)
 
             # done -> done should be valid (same status)
@@ -1912,15 +1913,16 @@ class TestEnforceStatusTransition:
         error_msg = str(exc_info.value)
         assert "Invalid status transition for project" in error_msg
         assert "'draft' cannot transition to 'done'" in error_msg
-        assert "Valid transitions: in-progress" in error_msg
+        assert "Valid transitions: deleted, in-progress" in error_msg
 
-        # Test terminal status error
+        # Test done → draft error (only deleted is allowed from done)
         with pytest.raises(ValueError) as exc_info:
             enforce_status_transition("done", "draft", "epic")
 
         error_msg = str(exc_info.value)
         assert "Invalid status transition for epic" in error_msg
-        assert "'done' is a terminal status" in error_msg
+        assert "'done' cannot transition to 'draft'" in error_msg
+        assert "Valid transitions: deleted" in error_msg
 
         # Test invalid status error
         with pytest.raises(ValueError) as exc_info:

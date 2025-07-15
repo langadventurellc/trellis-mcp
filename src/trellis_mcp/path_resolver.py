@@ -355,3 +355,143 @@ def path_to_id(file_path: Path) -> tuple[str, str]:
 
     else:
         raise ValueError(f"Unrecognized file type: {filename}")
+
+
+def children_of(kind: str, obj_id: str, project_root: Path) -> list[Path]:
+    """Find all descendant paths for a given object in the hierarchical structure.
+
+    Returns a list of filesystem paths for all descendant objects (children,
+    grandchildren, etc.) of the specified object. The hierarchical relationships
+    are: Project → Epic → Feature → Task.
+
+    Args:
+        kind: The object kind ('project', 'epic', 'feature', or 'task')
+        obj_id: The object ID (without prefix, e.g., 'user-auth' not 'P-user-auth')
+        project_root: Root directory of the planning structure
+
+    Returns:
+        List of Path objects pointing to descendant files. For:
+        - project: All epics, features, and tasks under the project
+        - epic: All features and tasks under the epic
+        - feature: All tasks under the feature
+        - task: Empty list (tasks have no children)
+
+    Raises:
+        ValueError: If kind is not supported or obj_id is empty
+        FileNotFoundError: If the parent object cannot be found
+
+    Example:
+        >>> project_root = Path("./planning")
+        >>> children_of("project", "user-auth", project_root)
+        [Path('planning/projects/P-user-auth/epics/E-authentication/epic.md'),
+         Path('planning/projects/P-user-auth/epics/E-authentication/features/F-login/feature.md'),
+         ...]
+        >>> children_of("task", "implement-jwt", project_root)
+        []  # Tasks have no children
+    """
+    # Validate inputs
+    if not kind or kind not in VALID_KINDS:
+        raise ValueError(f"Invalid kind '{kind}'. Must be one of: {VALID_KINDS}")
+
+    if not obj_id or not obj_id.strip():
+        raise ValueError("Object ID cannot be empty")
+
+    # Clean the ID (remove any existing prefix if present)
+    clean_id = obj_id.strip()
+    if clean_id.startswith(("P-", "E-", "F-", "T-")):
+        clean_id = clean_id[2:]
+
+    # Tasks have no children
+    if kind == "task":
+        return []
+
+    # Find the parent object's path to locate its directory
+    parent_path = find_object_path(kind, clean_id, project_root)
+    if parent_path is None:
+        if kind == "project":
+            raise FileNotFoundError(f"Project with ID '{clean_id}' not found")
+        elif kind == "epic":
+            raise FileNotFoundError(f"Epic with ID '{clean_id}' not found")
+        elif kind == "feature":
+            raise FileNotFoundError(f"Feature with ID '{clean_id}' not found")
+
+    # At this point, parent_path is guaranteed to be a Path object
+    # because we would have raised an exception if it was None
+    assert parent_path is not None, "parent_path should not be None at this point"
+
+    # Get the parent directory containing the children
+    parent_dir = parent_path.parent
+    descendant_paths = []
+
+    # Collect all descendant paths based on the parent kind
+    if kind == "project":
+        # For projects, find all epics, features, and tasks
+        epics_dir = parent_dir / "epics"
+        if epics_dir.exists():
+            for epic_dir in epics_dir.iterdir():
+                if epic_dir.is_dir() and epic_dir.name.startswith("E-"):
+                    # Add epic file
+                    epic_file = epic_dir / "epic.md"
+                    if epic_file.exists():
+                        descendant_paths.append(epic_file)
+
+                    # Add features and tasks under this epic
+                    features_dir = epic_dir / "features"
+                    if features_dir.exists():
+                        for feature_dir in features_dir.iterdir():
+                            if feature_dir.is_dir() and feature_dir.name.startswith("F-"):
+                                # Add feature file
+                                feature_file = feature_dir / "feature.md"
+                                if feature_file.exists():
+                                    descendant_paths.append(feature_file)
+
+                                # Add tasks under this feature
+                                _add_tasks_from_feature(feature_dir, descendant_paths)
+
+    elif kind == "epic":
+        # For epics, find all features and tasks
+        features_dir = parent_dir / "features"
+        if features_dir.exists():
+            for feature_dir in features_dir.iterdir():
+                if feature_dir.is_dir() and feature_dir.name.startswith("F-"):
+                    # Add feature file
+                    feature_file = feature_dir / "feature.md"
+                    if feature_file.exists():
+                        descendant_paths.append(feature_file)
+
+                    # Add tasks under this feature
+                    _add_tasks_from_feature(feature_dir, descendant_paths)
+
+    elif kind == "feature":
+        # For features, find all tasks
+        _add_tasks_from_feature(parent_dir, descendant_paths)
+
+    # Sort paths for consistent ordering
+    descendant_paths.sort(key=lambda p: str(p))
+    return descendant_paths
+
+
+def _add_tasks_from_feature(feature_dir: Path, descendant_paths: list[Path]) -> None:
+    """Helper function to add all tasks from a feature directory to the descendant paths list.
+
+    Args:
+        feature_dir: Path to the feature directory
+        descendant_paths: List to append task paths to
+    """
+    # Check tasks-open directory
+    tasks_open_dir = feature_dir / "tasks-open"
+    if tasks_open_dir.exists():
+        for task_file in tasks_open_dir.iterdir():
+            if (
+                task_file.is_file()
+                and task_file.name.startswith("T-")
+                and task_file.name.endswith(".md")
+            ):
+                descendant_paths.append(task_file)
+
+    # Check tasks-done directory
+    tasks_done_dir = feature_dir / "tasks-done"
+    if tasks_done_dir.exists():
+        for task_file in tasks_done_dir.iterdir():
+            if task_file.is_file() and task_file.name.endswith(".md") and "-T-" in task_file.name:
+                descendant_paths.append(task_file)

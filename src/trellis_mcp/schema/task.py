@@ -21,8 +21,16 @@ class TaskModel(BaseSchemaModel):
 
     # Status transition matrix for tasks (includes shortcuts)
     _valid_transitions = {
-        StatusEnum.OPEN: {StatusEnum.IN_PROGRESS, StatusEnum.DONE},  # Can skip to done
-        StatusEnum.IN_PROGRESS: {StatusEnum.REVIEW, StatusEnum.DONE},  # Can skip to done
-        StatusEnum.REVIEW: {StatusEnum.DONE},
-        StatusEnum.DONE: set(),  # No transitions from done
+        StatusEnum.OPEN: {
+            StatusEnum.IN_PROGRESS,
+            StatusEnum.DONE,
+            StatusEnum.DELETED,
+        },  # Can skip to done
+        StatusEnum.IN_PROGRESS: {
+            StatusEnum.REVIEW,
+            StatusEnum.DONE,
+            StatusEnum.DELETED,
+        },  # Can skip to done
+        StatusEnum.REVIEW: {StatusEnum.DONE, StatusEnum.DELETED},
+        StatusEnum.DONE: {StatusEnum.DELETED},  # Only deletion allowed from done
     }

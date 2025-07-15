@@ -63,14 +63,30 @@ class BaseSchemaModel(TrellisBaseModel):
                 # Validate status for the specific kind
                 # Define allowed statuses per kind
                 allowed_statuses = {
-                    KindEnum.PROJECT: {StatusEnum.DRAFT, StatusEnum.IN_PROGRESS, StatusEnum.DONE},
-                    KindEnum.EPIC: {StatusEnum.DRAFT, StatusEnum.IN_PROGRESS, StatusEnum.DONE},
-                    KindEnum.FEATURE: {StatusEnum.DRAFT, StatusEnum.IN_PROGRESS, StatusEnum.DONE},
+                    KindEnum.PROJECT: {
+                        StatusEnum.DRAFT,
+                        StatusEnum.IN_PROGRESS,
+                        StatusEnum.DONE,
+                        StatusEnum.DELETED,
+                    },
+                    KindEnum.EPIC: {
+                        StatusEnum.DRAFT,
+                        StatusEnum.IN_PROGRESS,
+                        StatusEnum.DONE,
+                        StatusEnum.DELETED,
+                    },
+                    KindEnum.FEATURE: {
+                        StatusEnum.DRAFT,
+                        StatusEnum.IN_PROGRESS,
+                        StatusEnum.DONE,
+                        StatusEnum.DELETED,
+                    },
                     KindEnum.TASK: {
                         StatusEnum.OPEN,
                         StatusEnum.IN_PROGRESS,
                         StatusEnum.REVIEW,
                         StatusEnum.DONE,
+                        StatusEnum.DELETED,
                     },
                 }
 

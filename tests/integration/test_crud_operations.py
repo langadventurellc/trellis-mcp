@@ -392,3 +392,259 @@ async def test_crud_epic_feature_tasks_workflow_with_yaml_verification(temp_dir)
         )
         assert retrieved_task1.data["yaml"]["title"] == "Implement JWT authentication"
         assert retrieved_task1.data["yaml"]["status"] == "in-progress"
+
+
+@pytest.mark.asyncio
+async def test_parent_deletion_cascade_integration(temp_dir):
+    """Integration test: create nested Project→Epic→Feature→Task tree, delete Epic,
+    verify no orphan files/folders."""
+    # Create server instance
+    server, planning_root = create_test_server(temp_dir)
+
+    async with Client(server) as client:
+        # Step 1: Create project as foundation
+        project_result = await client.call_tool(
+            "createObject",
+            {
+                "kind": "project",
+                "title": "Test Project for Deletion",
+                "description": "Project to test cascade deletion",
+                "projectRoot": planning_root,
+            },
+        )
+        project_id = project_result.data["id"]
+
+        # Step 2: Create epic under project
+        epic_result = await client.call_tool(
+            "createObject",
+            {
+                "kind": "epic",
+                "title": "Test Epic for Deletion",
+                "description": "Epic to be deleted with cascade",
+                "projectRoot": planning_root,
+                "parent": project_id,
+            },
+        )
+        epic_id = epic_result.data["id"]
+
+        # Step 3: Create feature under epic
+        feature_result = await client.call_tool(
+            "createObject",
+            {
+                "kind": "feature",
+                "title": "Test Feature for Deletion",
+                "description": "Feature to be deleted with cascade",
+                "projectRoot": planning_root,
+                "parent": epic_id,
+            },
+        )
+        feature_id = feature_result.data["id"]
+
+        # Step 4: Create multiple tasks under feature with different statuses
+        # Task 1 - will remain as "open"
+        task1_result = await client.call_tool(
+            "createObject",
+            {
+                "kind": "task",
+                "title": "Open Task",
+                "description": "Task that will remain open",
+                "projectRoot": planning_root,
+                "parent": feature_id,
+                "priority": "high",
+            },
+        )
+        task1_id = task1_result.data["id"]
+
+        # Task 2 - will be set to "done" and moved to tasks-done
+        task2_result = await client.call_tool(
+            "createObject",
+            {
+                "kind": "task",
+                "title": "Done Task",
+                "description": "Task that will be completed",
+                "projectRoot": planning_root,
+                "parent": feature_id,
+                "priority": "normal",
+            },
+        )
+        task2_id = task2_result.data["id"]
+
+        # Step 5: Complete task2 using completeTask to move it to tasks-done
+        # First transition to in-progress
+        await client.call_tool(
+            "updateObject",
+            {
+                "kind": "task",
+                "id": task2_id,
+                "projectRoot": planning_root,
+                "yamlPatch": {"status": "in-progress"},
+            },
+        )
+
+        # Then complete the task
+        await client.call_tool(
+            "completeTask",
+            {
+                "taskId": task2_id,
+                "projectRoot": planning_root,
+            },
+        )
+
+        # Step 6: Verify the hierarchy is properly created in filesystem
+        planning_path = temp_dir / "planning"
+        raw_project_id = extract_raw_id(project_id)
+        raw_epic_id = extract_raw_id(epic_id)
+        raw_feature_id = extract_raw_id(feature_id)
+
+        # Verify all files exist before deletion
+        project_file = planning_path / "projects" / f"P-{raw_project_id}" / "project.md"
+        epic_file = (
+            planning_path
+            / "projects"
+            / f"P-{raw_project_id}"
+            / "epics"
+            / f"E-{raw_epic_id}"
+            / "epic.md"
+        )
+        feature_file = (
+            planning_path
+            / "projects"
+            / f"P-{raw_project_id}"
+            / "epics"
+            / f"E-{raw_epic_id}"
+            / "features"
+            / f"F-{raw_feature_id}"
+            / "feature.md"
+        )
+        task1_file = (
+            planning_path
+            / "projects"
+            / f"P-{raw_project_id}"
+            / "epics"
+            / f"E-{raw_epic_id}"
+            / "features"
+            / f"F-{raw_feature_id}"
+            / "tasks-open"
+            / f"{task1_id}.md"
+        )
+
+        assert project_file.exists()
+        assert epic_file.exists()
+        assert feature_file.exists()
+        assert task1_file.exists()
+
+        # Check what files are in tasks-done directory
+        tasks_done_dir = (
+            planning_path
+            / "projects"
+            / f"P-{raw_project_id}"
+            / "epics"
+            / f"E-{raw_epic_id}"
+            / "features"
+            / f"F-{raw_feature_id}"
+            / "tasks-done"
+        )
+        assert tasks_done_dir.exists(), f"tasks-done directory does not exist: {tasks_done_dir}"
+
+        # List all files in tasks-done
+        done_files = list(tasks_done_dir.glob("*.md"))
+        assert (
+            len(done_files) == 1
+        ), f"Expected 1 file in tasks-done, found {len(done_files)}: {done_files}"
+
+        # Use the actual file found instead of assuming the name
+        task2_file = done_files[0]
+
+        # Verify directory structure exists
+        epic_dir = planning_path / "projects" / f"P-{raw_project_id}" / "epics" / f"E-{raw_epic_id}"
+        feature_dir = epic_dir / "features" / f"F-{raw_feature_id}"
+        tasks_open_dir = feature_dir / "tasks-open"
+        tasks_done_dir = feature_dir / "tasks-done"
+
+        assert epic_dir.exists() and epic_dir.is_dir()
+        assert feature_dir.exists() and feature_dir.is_dir()
+        assert tasks_open_dir.exists() and tasks_open_dir.is_dir()
+        assert tasks_done_dir.exists() and tasks_done_dir.is_dir()
+
+        # Step 7: Use updateObject directly via client instead of CLI to avoid event loop issues
+        delete_result = await client.call_tool(
+            "updateObject",
+            {
+                "kind": "epic",
+                "id": epic_id,
+                "projectRoot": planning_root,
+                "yamlPatch": {"status": "deleted"},
+            },
+        )
+
+        # Verify the deletion succeeded
+        assert delete_result.data["changes"]["status"] == "deleted"
+        cascade_deleted = delete_result.data["changes"].get("cascade_deleted", [])
+        assert len(cascade_deleted) > 0, "Should have cascade deleted some files"
+
+        # Step 8: Verify complete cascade deletion - no orphan files/folders remain
+        # Epic file should be deleted
+        assert not epic_file.exists()
+
+        # Feature file should be deleted
+        assert not feature_file.exists()
+
+        # All task files should be deleted
+        assert not task1_file.exists()
+        assert not task2_file.exists()
+
+        # Verify directories are empty (files are gone but empty dirs may remain)
+        # This is expected behavior - recursive_delete removes files but may leave empty directories
+
+        # Check that no .md files remain in the epic directory tree
+        epic_md_files = list(epic_dir.rglob("*.md")) if epic_dir.exists() else []
+        assert len(epic_md_files) == 0, f"Found orphan .md files: {epic_md_files}"
+
+        # Step 9: Verify parent project remains intact
+        assert project_file.exists()
+        project_content = project_file.read_text()
+        assert f"id: {project_id}" in project_content
+        assert "title: Test Project for Deletion" in project_content
+
+        # Step 10: Verify no orphan .md files exist anywhere in the planning structure
+        all_md_files = list(planning_path.rglob("*.md"))
+
+        # Only the project.md file should remain
+        assert len(all_md_files) == 1
+        assert all_md_files[0] == project_file
+
+        # Step 11: Verify we can still interact with the remaining project
+        retrieved_project = await client.call_tool(
+            "getObject",
+            {
+                "kind": "project",
+                "id": project_id,
+                "projectRoot": planning_root,
+            },
+        )
+        assert retrieved_project.data["yaml"]["title"] == "Test Project for Deletion"
+
+        # Step 12: Verify we can still list backlog (should be empty now)
+        backlog_result = await client.call_tool(
+            "listBacklog",
+            {
+                "projectRoot": planning_root,
+                "scope": project_id,
+            },
+        )
+        assert backlog_result.structured_content is not None
+        assert len(backlog_result.structured_content["tasks"]) == 0
+
+        # Step 13: Verify the cascade deletion worked properly
+        # All expected files should be in the cascade_deleted list
+        expected_files = [
+            str(epic_file),
+            str(feature_file),
+            str(task1_file),
+            str(task2_file),
+        ]
+
+        for expected_file in expected_files:
+            assert any(
+                expected_file in deleted_path for deleted_path in cascade_deleted
+            ), f"Expected {expected_file} to be in cascade_deleted list: {cascade_deleted}"

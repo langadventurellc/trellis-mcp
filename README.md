@@ -83,6 +83,34 @@ uv pip install -e .
    }
    ```
 
+5. **Delete objects with cascade deletion:**
+   ```bash
+   # Delete a task (no children to cascade)
+   trellis-mcp delete task T-001
+   
+   # Delete a feature with confirmation prompt
+   trellis-mcp delete feature F-user-management
+   # Output: ⚠️  Delete Feature F-user-management and 5 descendants? [y/N]
+   
+   # Delete an epic and all its children
+   trellis-mcp delete epic E-auth
+   # Output: ⚠️  Delete Epic E-auth and 12 descendants? [y/N]
+   
+   # Force delete even if children have protected status (in-progress/review)
+   trellis-mcp delete project P-001 --force
+   ```
+   
+   Example output after successful deletion:
+   ```
+   ✓ Deleted epic E-auth
+     Cascade deleted 12 items:
+       - planning/projects/P-001/epics/E-auth/epic.md
+       - planning/projects/P-001/epics/E-auth/features/F-login/feature.md
+       - planning/projects/P-001/epics/E-auth/features/F-login/tasks-open/T-login-form.md
+       - planning/projects/P-001/epics/E-auth/features/F-login/tasks-done/2025-01-15T10:30:00-T-setup-db.md
+       - ... (and 8 more files)
+   ```
+
 ## Requirements
 
 - Python 3.12+

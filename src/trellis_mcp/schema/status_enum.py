@@ -19,3 +19,4 @@ class StatusEnum(str, Enum):
     REVIEW = "review"
     DONE = "done"
     DRAFT = "draft"
+    DELETED = "deleted"
