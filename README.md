@@ -51,6 +51,38 @@ uv pip install -e .
    status: open
    ```
 
+4. **Test RPC methods with mcp-inspector:**
+   ```bash
+   # Start mcp-inspector to test your server
+   npx @modelcontextprotocol/inspector node -e "require('child_process').spawn('trellis-mcp', ['serve'], {stdio: 'inherit'})"
+   
+   # Or test with CLI mode to call getNextReviewableTask
+   npx @modelcontextprotocol/inspector --cli trellis-mcp serve --method tools/call --tool-name getNextReviewableTask --tool-arg projectRoot=.
+   ```
+   
+   Example output when reviewable task found:
+   ```json
+   {
+     "task": {
+       "id": "implement-auth",
+       "title": "Implement authentication system", 
+       "status": "review",
+       "priority": "high",
+       "parent": "F-user-management",
+       "file_path": "./planning/projects/P-app/epics/E-auth/features/F-user-management/tasks-open/T-implement-auth.md",
+       "created": "2025-01-15T10:00:00Z",
+       "updated": "2025-01-15T14:30:00Z"
+     }
+   }
+   ```
+   
+   Example output when no reviewable tasks exist:
+   ```json
+   {
+     "task": null
+   }
+   ```
+
 ## Requirements
 
 - Python 3.12+

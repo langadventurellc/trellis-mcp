@@ -1156,3 +1156,243 @@ async def test_two_sequential_claims_with_different_worktree_values_persist_to_d
         'worktree: "workspace-2"' not in task1_content
         and "worktree: workspace-2" not in task1_content
     )
+
+
+@pytest.mark.asyncio
+async def test_getNextReviewableTask_integration_with_mixed_status_tasks(temp_dir):
+    """Integration test: create sample repo with mixed status tasks.
+
+    Call getNextReviewableTask RPC via FastMCP test client, assert correct task ID returned.
+    """
+    # Create settings with temporary planning directory
+    settings = Settings(
+        planning_root=temp_dir / "planning",
+        debug_mode=True,
+        log_level="DEBUG",
+    )
+
+    # Create server instance
+    server = create_server(settings)
+    planning_root = str(temp_dir / "planning")
+
+    # Setup: Create test hierarchy with mixed status tasks
+    async with Client(server) as setup_client:
+        # Create project
+        project_result = await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "project",
+                "title": "Review Test Project",
+                "projectRoot": planning_root,
+            },
+        )
+        project_id = project_result.data["id"]
+
+        # Create epic
+        epic_result = await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "epic",
+                "title": "Review Test Epic",
+                "projectRoot": planning_root,
+                "parent": project_id,
+            },
+        )
+        epic_id = epic_result.data["id"]
+
+        # Create feature
+        feature_result = await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "feature",
+                "title": "Review Test Feature",
+                "projectRoot": planning_root,
+                "parent": epic_id,
+            },
+        )
+        feature_id = feature_result.data["id"]
+
+        # Create tasks with mixed statuses
+        # 1. Open task (should not be returned)
+        await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "task",
+                "title": "Open Task",
+                "projectRoot": planning_root,
+                "parent": feature_id,
+                "priority": "normal",
+            },
+        )
+
+        # 2. In-progress task (should not be returned)
+        in_progress_task_result = await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "task",
+                "title": "In Progress Task",
+                "projectRoot": planning_root,
+                "parent": feature_id,
+                "priority": "high",
+            },
+        )
+        in_progress_task_id = in_progress_task_result.data["id"]
+
+        # Update to in-progress status
+        await setup_client.call_tool(
+            "updateObject",
+            {
+                "kind": "task",
+                "id": in_progress_task_id,
+                "projectRoot": planning_root,
+                "yamlPatch": {"status": "in-progress"},
+            },
+        )
+
+        # 3. Review task with high priority (should be returned since it will be updated first)
+        review_task_high_result = await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "task",
+                "title": "Review Task High Priority",
+                "projectRoot": planning_root,
+                "parent": feature_id,
+                "priority": "high",
+            },
+        )
+        review_task_high_id = review_task_high_result.data["id"]
+
+        # Update to in-progress status first, then review
+        await setup_client.call_tool(
+            "updateObject",
+            {
+                "kind": "task",
+                "id": review_task_high_id,
+                "projectRoot": planning_root,
+                "yamlPatch": {"status": "in-progress"},
+            },
+        )
+
+        await setup_client.call_tool(
+            "updateObject",
+            {
+                "kind": "task",
+                "id": review_task_high_id,
+                "projectRoot": planning_root,
+                "yamlPatch": {"status": "review"},
+            },
+        )
+
+        # 4. Review task with normal priority (returned second due to newer timestamp)
+        review_task_normal_result = await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "task",
+                "title": "Review Task Normal Priority",
+                "projectRoot": planning_root,
+                "parent": feature_id,
+                "priority": "normal",
+            },
+        )
+        review_task_normal_id = review_task_normal_result.data["id"]
+
+        # Update to in-progress status first, then review
+        await setup_client.call_tool(
+            "updateObject",
+            {
+                "kind": "task",
+                "id": review_task_normal_id,
+                "projectRoot": planning_root,
+                "yamlPatch": {"status": "in-progress"},
+            },
+        )
+
+        await setup_client.call_tool(
+            "updateObject",
+            {
+                "kind": "task",
+                "id": review_task_normal_id,
+                "projectRoot": planning_root,
+                "yamlPatch": {"status": "review"},
+            },
+        )
+
+    # Test 1: Call getNextReviewableTask and verify high priority review task is returned
+    async with Client(server) as client:
+        result = await client.call_tool(
+            "getNextReviewableTask",
+            {
+                "projectRoot": planning_root,
+            },
+        )
+
+        # Verify response structure
+        assert result.data is not None
+        assert "task" in result.data
+        task_data = result.data["task"]
+
+        # Verify correct task returned (high priority review task due to oldest update timestamp)
+        assert task_data is not None
+        assert task_data["id"] == review_task_high_id
+        assert task_data["title"] == "Review Task High Priority"
+        assert task_data["status"] == "review"
+        assert task_data["priority"] == "high"
+        assert task_data["parent"] == feature_id
+
+        # Verify additional required fields
+        assert "file_path" in task_data
+        assert "created" in task_data
+        assert "updated" in task_data
+
+        # Verify file_path is a valid path string
+        assert task_data["file_path"].endswith(f"{review_task_high_id}.md")
+
+    # Test 2: Complete the high priority task and verify normal priority task is returned next
+    async with Client(server) as client:
+        # Mark high priority task as done using completeTask
+        await client.call_tool(
+            "completeTask",
+            {
+                "taskId": review_task_high_id,
+                "projectRoot": planning_root,
+            },
+        )
+
+        # Now call getNextReviewableTask again
+        result = await client.call_tool(
+            "getNextReviewableTask",
+            {
+                "projectRoot": planning_root,
+            },
+        )
+
+        # Verify normal priority review task is now returned
+        assert result.data is not None
+        task_data = result.data["task"]
+        assert task_data is not None
+        assert task_data["id"] == review_task_normal_id
+        assert task_data["title"] == "Review Task Normal Priority"
+        assert task_data["priority"] == "normal"
+
+    # Test 3: Complete remaining review task and verify no more reviewable tasks
+    async with Client(server) as client:
+        # Complete the normal priority task
+        await client.call_tool(
+            "completeTask",
+            {
+                "taskId": review_task_normal_id,
+                "projectRoot": planning_root,
+            },
+        )
+
+        # Call getNextReviewableTask - should return None
+        result = await client.call_tool(
+            "getNextReviewableTask",
+            {
+                "projectRoot": planning_root,
+            },
+        )
+
+        # Verify no reviewable tasks remaining
+        assert result.data is not None
+        assert result.data["task"] is None
