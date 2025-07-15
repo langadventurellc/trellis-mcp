@@ -3476,3 +3476,463 @@ class TestClaimNextTaskPriority:
             # Don't create any tasks - this will trigger "No open tasks available"
 
         return project_root
+
+
+class TestProtectedObjectDeletion:
+    """Test cases for ProtectedObjectError when deleting objects with protected children."""
+
+    @pytest.mark.asyncio
+    async def test_delete_epic_with_in_progress_task_raises_protected_object_error(self, temp_dir):
+        """Test that deleting an epic with in-progress task raises ProtectedObjectError."""
+        project_root = temp_dir / "planning"
+
+        settings = Settings(planning_root=project_root.parent)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Create project → epic → feature → task hierarchy
+            project_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "project",
+                    "title": "Test Project",
+                    "projectRoot": str(project_root),
+                },
+            )
+            project_id = project_result.data["id"]
+
+            epic_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "epic",
+                    "title": "Test Epic",
+                    "projectRoot": str(project_root),
+                    "parent": project_id,
+                },
+            )
+            epic_id = epic_result.data["id"]
+
+            feature_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "feature",
+                    "title": "Test Feature",
+                    "projectRoot": str(project_root),
+                    "parent": epic_id,
+                },
+            )
+            feature_id = feature_result.data["id"]
+
+            task_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "task",
+                    "title": "Test Task",
+                    "projectRoot": str(project_root),
+                    "parent": feature_id,
+                },
+            )
+            task_id = task_result.data["id"]
+
+            # Set task status to in-progress
+            await client.call_tool(
+                "updateObject",
+                {
+                    "kind": "task",
+                    "id": task_id,
+                    "projectRoot": str(project_root),
+                    "yamlPatch": {"status": "in-progress"},
+                },
+            )
+
+            # Try to delete the epic - should raise ProtectedObjectError
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "updateObject",
+                    {
+                        "kind": "epic",
+                        "id": epic_id,
+                        "projectRoot": str(project_root),
+                        "yamlPatch": {"status": "deleted"},
+                    },
+                )
+
+            # Verify it's the correct error with expected message
+            error_message = str(exc_info.value)
+            assert "Cannot delete epic" in error_message
+            assert "has protected children" in error_message
+            assert "in-progress" in error_message
+
+    @pytest.mark.asyncio
+    async def test_delete_epic_with_review_task_raises_protected_object_error(self, temp_dir):
+        """Test that deleting an epic with review task raises ProtectedObjectError."""
+        project_root = temp_dir / "planning"
+
+        settings = Settings(planning_root=project_root.parent)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Create project → epic → feature → task hierarchy
+            project_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "project",
+                    "title": "Test Project",
+                    "projectRoot": str(project_root),
+                },
+            )
+            project_id = project_result.data["id"]
+
+            epic_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "epic",
+                    "title": "Test Epic",
+                    "projectRoot": str(project_root),
+                    "parent": project_id,
+                },
+            )
+            epic_id = epic_result.data["id"]
+
+            feature_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "feature",
+                    "title": "Test Feature",
+                    "projectRoot": str(project_root),
+                    "parent": epic_id,
+                },
+            )
+            feature_id = feature_result.data["id"]
+
+            task_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "task",
+                    "title": "Test Task",
+                    "projectRoot": str(project_root),
+                    "parent": feature_id,
+                },
+            )
+            task_id = task_result.data["id"]
+
+            # Set task status to in-progress first, then review
+            await client.call_tool(
+                "updateObject",
+                {
+                    "kind": "task",
+                    "id": task_id,
+                    "projectRoot": str(project_root),
+                    "yamlPatch": {"status": "in-progress"},
+                },
+            )
+
+            await client.call_tool(
+                "updateObject",
+                {
+                    "kind": "task",
+                    "id": task_id,
+                    "projectRoot": str(project_root),
+                    "yamlPatch": {"status": "review"},
+                },
+            )
+
+            # Try to delete the epic - should raise ProtectedObjectError
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "updateObject",
+                    {
+                        "kind": "epic",
+                        "id": epic_id,
+                        "projectRoot": str(project_root),
+                        "yamlPatch": {"status": "deleted"},
+                    },
+                )
+
+            # Verify it's the correct error with expected message
+            error_message = str(exc_info.value)
+            assert "Cannot delete epic" in error_message
+            assert "has protected children" in error_message
+            assert "review" in error_message
+
+    @pytest.mark.asyncio
+    async def test_delete_feature_with_in_progress_task_raises_protected_object_error(
+        self, temp_dir
+    ):
+        """Test that deleting a feature with in-progress task raises ProtectedObjectError."""
+        project_root = temp_dir / "planning"
+
+        settings = Settings(planning_root=project_root.parent)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Create project → epic → feature → task hierarchy
+            project_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "project",
+                    "title": "Test Project",
+                    "projectRoot": str(project_root),
+                },
+            )
+            project_id = project_result.data["id"]
+
+            epic_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "epic",
+                    "title": "Test Epic",
+                    "projectRoot": str(project_root),
+                    "parent": project_id,
+                },
+            )
+            epic_id = epic_result.data["id"]
+
+            feature_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "feature",
+                    "title": "Test Feature",
+                    "projectRoot": str(project_root),
+                    "parent": epic_id,
+                },
+            )
+            feature_id = feature_result.data["id"]
+
+            task_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "task",
+                    "title": "Test Task",
+                    "projectRoot": str(project_root),
+                    "parent": feature_id,
+                },
+            )
+            task_id = task_result.data["id"]
+
+            # Set task status to in-progress
+            await client.call_tool(
+                "updateObject",
+                {
+                    "kind": "task",
+                    "id": task_id,
+                    "projectRoot": str(project_root),
+                    "yamlPatch": {"status": "in-progress"},
+                },
+            )
+
+            # Try to delete the feature - should raise ProtectedObjectError
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "updateObject",
+                    {
+                        "kind": "feature",
+                        "id": feature_id,
+                        "projectRoot": str(project_root),
+                        "yamlPatch": {"status": "deleted"},
+                    },
+                )
+
+            # Verify it's the correct error with expected message
+            error_message = str(exc_info.value)
+            assert "Cannot delete feature" in error_message
+            assert "has protected children" in error_message
+            assert "in-progress" in error_message
+
+    @pytest.mark.asyncio
+    async def test_delete_project_with_nested_protected_children_raises_protected_object_error(
+        self, temp_dir
+    ):
+        """Test that deleting project with nested protected children raises ProtectedObjectError."""
+        project_root = temp_dir / "planning"
+
+        settings = Settings(planning_root=project_root.parent)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Create project → epic → feature → task hierarchy
+            project_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "project",
+                    "title": "Test Project",
+                    "projectRoot": str(project_root),
+                },
+            )
+            project_id = project_result.data["id"]
+
+            epic_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "epic",
+                    "title": "Test Epic",
+                    "projectRoot": str(project_root),
+                    "parent": project_id,
+                },
+            )
+            epic_id = epic_result.data["id"]
+
+            feature_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "feature",
+                    "title": "Test Feature",
+                    "projectRoot": str(project_root),
+                    "parent": epic_id,
+                },
+            )
+            feature_id = feature_result.data["id"]
+
+            # Create multiple tasks with different statuses
+            task1_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "task",
+                    "title": "Task 1",
+                    "projectRoot": str(project_root),
+                    "parent": feature_id,
+                },
+            )
+            task1_id = task1_result.data["id"]
+
+            task2_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "task",
+                    "title": "Task 2",
+                    "projectRoot": str(project_root),
+                    "parent": feature_id,
+                },
+            )
+            task2_id = task2_result.data["id"]
+
+            # Set one task to in-progress and another to review
+            await client.call_tool(
+                "updateObject",
+                {
+                    "kind": "task",
+                    "id": task1_id,
+                    "projectRoot": str(project_root),
+                    "yamlPatch": {"status": "in-progress"},
+                },
+            )
+
+            await client.call_tool(
+                "updateObject",
+                {
+                    "kind": "task",
+                    "id": task2_id,
+                    "projectRoot": str(project_root),
+                    "yamlPatch": {"status": "in-progress"},
+                },
+            )
+
+            await client.call_tool(
+                "updateObject",
+                {
+                    "kind": "task",
+                    "id": task2_id,
+                    "projectRoot": str(project_root),
+                    "yamlPatch": {"status": "review"},
+                },
+            )
+
+            # Try to delete the project - should raise ProtectedObjectError
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "updateObject",
+                    {
+                        "kind": "project",
+                        "id": project_id,
+                        "projectRoot": str(project_root),
+                        "yamlPatch": {"status": "deleted"},
+                    },
+                )
+
+            # Verify it's the correct error with expected message
+            error_message = str(exc_info.value)
+            assert "Cannot delete project" in error_message
+            assert "has protected children" in error_message
+            # Should mention both protected children
+            assert task1_id in error_message or task2_id in error_message
+
+    @pytest.mark.asyncio
+    async def test_delete_with_force_bypasses_protected_object_error(self, temp_dir):
+        """Test that deleting with force=True bypasses ProtectedObjectError."""
+        project_root = temp_dir / "planning"
+
+        settings = Settings(planning_root=project_root.parent)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Create project → epic → feature → task hierarchy
+            project_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "project",
+                    "title": "Test Project",
+                    "projectRoot": str(project_root),
+                },
+            )
+            project_id = project_result.data["id"]
+
+            epic_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "epic",
+                    "title": "Test Epic",
+                    "projectRoot": str(project_root),
+                    "parent": project_id,
+                },
+            )
+            epic_id = epic_result.data["id"]
+
+            feature_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "feature",
+                    "title": "Test Feature",
+                    "projectRoot": str(project_root),
+                    "parent": epic_id,
+                },
+            )
+            feature_id = feature_result.data["id"]
+
+            task_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "task",
+                    "title": "Test Task",
+                    "projectRoot": str(project_root),
+                    "parent": feature_id,
+                },
+            )
+            task_id = task_result.data["id"]
+
+            # Set task status to in-progress
+            await client.call_tool(
+                "updateObject",
+                {
+                    "kind": "task",
+                    "id": task_id,
+                    "projectRoot": str(project_root),
+                    "yamlPatch": {"status": "in-progress"},
+                },
+            )
+
+            # Delete the epic with force=True - should succeed
+            result = await client.call_tool(
+                "updateObject",
+                {
+                    "kind": "epic",
+                    "id": epic_id,
+                    "projectRoot": str(project_root),
+                    "yamlPatch": {"status": "deleted"},
+                    "force": True,
+                },
+            )
+
+            # Verify the deletion succeeded
+            assert result.data["changes"]["status"] == "deleted"
+            assert "cascade_deleted" in result.data["changes"]
+            assert len(result.data["changes"]["cascade_deleted"]) > 0

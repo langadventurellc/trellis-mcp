@@ -4,6 +4,7 @@ Provides utilities for filesystem operations required by the Trellis MCP server,
 including directory creation, path handling, and object discovery.
 """
 
+import shutil
 from pathlib import Path
 from typing import Final
 
@@ -166,3 +167,86 @@ def find_object_path(kind: str, obj_id: str, project_root: Path) -> Path | None:
 
     # This should never be reached due to validation above
     raise ValueError(f"Unsupported kind: {kind}")
+
+
+def recursive_delete(path: Path, dry_run: bool = False) -> list[Path]:
+    """Recursively delete a directory or file with optional dry-run mode.
+
+    Provides a safe way to recursively delete files and directories with a dry-run
+    option to preview what would be deleted. Returns a list of paths that were
+    deleted (or would be deleted in dry-run mode).
+
+    Args:
+        path: Path to the file or directory to delete
+        dry_run: If True, don't actually delete anything, just return what would be deleted
+
+    Returns:
+        List of Path objects that were deleted (or would be deleted in dry-run mode).
+        The paths are returned in the order they would be processed (children before parents).
+
+    Raises:
+        TypeError: If path is not a pathlib.Path object
+        ValueError: If path is empty or contains invalid characters
+        OSError: If there are permission issues accessing or deleting files (not in dry-run mode)
+        FileNotFoundError: If the path doesn't exist
+
+    Example:
+        >>> # Dry-run mode - preview what would be deleted
+        >>> target_dir = Path("planning/projects/P-old-project")
+        >>> paths_to_delete = recursive_delete(target_dir, dry_run=True)
+        >>> print(f"Would delete {len(paths_to_delete)} items")
+
+        >>> # Actual deletion
+        >>> deleted_paths = recursive_delete(target_dir, dry_run=False)
+        >>> print(f"Deleted {len(deleted_paths)} items")
+
+    Security Notes:
+        - Validates input path to prevent directory traversal attacks
+        - Only allows deletion of paths that exist and are accessible
+        - Uses shutil.rmtree for safe directory removal
+    """
+    # Validate input type
+    if not isinstance(path, Path):
+        raise TypeError(f"Expected pathlib.Path object, got {type(path)}")
+
+    # Convert to absolute path to prevent relative path issues
+    abs_path = path.resolve()
+
+    # Check if path exists
+    if not abs_path.exists():
+        raise FileNotFoundError(f"Path does not exist: {abs_path}")
+
+    # Security check - ensure path is reasonable and doesn't contain dangerous patterns
+    path_str = str(abs_path)
+    if ".." in path_str or path_str.startswith("/") and len(path_str.split("/")) < 3:
+        raise ValueError(f"Invalid or potentially dangerous path: {abs_path}")
+
+    # Collect all paths that will be deleted
+    paths_to_delete = []
+
+    if abs_path.is_file():
+        # Single file deletion
+        paths_to_delete.append(abs_path)
+        if not dry_run:
+            abs_path.unlink()
+    elif abs_path.is_dir():
+        # Directory deletion - collect all paths first
+        for root, dirs, files in abs_path.walk():
+            # Add files first (depth-first traversal)
+            for file in files:
+                file_path = root / file
+                paths_to_delete.append(file_path)
+
+            # Add directory itself
+            paths_to_delete.append(root)
+
+        # Sort by depth (deepest first) to ensure proper deletion order
+        paths_to_delete.sort(key=lambda p: (len(p.parts), str(p)), reverse=True)
+
+        if not dry_run:
+            # Use shutil.rmtree for safe recursive directory removal
+            shutil.rmtree(abs_path)
+    else:
+        raise ValueError(f"Path is neither a file nor directory: {abs_path}")
+
+    return paths_to_delete

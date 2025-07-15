@@ -21,7 +21,7 @@ class ProjectModel(BaseSchemaModel):
 
     # Status transition matrix for projects
     _valid_transitions = {
-        StatusEnum.DRAFT: {StatusEnum.IN_PROGRESS},
-        StatusEnum.IN_PROGRESS: {StatusEnum.DONE},
-        StatusEnum.DONE: set(),  # No transitions from done
+        StatusEnum.DRAFT: {StatusEnum.IN_PROGRESS, StatusEnum.DELETED},
+        StatusEnum.IN_PROGRESS: {StatusEnum.DONE, StatusEnum.DELETED},
+        StatusEnum.DONE: {StatusEnum.DELETED},  # Only deletion allowed from done
     }

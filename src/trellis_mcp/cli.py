@@ -14,7 +14,7 @@ from .filters import apply_filters, filter_by_scope
 from .loader import ConfigLoader
 from .models.filter_params import FilterParams
 from .models.task_sort_key import task_sort_key
-from .path_resolver import id_to_path, resolve_project_roots
+from .path_resolver import children_of, id_to_path, resolve_project_roots
 from .scanner import scan_tasks
 from .server import create_server
 
@@ -347,3 +347,112 @@ def backlog(
         if settings.debug_mode:
             raise
         raise click.ClickException(f"Failed to list backlog: {e}")
+
+
+@cli.command()
+@click.argument(
+    "kind", type=click.Choice(["project", "epic", "feature", "task"], case_sensitive=False)
+)
+@click.argument("object_id", type=str)
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Force deletion even if object has protected children (tasks in in-progress or review)",
+)
+@click.pass_context
+def delete(ctx: click.Context, kind: str, object_id: str, force: bool) -> None:
+    """Delete a project, epic, feature, or task.
+
+    Deletes the specified object and all its children. By default, deletion is
+    blocked if the object has any child tasks with status 'in-progress' or 'review'.
+    Use --force to override this safety check.
+
+    KIND: Type of object to delete (project, epic, feature, task)
+    OBJECT_ID: ID of the object to delete (with or without prefix)
+
+    Examples:
+      trellis-mcp delete project P-001
+      trellis-mcp delete epic E-001 --force
+      trellis-mcp delete feature F-001
+      trellis-mcp delete task T-001
+    """
+    settings = ctx.obj["settings"]
+
+    try:
+        # Create server instance to access the updateObject tool
+        server = create_server(settings)
+
+        # Clean the object ID (remove prefix if present)
+        clean_id = object_id.strip()
+        if clean_id.startswith(("P-", "E-", "F-", "T-")):
+            clean_id = clean_id[2:]
+
+        # Get descendants to show count in confirmation
+        try:
+            child_paths = children_of(kind.lower(), clean_id, settings.planning_root)
+            descendant_count = len(child_paths)
+        except Exception:
+            # If we can't get descendants, assume 0 (object might not exist yet)
+            descendant_count = 0
+
+        # Show confirmation prompt
+        if descendant_count > 0:
+            confirmation_msg = (
+                f"⚠️  Delete {kind.capitalize()} {object_id} and "
+                f"{descendant_count} descendants? [y/N]"
+            )
+        else:
+            confirmation_msg = f"⚠️  Delete {kind.capitalize()} {object_id}? [y/N]"
+
+        click.confirm(confirmation_msg, abort=True)
+
+        # Call the updateObject tool through the client
+        import asyncio
+
+        from fastmcp import Client
+
+        async def delete_object():
+            async with Client(server) as client:
+                result = await client.call_tool(
+                    "updateObject",
+                    {
+                        "kind": kind.lower(),
+                        "id": object_id,
+                        "projectRoot": str(settings.planning_root),
+                        "yamlPatch": {"status": "deleted"},
+                        "force": force,
+                    },
+                )
+                return result.data
+
+        # Check if we're already in an event loop
+        try:
+            loop = asyncio.get_running_loop()
+            # If we're in a running loop, create a task and wait for it
+            task = asyncio.create_task(delete_object())
+            # This will run in the existing event loop
+            result = loop.run_until_complete(task)
+        except RuntimeError:
+            # No running loop, use asyncio.run()
+            result = asyncio.run(delete_object())
+
+        # Extract cascade_deleted from result if it exists
+        cascade_deleted = result.get("changes", {}).get("cascade_deleted", [])
+
+        click.echo(f"✓ Deleted {kind} {object_id}")
+
+        if cascade_deleted:
+            click.echo(f"  Cascade deleted {len(cascade_deleted)} items:")
+            for path in cascade_deleted:
+                click.echo(f"    - {path}")
+
+        if force:
+            click.echo("  Used --force to override protected children")
+
+    except click.Abort:
+        # User cancelled the confirmation, exit gracefully
+        return
+    except Exception as e:
+        if settings.debug_mode:
+            raise
+        raise click.ClickException(f"Failed to delete {kind} {object_id}: {e}")

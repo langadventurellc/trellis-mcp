@@ -12,16 +12,23 @@ from fastmcp import FastMCP
 
 from .claim_next_task import claim_next_task
 from .complete_task import complete_task
+from .exceptions.cascade_error import CascadeError
 from .exceptions.invalid_status_for_completion import InvalidStatusForCompletion
 from .exceptions.no_available_task import NoAvailableTask
+from .exceptions.protected_object_error import ProtectedObjectError
 from .filters import apply_filters, filter_by_scope
-from .fs_utils import ensure_parent_dirs
+from .fs_utils import ensure_parent_dirs, recursive_delete
 from .graph_utils import DependencyGraph
 from .id_utils import generate_id
 from .io_utils import read_markdown, write_markdown
 from .models.filter_params import FilterParams
 from .models.task_sort_key import task_sort_key
-from .path_resolver import id_to_path, resolve_path_for_new_object, resolve_project_roots
+from .path_resolver import (
+    children_of,
+    id_to_path,
+    resolve_path_for_new_object,
+    resolve_project_roots,
+)
 from .query import get_oldest_review
 from .scanner import scan_tasks
 from .settings import Settings
@@ -371,6 +378,7 @@ def create_server(settings: Settings) -> FastMCP:
         projectRoot: str,
         yamlPatch: dict[str, str | list[str] | None] | None = None,
         bodyPatch: str | None = None,
+        force: bool = False,
     ) -> dict[str, str | dict[str, str | list[str] | bool]]:
         """Update a Trellis MCP object by applying patches to YAML front-matter and/or body content.
 
@@ -385,6 +393,7 @@ def create_server(settings: Settings) -> FastMCP:
             projectRoot: Root directory for the planning structure
             yamlPatch: Optional dictionary of YAML fields to update/merge
             bodyPatch: Optional new body content to replace existing body
+            force: If True, bypass safeguards when deleting objects with protected children
 
         Returns:
             Dictionary containing the updated object information with structure:
@@ -485,6 +494,74 @@ def create_server(settings: Settings) -> FastMCP:
                 enforce_status_transition(original_status, new_status, kind)
             except ValueError as e:
                 raise TrellisValidationError([f"Status transition validation failed: {str(e)}"])
+
+        # Handle cascade deletion when status is set to 'deleted'
+        if new_status == "deleted":
+            try:
+                # Find all children of the object being deleted
+                child_paths = children_of(kind, clean_id, project_root_path)
+
+                # Check for protected children (tasks with in-progress or review status)
+                protected_children = []
+                for child_path in child_paths:
+                    try:
+                        # Only check task files for protected status
+                        if child_path.name.endswith(".md") and "/tasks-" in str(child_path):
+                            child_yaml, _ = read_markdown(child_path)
+                            child_status = child_yaml.get("status")
+                            if child_status in ["in-progress", "review"]:
+                                protected_children.append(
+                                    {
+                                        "path": str(child_path),
+                                        "id": child_yaml.get("id", "unknown"),
+                                        "status": child_status,
+                                    }
+                                )
+                    except Exception:
+                        # Skip files that can't be read/parsed
+                        continue
+
+                # If protected children exist, raise ProtectedObjectError unless force=True
+                if protected_children and not force:
+                    protected_ids = [child["id"] for child in protected_children]
+                    raise ProtectedObjectError(
+                        f"Cannot delete {kind} {clean_id}: has protected children {protected_ids} "
+                        f"in 'in-progress' or 'review' status"
+                    )
+
+                # Perform cascade deletion
+                # First, add the object's own file to the deletion list
+                paths_to_delete = [file_path] + child_paths
+
+                # Use recursive_delete to remove all paths
+                deleted_paths = []
+                for path in paths_to_delete:
+                    if path.exists():
+                        try:
+                            # Use recursive_delete for each path
+                            path_deleted = recursive_delete(path, dry_run=False)
+                            deleted_paths.extend(path_deleted)
+                        except Exception as e:
+                            raise CascadeError(f"Failed to delete {path}: {str(e)}")
+
+                # Return cascade deletion result
+                return {
+                    "id": clean_id,
+                    "kind": kind,
+                    "file_path": str(file_path),
+                    "updated": updated_yaml["updated"],
+                    "changes": {
+                        "status": "deleted",
+                        "cascade_deleted": [str(p) for p in deleted_paths],
+                    },
+                }
+
+            except (CascadeError, ProtectedObjectError) as e:
+                # Wrap cascade-specific errors in TrellisValidationError
+                raise TrellisValidationError([str(e)])
+            except Exception as e:
+                # Wrap other errors in TrellisValidationError
+                raise TrellisValidationError([f"Cascade deletion failed: {str(e)}"])
 
         # Write the updated file atomically
         try:
