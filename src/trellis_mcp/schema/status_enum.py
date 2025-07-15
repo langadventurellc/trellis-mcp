@@ -3,8 +3,6 @@
 Defines the valid status values for objects in their lifecycle.
 """
 
-from __future__ import annotations
-
 from enum import Enum
 
 

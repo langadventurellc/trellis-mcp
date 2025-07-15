@@ -4,8 +4,6 @@ Main command-line interface for the Trellis MCP server using Click.
 Provides the foundation command group for all CLI operations.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import click

@@ -5,8 +5,6 @@ files and dumping them back to markdown format. Each object kind (project,
 epic, feature, task) should maintain data integrity through the load/dump cycle.
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 from pathlib import Path
 
@@ -16,7 +14,7 @@ from trellis_mcp.object_parser import parse_object
 from trellis_mcp.schema.epic import EpicModel
 from trellis_mcp.schema.feature import FeatureModel
 from trellis_mcp.schema.kind_enum import KindEnum
-from trellis_mcp.schema.priority_enum import PriorityEnum
+from trellis_mcp.models.common import Priority
 from trellis_mcp.schema.project import ProjectModel
 from trellis_mcp.schema.status_enum import StatusEnum
 from trellis_mcp.schema.task import TaskModel
@@ -35,7 +33,7 @@ class TestObjectRoundTrip:
             parent=None,
             status=StatusEnum.DRAFT,
             title="Test Project",
-            priority=PriorityEnum.NORMAL,
+            priority=Priority.NORMAL,
             prerequisites=[],
             worktree=None,
             created=now,
@@ -78,7 +76,7 @@ class TestObjectRoundTrip:
             parent=None,
             status=StatusEnum.IN_PROGRESS,
             title="Full Test Project",
-            priority=PriorityEnum.HIGH,
+            priority=Priority.HIGH,
             prerequisites=["other-project"],
             worktree="/path/to/worktree",
             created=now,
@@ -120,7 +118,7 @@ class TestObjectRoundTrip:
             parent="test-project",
             status=StatusEnum.DRAFT,
             title="Test Epic",
-            priority=PriorityEnum.NORMAL,
+            priority=Priority.NORMAL,
             prerequisites=[],
             worktree=None,
             created=now,
@@ -162,7 +160,7 @@ class TestObjectRoundTrip:
             parent="parent-project",
             status=StatusEnum.DONE,
             title="Full Test Epic",
-            priority=PriorityEnum.LOW,
+            priority=Priority.LOW,
             prerequisites=["other-epic-1", "other-epic-2"],
             worktree="/path/to/epic/worktree",
             created=now,
@@ -204,7 +202,7 @@ class TestObjectRoundTrip:
             parent="test-epic",
             status=StatusEnum.DRAFT,
             title="Test Feature",
-            priority=PriorityEnum.NORMAL,
+            priority=Priority.NORMAL,
             prerequisites=[],
             worktree=None,
             created=now,
@@ -246,7 +244,7 @@ class TestObjectRoundTrip:
             parent="parent-epic",
             status=StatusEnum.IN_PROGRESS,
             title="Full Test Feature",
-            priority=PriorityEnum.HIGH,
+            priority=Priority.HIGH,
             prerequisites=["prereq-feature-1", "prereq-feature-2", "prereq-feature-3"],
             worktree="/path/to/feature/worktree",
             created=now,
@@ -288,7 +286,7 @@ class TestObjectRoundTrip:
             parent="test-feature",
             status=StatusEnum.OPEN,
             title="Test Task",
-            priority=PriorityEnum.NORMAL,
+            priority=Priority.NORMAL,
             prerequisites=[],
             worktree=None,
             created=now,
@@ -330,7 +328,7 @@ class TestObjectRoundTrip:
             parent="parent-feature",
             status=StatusEnum.REVIEW,
             title="Full Test Task",
-            priority=PriorityEnum.HIGH,
+            priority=Priority.HIGH,
             prerequisites=["prereq-task-1", "prereq-task-2"],
             worktree="/path/to/task/worktree",
             created=now,
@@ -372,7 +370,7 @@ class TestObjectRoundTrip:
             parent="test-feature",
             status=StatusEnum.IN_PROGRESS,
             title="Multi-Roundtrip Task",
-            priority=PriorityEnum.NORMAL,
+            priority=Priority.NORMAL,
             prerequisites=["prereq-1", "prereq-2"],
             worktree="/path/to/worktree",
             created=now,
@@ -417,7 +415,7 @@ class TestObjectRoundTrip:
             parent="test-feature",
             status=StatusEnum.OPEN,
             title="Task with Empty Prerequisites",
-            priority=PriorityEnum.NORMAL,
+            priority=Priority.NORMAL,
             prerequisites=[],  # Explicitly empty
             worktree=None,
             created=now,
@@ -449,7 +447,7 @@ class TestObjectRoundTrip:
             parent=None,
             status=StatusEnum.DRAFT,
             title="Project with Null Worktree",
-            priority=PriorityEnum.NORMAL,
+            priority=Priority.NORMAL,
             prerequisites=[],
             worktree=None,  # Explicitly null
             created=now,
@@ -484,7 +482,7 @@ class TestObjectRoundTrip:
                 parent=None,
                 status=status,
                 title=f"Project with {status.value} Status",
-                priority=PriorityEnum.NORMAL,
+                priority=Priority.NORMAL,
                 prerequisites=[],
                 worktree=None,
                 created=now,
@@ -515,7 +513,7 @@ class TestObjectRoundTrip:
                 parent="test-feature",
                 status=status,
                 title=f"Task with {status.value} Status",
-                priority=PriorityEnum.NORMAL,
+                priority=Priority.NORMAL,
                 prerequisites=[],
                 worktree=None,
                 created=now,
@@ -536,7 +534,7 @@ class TestObjectRoundTrip:
         """Test round-trip behavior for all priority values."""
         now = datetime.now()
 
-        priorities = [PriorityEnum.HIGH, PriorityEnum.NORMAL, PriorityEnum.LOW]
+        priorities = [Priority.HIGH, Priority.NORMAL, Priority.LOW]
         for priority in priorities:
             feature = FeatureModel(
                 kind=KindEnum.FEATURE,
@@ -572,7 +570,7 @@ class TestObjectRoundTrip:
             parent="test-project",
             status=StatusEnum.IN_PROGRESS,
             title="Epic with Complex Prerequisites",
-            priority=PriorityEnum.NORMAL,
+            priority=Priority.NORMAL,
             prerequisites=[
                 "E-first-epic",
                 "second-epic",
@@ -614,7 +612,7 @@ class TestObjectRoundTrip:
             parent="test-feature",
             status=StatusEnum.OPEN,
             title="DateTime Precision Test Task",
-            priority=PriorityEnum.NORMAL,
+            priority=Priority.NORMAL,
             prerequisites=[],
             worktree=None,
             created=created_time,

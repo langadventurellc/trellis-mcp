@@ -3,8 +3,6 @@
 Provides common fields and validation for all Trellis MCP schema objects.
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 from typing import ClassVar, Dict, List, Literal, Optional, Set
 from typing_extensions import Self
@@ -13,8 +11,8 @@ from pydantic import Field, ValidationInfo, field_validator, model_validator
 
 from .base import TrellisBaseModel
 from .kind_enum import KindEnum
-from .priority_enum import PriorityEnum
 from .status_enum import StatusEnum
+from ..models.common import Priority
 
 
 class BaseSchemaModel(TrellisBaseModel):
@@ -34,9 +32,7 @@ class BaseSchemaModel(TrellisBaseModel):
     )
     status: StatusEnum = Field(..., description="Current status of the object")
     title: str = Field(..., description="Human-readable title")
-    priority: PriorityEnum = Field(
-        PriorityEnum.NORMAL, description="Priority level (default: normal)"
-    )
+    priority: Priority = Field(Priority.NORMAL, description="Priority level (default: normal)")
     prerequisites: List[str] = Field(
         default_factory=list, description="List of prerequisite object IDs"
     )

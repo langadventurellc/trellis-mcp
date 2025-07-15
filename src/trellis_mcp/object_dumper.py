@@ -1,7 +1,5 @@
 """Object dumper for Trellis MCP - converts model instances to markdown with YAML front-matter."""
 
-from __future__ import annotations
-
 import os
 import tempfile
 from datetime import datetime

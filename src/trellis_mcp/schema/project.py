@@ -3,8 +3,6 @@
 Defines the schema for project objects in the Trellis MCP hierarchy.
 """
 
-from __future__ import annotations
-
 from pydantic import Field
 
 from .base_schema import BaseSchemaModel

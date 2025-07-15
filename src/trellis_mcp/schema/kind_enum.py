@@ -3,8 +3,6 @@
 Defines the valid object types in the Trellis MCP hierarchy.
 """
 
-from __future__ import annotations
-
 from enum import Enum
 
 

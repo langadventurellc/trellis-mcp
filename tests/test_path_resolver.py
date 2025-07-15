@@ -4,8 +4,6 @@ Tests the id_to_path function that converts object IDs to filesystem paths
 within the hierarchical project structure.
 """
 
-from __future__ import annotations
-
 import pytest
 
 from trellis_mcp.path_resolver import id_to_path, path_to_id

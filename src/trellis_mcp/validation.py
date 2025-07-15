@@ -4,8 +4,6 @@ This module provides validation functions for checking object relationships
 and constraints beyond basic field validation.
 """
 
-from __future__ import annotations
-
 import logging
 import os
 import time
@@ -18,7 +16,7 @@ from .path_resolver import id_to_path
 from .id_utils import clean_prerequisite_id
 from .schema.kind_enum import KindEnum
 from .schema.status_enum import StatusEnum
-from .schema.priority_enum import PriorityEnum
+from .models.common import Priority
 
 # Configure logger for this module
 logger = logging.getLogger(__name__)
@@ -767,7 +765,7 @@ def validate_enum_membership(data: Dict[str, Any]) -> List[str]:
                         f"Invalid status '{input_value}'. Must be one of: {valid_statuses}"
                     )
                 elif "priority" in str(field):
-                    valid_priorities = [p.value for p in PriorityEnum]
+                    valid_priorities = [str(p) for p in Priority]
                     errors.append(
                         f"Invalid priority '{input_value}'. Must be one of: {valid_priorities}"
                     )
@@ -802,12 +800,41 @@ def _validate_enum_membership_manual(data: Dict[str, Any]) -> List[str]:
     # Validate priority enum
     if "priority" in data:
         try:
-            PriorityEnum(data["priority"])
+            Priority(data["priority"])
         except ValueError:
-            valid_priorities = [p.value for p in PriorityEnum]
+            valid_priorities = [str(p) for p in Priority]
             errors.append(
                 f"Invalid priority '{data['priority']}'. Must be one of: {valid_priorities}"
             )
+
+    return errors
+
+
+def validate_priority_field(data: Dict[str, Any]) -> List[str]:
+    """Validate priority field and set default value if missing.
+
+    This function explicitly validates the priority field in YAML data and
+    ensures that the default value 'normal' is set if the field is missing.
+
+    Args:
+        data: The object data dictionary (will be modified in-place)
+
+    Returns:
+        List of validation errors (empty if valid)
+    """
+    errors = []
+
+    # Set default priority if missing
+    if "priority" not in data or data["priority"] is None:
+        data["priority"] = str(Priority.NORMAL)
+
+    # Validate priority field value
+    priority_value = data["priority"]
+    try:
+        Priority(priority_value)
+    except ValueError:
+        valid_priorities = [str(p) for p in Priority]
+        errors.append(f"Invalid priority '{priority_value}'. Must be one of: {valid_priorities}")
 
     return errors
 
@@ -957,7 +984,7 @@ def validate_object_data(data: Dict[str, Any], project_root: str | Path) -> None
                         f"Invalid status '{input_value}'. Must be one of: {valid_statuses}"
                     )
                 elif "priority" in str(field):
-                    valid_priorities = [p.value for p in PriorityEnum]
+                    valid_priorities = [str(p) for p in Priority]
                     errors.append(
                         f"Invalid priority '{input_value}'. Must be one of: {valid_priorities}"
                     )
@@ -1101,6 +1128,9 @@ def validate_front_matter(yaml_dict: Dict[str, Any], kind: str | KindEnum) -> Li
     """
     from .schema import get_model_class_for_kind
 
+    # Validate priority field and set default value if missing
+    priority_errors = validate_priority_field(yaml_dict)
+
     try:
         # Get the appropriate model class for this kind
         model_class = get_model_class_for_kind(kind)
@@ -1113,8 +1143,8 @@ def validate_front_matter(yaml_dict: Dict[str, Any], kind: str | KindEnum) -> Li
         filtered_dict = {k: v for k, v in yaml_dict.items() if k in model_fields}
         model_class.model_validate(filtered_dict)
 
-        # If validation succeeds, return no errors
-        return []
+        # If validation succeeds, return only priority errors (if any)
+        return priority_errors
 
     except ValidationError as e:
         # Convert Pydantic validation errors to string list
@@ -1145,10 +1175,12 @@ def validate_front_matter(yaml_dict: Dict[str, Any], kind: str | KindEnum) -> Li
                         f"Invalid status '{input_value}'. Must be one of: {valid_statuses}"
                     )
                 elif "priority" in str(field):
-                    valid_priorities = [p.value for p in PriorityEnum]
-                    errors.append(
-                        f"Invalid priority '{input_value}'. Must be one of: {valid_priorities}"
-                    )
+                    # Skip priority errors if they were already handled by explicit validation
+                    if not priority_errors:
+                        valid_priorities = [str(p) for p in Priority]
+                        errors.append(
+                            f"Invalid priority '{input_value}'. Must be one of: {valid_priorities}"
+                        )
                 else:
                     errors.append(msg)
             elif error_type == "value_error":
@@ -1184,7 +1216,9 @@ def validate_front_matter(yaml_dict: Dict[str, Any], kind: str | KindEnum) -> Li
         if missing_fields:
             errors.insert(0, f"Missing required fields: {', '.join(missing_fields)}")
 
-        return errors
+        # Combine priority validation errors with Pydantic validation errors
+        all_errors = priority_errors + errors
+        return all_errors
 
     except ValueError as e:
         # Handle invalid kind from get_model_class_for_kind

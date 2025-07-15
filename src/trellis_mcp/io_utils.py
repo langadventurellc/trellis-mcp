@@ -3,8 +3,6 @@
 This module provides utilities for reading and writing markdown files with YAML front-matter.
 """
 
-from __future__ import annotations
-
 import os
 import tempfile
 from datetime import datetime
@@ -143,6 +141,8 @@ def _serialize_yaml_dict(yaml_dict: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dictionary with properly serialized values for YAML
     """
+    from .models.common import Priority
+
     serialized = {}
 
     for key, value in yaml_dict.items():
@@ -150,7 +150,10 @@ def _serialize_yaml_dict(yaml_dict: Dict[str, Any]) -> Dict[str, Any]:
             serialized[key] = None
         elif isinstance(value, datetime):
             serialized[key] = value.isoformat()
-        elif hasattr(value, "value"):  # Enum objects
+        elif isinstance(value, Priority):
+            # Special handling for Priority enum to get string representation
+            serialized[key] = str(value)
+        elif hasattr(value, "value"):  # Other enum objects
             serialized[key] = value.value
         else:
             serialized[key] = value

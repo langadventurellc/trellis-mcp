@@ -12,10 +12,10 @@ from .base_schema import BaseSchemaModel
 from .epic import EpicModel
 from .feature import FeatureModel
 from .kind_enum import KindEnum
-from .priority_enum import PriorityEnum
 from .project import ProjectModel
 from .status_enum import StatusEnum
 from .task import TaskModel
+from ..models.common import Priority
 
 
 def get_model_class_for_kind(kind: str | KindEnum) -> Type[BaseSchemaModel]:
@@ -58,7 +58,7 @@ __all__ = [
     "EpicModel",
     "FeatureModel",
     "KindEnum",
-    "PriorityEnum",
+    "Priority",
     "ProjectModel",
     "StatusEnum",
     "TaskModel",

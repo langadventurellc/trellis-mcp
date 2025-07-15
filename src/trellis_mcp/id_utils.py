@@ -5,8 +5,6 @@ slugification, charset validation, and length constraints for the hierarchical
 object structure (Projects → Epics → Features → Tasks).
 """
 
-from __future__ import annotations
-
 import re
 from pathlib import Path
 from typing import Final

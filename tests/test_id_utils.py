@@ -4,8 +4,6 @@ Tests the slugify helper, charset validation, and length validation
 functions for Trellis MCP object IDs.
 """
 
-from __future__ import annotations
-
 import pytest
 
 from trellis_mcp.id_utils import (

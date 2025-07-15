@@ -5,8 +5,6 @@ correctly with a realistic repository structure containing ~6 objects
 across the full project hierarchy.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 import pytest
 from datetime import datetime

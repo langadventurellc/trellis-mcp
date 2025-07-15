@@ -5,8 +5,6 @@ test suite, including temporary directories, configuration helpers, and
 mock utilities.
 """
 
-from __future__ import annotations
-
 import tempfile
 from pathlib import Path
 from typing import Generator

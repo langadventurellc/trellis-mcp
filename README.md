@@ -34,6 +34,23 @@ uv pip install -e .
    trellis-mcp serve --http localhost:8000
    ```
 
+3. **Create objects with priority fields:**
+   ```yaml
+   # Task with high priority
+   kind: task
+   id: T-setup-auth
+   title: Set up authentication system
+   priority: high
+   status: open
+   
+   # Feature with normal priority (default)
+   kind: feature  
+   id: F-user-management
+   title: User management system
+   priority: normal
+   status: open
+   ```
+
 ## Requirements
 
 - Python 3.12+
