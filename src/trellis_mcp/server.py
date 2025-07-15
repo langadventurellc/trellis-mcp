@@ -21,12 +21,12 @@ from .validation import (
     check_prereq_cycles,
     check_prereq_cycles_in_memory,
     enforce_status_transition,
-    get_all_objects,
-    build_prerequisites_graph,
     TrellisValidationError,
     CircularDependencyError,
 )
 from .models.common import Priority
+from .claim_next_task import claim_next_task
+from .exceptions.no_available_task import NoAvailableTask
 
 
 def create_server(settings: Settings) -> FastMCP:
@@ -711,7 +711,7 @@ def create_server(settings: Settings) -> FastMCP:
     def claimNextTask(
         projectRoot: str,
         worktree: str | None = None,
-    ) -> dict[str, str | dict[str, str | list[str] | None]]:
+    ) -> dict[str, str | dict[str, str]]:
         """Claim the next highest-priority open task with all prerequisites completed.
 
         Atomically selects the highest-priority open task (where all prerequisites
@@ -732,161 +732,40 @@ def create_server(settings: Settings) -> FastMCP:
             TrellisValidationError: If no eligible tasks are available
             OSError: If file operations fail
         """
-        # Load all objects to check prerequisites
-        try:
-            all_objects_result = get_all_objects(projectRoot)
-            # Handle both tuple and dict return types
-            if isinstance(all_objects_result, tuple):
-                all_objects, _ = all_objects_result
-            else:
-                all_objects = all_objects_result
-        except Exception as e:
-            raise TrellisValidationError([f"Failed to load objects: {str(e)}"])
+        # Basic parameter validation
+        if not projectRoot or not projectRoot.strip():
+            raise ValueError("Project root cannot be empty")
 
-        # Build prerequisite graph
+        # Call the core claim_next_task function
         try:
-            prereq_graph = build_prerequisites_graph(all_objects)
+            claimed_task = claim_next_task(projectRoot, worktree)
+        except NoAvailableTask as e:
+            raise TrellisValidationError([str(e)])
         except Exception as e:
-            raise TrellisValidationError([f"Failed to build prerequisite graph: {str(e)}"])
+            raise TrellisValidationError([f"Failed to claim task: {str(e)}"])
 
-        # Get all open tasks by traversing directory structure (same as listBacklog)
-        candidate_tasks = []
+        # Convert TaskModel to the expected dictionary format
         project_root_path = Path(projectRoot)
-        projects_dir = project_root_path / "projects"
+        task_file_path = id_to_path(project_root_path, "task", claimed_task.id)
 
-        if projects_dir.exists():
-            # Traverse: projects -> epics -> features -> tasks-open
-            for project_dir in projects_dir.iterdir():
-                if not project_dir.is_dir() or not project_dir.name.startswith("P-"):
-                    continue
+        # Build task dictionary in the format expected by the API
+        task_dict = {
+            "id": claimed_task.id,
+            "title": claimed_task.title,
+            "status": claimed_task.status.value,
+            "priority": str(claimed_task.priority),
+            "parent": claimed_task.parent or "",
+            "file_path": str(task_file_path),
+            "created": claimed_task.created.isoformat(),
+            "updated": claimed_task.updated.isoformat(),
+        }
 
-                epics_dir = project_dir / "epics"
-                if not epics_dir.exists():
-                    continue
-
-                for epic_dir in epics_dir.iterdir():
-                    if not epic_dir.is_dir() or not epic_dir.name.startswith("E-"):
-                        continue
-
-                    features_dir = epic_dir / "features"
-                    if not features_dir.exists():
-                        continue
-
-                    for feature_dir in features_dir.iterdir():
-                        if not feature_dir.is_dir() or not feature_dir.name.startswith("F-"):
-                            continue
-
-                        # Only check tasks-open directory for open tasks
-                        task_dir = feature_dir / "tasks-open"
-                        if not task_dir.exists():
-                            continue
-
-                        for task_file in task_dir.iterdir():
-                            if not task_file.is_file() or not task_file.name.endswith(".md"):
-                                continue
-
-                            # Parse task filename: T-{id}.md
-                            if not task_file.name.startswith("T-"):
-                                continue
-
-                            task_id = task_file.name[:-3]  # Remove .md suffix but keep T- prefix
-
-                            # Read and parse task file
-                            try:
-                                yaml_dict, body_str = read_markdown(task_file)
-                                task_status = yaml_dict.get("status", "")
-
-                                # Only include open tasks
-                                if task_status == "open":
-                                    task_data = {
-                                        "id": task_id,
-                                        "title": yaml_dict.get("title", ""),
-                                        "status": task_status,
-                                        "priority": yaml_dict.get("priority", "normal"),
-                                        "parent": yaml_dict.get("parent", ""),
-                                        "file_path": str(task_file),
-                                        "created": str(yaml_dict.get("created", "")),
-                                        "updated": str(yaml_dict.get("updated", "")),
-                                    }
-                                    candidate_tasks.append(task_data)
-                            except Exception:
-                                # Skip files that can't be parsed
-                                continue
-
-        # Sort tasks by priority (high -> normal -> low) and then by creation date
-        def sort_key(task):
-            try:
-                priority_value = Priority[task["priority"].upper()].value
-            except (KeyError, AttributeError):
-                priority_value = Priority.NORMAL.value
-            return (priority_value, task["created"])
-
-        candidate_tasks.sort(key=sort_key)
-
-        if not candidate_tasks:
-            raise TrellisValidationError(["No open tasks available"])
-
-        # Filter tasks by prerequisite completion
-        eligible_tasks = []
-        for task in candidate_tasks:
-            task_id = task["id"]
-            # Get prerequisites for this task
-            task_prereqs = prereq_graph.get(task_id, [])
-
-            # Check if all prerequisites are completed
-            prereqs_completed = True
-            for prereq_id in task_prereqs:
-                if prereq_id in all_objects:
-                    prereq_status = all_objects[prereq_id].get("status", "")
-                    if prereq_status != "done":
-                        prereqs_completed = False
-                        break
-                else:
-                    # Prerequisite doesn't exist - task not eligible
-                    prereqs_completed = False
-                    break
-
-            if prereqs_completed:
-                eligible_tasks.append(task)
-
-        if not eligible_tasks:
-            raise TrellisValidationError(
-                ["No eligible tasks found - all open tasks have incomplete prerequisites"]
-            )
-
-        # Select the first task (already sorted by priority, created in listBacklog)
-        selected_task = eligible_tasks[0]
-
-        # Prepare update data
-        update_data = {"status": "in-progress"}
-        if worktree is not None:
-            update_data["worktree"] = worktree
-
-        # Atomically update the task using existing file I/O operations
-        try:
-            # Get the task file path
-            task_id = selected_task["id"]
-            task_file_path = id_to_path(project_root_path, "task", task_id)
-
-            # Read current task content
-            yaml_dict, body_content = read_markdown(task_file_path)
-
-            # Update the YAML front-matter
-            yaml_dict.update(update_data)
-            yaml_dict["updated"] = datetime.now().isoformat()
-
-            # Write the updated file
-            write_markdown(task_file_path, yaml_dict, body_content)
-
-            # Return the claimed task info
-            return {
-                "task": selected_task,
-                "claimed_status": "in-progress",
-                "worktree": worktree if worktree is not None else "",
-                "file_path": str(task_file_path),
-            }
-
-        except Exception as e:
-            raise TrellisValidationError([f"Failed to claim task {selected_task['id']}: {str(e)}"])
+        # Return the claimed task info in the expected format
+        return {
+            "task": task_dict,
+            "claimed_status": "in-progress",
+            "worktree": worktree if worktree is not None else "",
+            "file_path": str(task_file_path),
+        }
 
     return server
