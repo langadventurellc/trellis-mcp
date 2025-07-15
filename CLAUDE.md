@@ -71,6 +71,11 @@ Any ❌ = block. Fix → re‑run → commit.
 - One logical concept per file.
 - Delete dead code immediately—no `*_old.py`.
 
+### Type Checking
+
+- Prefer built-in types (`list`, `dict`, etc.) over `typing.List`, `typing.Dict` unless necessary
+- Use union operator for optional types (e.g., `str | None` instead of `Optional[str]`)
+
 ---
 
 ## 🛰️ Task‑Centric Etiquette

@@ -14,12 +14,15 @@ from .claim_next_task import claim_next_task
 from .complete_task import complete_task
 from .exceptions.invalid_status_for_completion import InvalidStatusForCompletion
 from .exceptions.no_available_task import NoAvailableTask
+from .filters import apply_filters, filter_by_scope
 from .fs_utils import ensure_parent_dirs
 from .id_utils import generate_id
 from .io_utils import read_markdown, write_markdown
-from .models.common import Priority
-from .path_resolver import id_to_path, resolve_path_for_new_object
+from .models.filter_params import FilterParams
+from .models.task_sort_key import task_sort_key
+from .path_resolver import id_to_path, resolve_path_for_new_object, resolve_project_roots
 from .query import get_oldest_review
+from .scanner import scan_tasks
 from .settings import Settings
 from .validation import (
     CircularDependencyError,
@@ -552,9 +555,8 @@ def create_server(settings: Settings) -> FastMCP:
     ):
         """List tasks filtered by scope, status, and priority.
 
-        Searches through the planning directory structure to find tasks and filters them
-        based on the provided criteria. Tasks are found in both tasks-open and tasks-done
-        directories across the entire project hierarchy.
+        Uses the modular task scanner, filters, and sorting components to efficiently
+        find and filter tasks across the entire project hierarchy.
 
         Args:
             projectRoot: Root directory for the planning structure
@@ -589,126 +591,57 @@ def create_server(settings: Settings) -> FastMCP:
         if not projectRoot or not projectRoot.strip():
             raise ValueError("Project root cannot be empty")
 
-        # Convert projectRoot to Path object
-        project_root_path = Path(projectRoot)
+        # Resolve project roots using centralized utility
+        scanning_root, path_resolution_root = resolve_project_roots(projectRoot)
 
-        # Check if projects directory exists
-        projects_dir = project_root_path / "projects"
-        if not projects_dir.exists():
+        # Create FilterParams from individual parameters, handling validation gracefully
+        try:
+            filter_status = [status] if status else []
+            filter_priority = [priority] if priority else []
+            filter_params = FilterParams(status=filter_status, priority=filter_priority)
+        except Exception:
+            # If validation fails (e.g., invalid status/priority), return empty results
             return {"tasks": []}
 
-        # Collect all tasks from the hierarchy
-        tasks = []
+        # Get tasks using modular components
+        if scope:
+            # Use scope filtering if provided
+            tasks_iterator = filter_by_scope(scanning_root, scope)
+        else:
+            # Use scanner to get all tasks
+            tasks_iterator = scan_tasks(scanning_root)
 
-        # Traverse the directory structure: projects -> epics -> features -> tasks
-        for project_dir in projects_dir.iterdir():
-            if not project_dir.is_dir() or not project_dir.name.startswith("P-"):
-                continue
+        # Apply status and priority filters
+        filtered_tasks = apply_filters(tasks_iterator, filter_params)
 
-            project_id = project_dir.name  # Keep the P- prefix for comparison
-
-            epics_dir = project_dir / "epics"
-            if not epics_dir.exists():
-                continue
-
-            for epic_dir in epics_dir.iterdir():
-                if not epic_dir.is_dir() or not epic_dir.name.startswith("E-"):
-                    continue
-
-                epic_id = epic_dir.name  # Keep the E- prefix for comparison
-
-                features_dir = epic_dir / "features"
-                if not features_dir.exists():
-                    continue
-
-                for feature_dir in features_dir.iterdir():
-                    if not feature_dir.is_dir() or not feature_dir.name.startswith("F-"):
-                        continue
-
-                    feature_id = feature_dir.name  # Keep the F- prefix for comparison
-
-                    # Check both tasks-open and tasks-done directories
-                    for task_dir_name in ["tasks-open", "tasks-done"]:
-                        task_dir = feature_dir / task_dir_name
-                        if not task_dir.exists():
-                            continue
-
-                        for task_file in task_dir.iterdir():
-                            if not task_file.is_file() or not task_file.name.endswith(".md"):
-                                continue
-
-                            # Parse task filename to extract ID
-                            task_id = None
-                            if task_dir_name == "tasks-open":
-                                # Format: T-{id}.md
-                                if task_file.name.startswith("T-"):
-                                    task_id = task_file.name[
-                                        :-3
-                                    ]  # Remove .md suffix but keep T- prefix
-                            else:
-                                # Format: {timestamp}-T-{id}.md
-                                if "-T-" in task_file.name:
-                                    t_index = task_file.name.rfind("-T-")
-                                    task_id = task_file.name[
-                                        t_index + 1 : -3
-                                    ]  # Remove timestamp and .md suffix but keep T- prefix
-
-                            if not task_id:
-                                continue
-
-                            # Read and parse task file
-                            try:
-                                yaml_dict, body_str = read_markdown(task_file)
-                            except Exception:
-                                # Skip files that can't be parsed
-                                continue
-
-                            # Apply scope filtering if provided
-                            if scope:
-                                # Check if task matches scope (could be project, epic, or feature)
-                                task_parent = yaml_dict.get("parent", "")
-                                if scope == project_id or scope == epic_id or scope == feature_id:
-                                    pass  # Task is within scope
-                                elif scope == task_parent:
-                                    pass  # Direct parent match
-                                else:
-                                    continue  # Task doesn't match scope
-
-                            # Apply status filtering if provided
-                            if status and yaml_dict.get("status") != status:
-                                continue
-
-                            # Apply priority filtering if provided
-                            if priority and yaml_dict.get("priority") != priority:
-                                continue
-
-                            # Build task data
-                            task_data = {
-                                "id": task_id,
-                                "title": yaml_dict.get("title", ""),
-                                "status": yaml_dict.get("status", ""),
-                                "priority": yaml_dict.get("priority", "normal"),
-                                "parent": yaml_dict.get("parent", ""),
-                                "file_path": str(task_file),
-                                "created": str(yaml_dict.get("created", "")),
-                                "updated": str(yaml_dict.get("updated", "")),
-                            }
-
-                            tasks.append(task_data)
-
-        # Sort tasks by priority (high -> normal -> low) and then by creation date
+        # Convert to list and sort if requested
+        tasks_list = list(filtered_tasks)
         if sortByPriority:
+            tasks_list.sort(key=task_sort_key)
 
-            def sort_key(task):
-                try:
-                    priority_value = Priority[task["priority"].upper()].value
-                except (KeyError, AttributeError):
-                    priority_value = Priority.NORMAL.value
-                return (priority_value, task["created"])
+        # Convert TaskModel objects to JSON-serializable format
+        result_tasks = []
+        for task in tasks_list:
+            try:
+                # Resolve file path - use path_resolution_root for path resolution
+                task_file_path = id_to_path(path_resolution_root, "task", task.id)
 
-            tasks.sort(key=sort_key)
+                task_data = {
+                    "id": f"T-{task.id}" if not task.id.startswith("T-") else task.id,
+                    "title": task.title,
+                    "status": task.status.value,
+                    "priority": str(task.priority),
+                    "parent": task.parent or "",
+                    "file_path": str(task_file_path),
+                    "created": task.created.isoformat(),
+                    "updated": task.updated.isoformat(),
+                }
+                result_tasks.append(task_data)
+            except Exception:
+                # Skip tasks that can't be processed
+                continue
 
-        return {"tasks": tasks}
+        return {"tasks": result_tasks}
 
     @server.tool
     def claimNextTask(

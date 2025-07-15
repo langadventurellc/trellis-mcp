@@ -13,6 +13,46 @@ from .fs_utils import find_object_path
 VALID_KINDS: Final[set[str]] = {"project", "epic", "feature", "task"}
 
 
+def resolve_project_roots(project_root: str | Path) -> tuple[Path, Path]:
+    """Resolve scanning root and path resolution root from project root.
+
+    Handles two different project structure scenarios:
+    1. Project root contains planning directory: projectRoot/planning/projects/...
+    2. Project root IS the planning directory: projectRoot/projects/...
+
+    This centralizes the path resolution logic used by both CLI and server components.
+
+    Args:
+        project_root: Root directory path (either containing planning/ or being the planning dir)
+
+    Returns:
+        tuple[Path, Path]: (scanning_root, path_resolution_root) where:
+        - scanning_root: Root directory for scanning tasks (used by scanner.py)
+        - path_resolution_root: Root directory for resolving task IDs to paths (used by id_to_path)
+
+    Example:
+        >>> # Case 1: project_root contains planning directory
+        >>> resolve_project_roots("/project/root")
+        (Path('/project/root'), Path('/project/root/planning'))
+
+        >>> # Case 2: project_root IS the planning directory
+        >>> resolve_project_roots("/project/root/planning")
+        (Path('/project/root'), Path('/project/root/planning'))
+    """
+    project_root_path = Path(project_root)
+
+    if (project_root_path / "planning").exists():
+        # projectRoot contains planning directory
+        scanning_root = project_root_path
+        path_resolution_root = project_root_path / "planning"
+    else:
+        # projectRoot IS the planning directory
+        scanning_root = project_root_path.parent
+        path_resolution_root = project_root_path
+
+    return scanning_root, path_resolution_root
+
+
 def id_to_path(project_root: Path, kind: str, obj_id: str) -> Path:
     """Convert an object ID to its filesystem path within the project structure.
 

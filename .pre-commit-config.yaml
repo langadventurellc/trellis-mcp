@@ -12,7 +12,7 @@ repos:
         args: [.]
       - id: black
         name: Black Code Formatter
-        entry: uv run black
+        entry: uv run black .
         language: system
         types: [python]
         require_serial: true
