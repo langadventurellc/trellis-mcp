@@ -8,25 +8,25 @@ from pathlib import Path
 
 import pytest
 
+from trellis_mcp.schema.kind_enum import KindEnum
+from trellis_mcp.schema.status_enum import StatusEnum
 from trellis_mcp.validation import (
+    CircularDependencyError,
+    TrellisValidationError,
+    build_prerequisites_graph,
+    check_prereq_cycles,
+    detect_cycle_dfs,
+    enforce_status_transition,
+    get_all_objects,
+    validate_acyclic_prerequisites,
+    validate_enum_membership,
+    validate_front_matter,
+    validate_object_data,
     validate_parent_exists,
     validate_parent_exists_for_object,
     validate_required_fields_per_kind,
-    validate_enum_membership,
     validate_status_for_kind,
-    validate_object_data,
-    validate_front_matter,
-    enforce_status_transition,
-    CircularDependencyError,
-    TrellisValidationError,
-    validate_acyclic_prerequisites,
-    get_all_objects,
-    build_prerequisites_graph,
-    detect_cycle_dfs,
-    check_prereq_cycles,
 )
-from trellis_mcp.schema.kind_enum import KindEnum
-from trellis_mcp.schema.status_enum import StatusEnum
 
 
 class TestValidateParentExists:

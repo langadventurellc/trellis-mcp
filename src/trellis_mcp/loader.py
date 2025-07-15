@@ -7,7 +7,7 @@ chain: defaults → file → env → CLI.
 
 import tomllib
 from pathlib import Path
-from typing import Any, Dict, Type
+from typing import Any, Type
 
 import yaml
 from pydantic.fields import FieldInfo
@@ -50,11 +50,11 @@ class YamlConfigSettingsSource(PydanticBaseSettingsSource):
         """Prepare field value for settings."""
         return value
 
-    def __call__(self) -> Dict[str, Any]:
+    def __call__(self) -> dict[str, Any]:
         """Load entire YAML file configuration."""
         return self._read_file() or {}
 
-    def _read_file(self) -> Dict[str, Any] | None:
+    def _read_file(self) -> dict[str, Any] | None:
         """Read and parse YAML file.
 
         Returns:
@@ -113,11 +113,11 @@ class TomlConfigSettingsSource(PydanticBaseSettingsSource):
         """Prepare field value for settings."""
         return value
 
-    def __call__(self) -> Dict[str, Any]:
+    def __call__(self) -> dict[str, Any]:
         """Load entire TOML file configuration."""
         return self._read_file() or {}
 
-    def _read_file(self) -> Dict[str, Any] | None:
+    def _read_file(self) -> dict[str, Any] | None:
         """Read and parse TOML file.
 
         Returns:

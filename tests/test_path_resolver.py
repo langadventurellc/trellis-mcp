@@ -1316,8 +1316,9 @@ class TestResolvePathForNewObject:
 
     def test_invalid_kind_error(self, temp_dir):
         """Test that invalid kinds raise ValueError."""
-        from trellis_mcp.path_resolver import resolve_path_for_new_object
         import pytest
+
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
 
         project_root = temp_dir / "planning"
 
@@ -1326,8 +1327,9 @@ class TestResolvePathForNewObject:
 
     def test_empty_kind_error(self, temp_dir):
         """Test that empty kind raises ValueError."""
-        from trellis_mcp.path_resolver import resolve_path_for_new_object
         import pytest
+
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
 
         project_root = temp_dir / "planning"
 
@@ -1336,8 +1338,9 @@ class TestResolvePathForNewObject:
 
     def test_empty_id_error(self, temp_dir):
         """Test that empty ID raises ValueError."""
-        from trellis_mcp.path_resolver import resolve_path_for_new_object
         import pytest
+
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
 
         project_root = temp_dir / "planning"
 
@@ -1346,8 +1349,9 @@ class TestResolvePathForNewObject:
 
     def test_whitespace_id_error(self, temp_dir):
         """Test that whitespace-only ID raises ValueError."""
-        from trellis_mcp.path_resolver import resolve_path_for_new_object
         import pytest
+
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
 
         project_root = temp_dir / "planning"
 
@@ -1356,8 +1360,9 @@ class TestResolvePathForNewObject:
 
     def test_epic_missing_parent_error(self, temp_dir):
         """Test that epic without parent raises ValueError."""
-        from trellis_mcp.path_resolver import resolve_path_for_new_object
         import pytest
+
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
 
         project_root = temp_dir / "planning"
 
@@ -1366,8 +1371,9 @@ class TestResolvePathForNewObject:
 
     def test_feature_missing_parent_error(self, temp_dir):
         """Test that feature without parent raises ValueError."""
-        from trellis_mcp.path_resolver import resolve_path_for_new_object
         import pytest
+
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
 
         project_root = temp_dir / "planning"
 
@@ -1376,8 +1382,9 @@ class TestResolvePathForNewObject:
 
     def test_task_missing_parent_error(self, temp_dir):
         """Test that task without parent raises ValueError."""
-        from trellis_mcp.path_resolver import resolve_path_for_new_object
         import pytest
+
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
 
         project_root = temp_dir / "planning"
 
@@ -1386,8 +1393,9 @@ class TestResolvePathForNewObject:
 
     def test_feature_nonexistent_parent_error(self, temp_dir):
         """Test that feature with nonexistent parent raises ValueError."""
-        from trellis_mcp.path_resolver import resolve_path_for_new_object
         import pytest
+
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
 
         project_root = temp_dir / "planning"
         project_root.mkdir(parents=True)
@@ -1397,8 +1405,9 @@ class TestResolvePathForNewObject:
 
     def test_task_nonexistent_parent_error(self, temp_dir):
         """Test that task with nonexistent parent raises ValueError."""
-        from trellis_mcp.path_resolver import resolve_path_for_new_object
         import pytest
+
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
 
         project_root = temp_dir / "planning"
         project_root.mkdir(parents=True)

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-from fastmcp import FastMCP, Client
+from fastmcp import Client, FastMCP
 
 from trellis_mcp.cli import cli
 from trellis_mcp.server import create_server
@@ -1778,8 +1778,8 @@ class TestUpdateObject:
             )
 
             # Read the current file to manually add nested structure
-            from trellis_mcp.path_resolver import id_to_path
             from trellis_mcp.io_utils import read_markdown, write_markdown
+            from trellis_mcp.path_resolver import id_to_path
 
             file_path = id_to_path(project_root, "project", "test-project")
             yaml_dict, body_str = read_markdown(file_path)
@@ -2251,8 +2251,8 @@ class TestUpdateObject:
             )
 
             # Get original content of task A
-            from trellis_mcp.path_resolver import id_to_path
             from trellis_mcp.io_utils import read_markdown
+            from trellis_mcp.path_resolver import id_to_path
 
             task_a_path = id_to_path(project_root, "task", "task-a")
             original_yaml, original_body = read_markdown(task_a_path)
@@ -2295,8 +2295,8 @@ class TestUpdateObject:
             )
 
             # Get original content
-            from trellis_mcp.path_resolver import id_to_path
             from trellis_mcp.io_utils import read_markdown
+            from trellis_mcp.path_resolver import id_to_path
 
             project_path = id_to_path(project_root, "project", "test-project")
             original_yaml, original_body = read_markdown(project_path)
@@ -2565,8 +2565,8 @@ class TestUpdateObject:
             )
 
             # Verify required fields are preserved
-            from trellis_mcp.path_resolver import id_to_path
             from trellis_mcp.io_utils import read_markdown
+            from trellis_mcp.path_resolver import id_to_path
 
             epic_path = id_to_path(project_root, "epic", "test-epic")
             yaml_dict, _ = read_markdown(epic_path)

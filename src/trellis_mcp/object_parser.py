@@ -5,7 +5,6 @@ into typed Pydantic model instances based on the object kind.
 """
 
 from pathlib import Path
-from typing import Union
 
 from pydantic import ValidationError
 
@@ -17,7 +16,7 @@ from .schema.project import ProjectModel
 from .schema.task import TaskModel
 
 # Type alias for all possible model instances
-TrellisObjectModel = Union[ProjectModel, EpicModel, FeatureModel, TaskModel]
+TrellisObjectModel = ProjectModel | EpicModel | FeatureModel | TaskModel
 
 # Mapping from kind enum values to model classes
 KIND_TO_MODEL = {
@@ -28,7 +27,7 @@ KIND_TO_MODEL = {
 }
 
 
-def parse_object(path: Union[str, Path]) -> TrellisObjectModel:
+def parse_object(path: str | Path) -> TrellisObjectModel:
     """Parse a markdown file into a typed Trellis MCP object model.
 
     Args:

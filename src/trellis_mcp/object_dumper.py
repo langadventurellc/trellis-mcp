@@ -4,7 +4,7 @@ import os
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 
@@ -72,7 +72,7 @@ def dump_object(model: TrellisObjectModel) -> str:
     return markdown_content
 
 
-def _serialize_model_dict(model_dict: Dict[str, Any]) -> Dict[str, Any]:
+def _serialize_model_dict(model_dict: dict[str, Any]) -> dict[str, Any]:
     """
     Serialize model dictionary for YAML output.
 

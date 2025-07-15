@@ -7,12 +7,12 @@ functions for Trellis MCP object IDs.
 import pytest
 
 from trellis_mcp.id_utils import (
+    DuplicateIDError,
+    clean_prerequisite_id,
+    generate_id,
     slugify_text,
     validate_id_charset,
     validate_id_length,
-    generate_id,
-    clean_prerequisite_id,
-    DuplicateIDError,
 )
 
 

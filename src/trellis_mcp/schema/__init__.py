@@ -5,8 +5,9 @@ It provides type-safe data structures for Projects, Epics, Features, and Tasks
 with validation and serialization capabilities.
 """
 
-from typing import Dict, Type
+from typing import Type
 
+from ..models.common import Priority
 from .base import TrellisBaseModel
 from .base_schema import BaseSchemaModel
 from .epic import EpicModel
@@ -15,7 +16,6 @@ from .kind_enum import KindEnum
 from .project import ProjectModel
 from .status_enum import StatusEnum
 from .task import TaskModel
-from ..models.common import Priority
 
 
 def get_model_class_for_kind(kind: str | KindEnum) -> Type[BaseSchemaModel]:
@@ -42,7 +42,7 @@ def get_model_class_for_kind(kind: str | KindEnum) -> Type[BaseSchemaModel]:
         kind_enum = kind
 
     # Map kinds to model classes
-    model_mapping: Dict[KindEnum, Type[BaseSchemaModel]] = {
+    model_mapping: dict[KindEnum, Type[BaseSchemaModel]] = {
         KindEnum.PROJECT: ProjectModel,
         KindEnum.EPIC: EpicModel,
         KindEnum.FEATURE: FeatureModel,

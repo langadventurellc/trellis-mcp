@@ -6,12 +6,12 @@ separate the front-matter dictionary from the markdown body content.
 
 import re
 from pathlib import Path
-from typing import Dict, Any, Tuple
+from typing import Any
 
 import yaml
 
 
-def load_markdown(path: str | Path) -> Tuple[Dict[str, Any], str]:
+def load_markdown(path: str | Path) -> tuple[dict[str, Any], str]:
     """Load markdown file and parse YAML front-matter.
 
     Parses a markdown file with YAML front-matter delimited by '---' lines.

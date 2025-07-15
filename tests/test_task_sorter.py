@@ -1,11 +1,11 @@
 """Tests for task sorting utilities."""
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 from trellis_mcp.models.common import Priority
-from trellis_mcp.schema.task import TaskModel
-from trellis_mcp.schema.status_enum import StatusEnum
 from trellis_mcp.schema.kind_enum import KindEnum
+from trellis_mcp.schema.status_enum import StatusEnum
+from trellis_mcp.schema.task import TaskModel
 from trellis_mcp.task_sorter import sort_tasks_by_priority
 
 

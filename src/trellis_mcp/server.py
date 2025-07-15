@@ -10,23 +10,25 @@ from typing import Any
 
 from fastmcp import FastMCP
 
-from .settings import Settings
-from .id_utils import generate_id
+from .claim_next_task import claim_next_task
+from .complete_task import complete_task
+from .exceptions.invalid_status_for_completion import InvalidStatusForCompletion
+from .exceptions.no_available_task import NoAvailableTask
 from .fs_utils import ensure_parent_dirs
+from .id_utils import generate_id
+from .io_utils import read_markdown, write_markdown
+from .models.common import Priority
 from .path_resolver import id_to_path, resolve_path_for_new_object
-from .io_utils import write_markdown, read_markdown
+from .settings import Settings
 from .validation import (
-    validate_front_matter,
-    validate_object_data,
+    CircularDependencyError,
+    TrellisValidationError,
     check_prereq_cycles,
     check_prereq_cycles_in_memory,
     enforce_status_transition,
-    TrellisValidationError,
-    CircularDependencyError,
+    validate_front_matter,
+    validate_object_data,
 )
-from .models.common import Priority
-from .claim_next_task import claim_next_task
-from .exceptions.no_available_task import NoAvailableTask
 
 
 def create_server(settings: Settings) -> FastMCP:
@@ -765,6 +767,78 @@ def create_server(settings: Settings) -> FastMCP:
             "task": task_dict,
             "claimed_status": "in-progress",
             "worktree": worktree if worktree is not None else "",
+            "file_path": str(task_file_path),
+        }
+
+    @server.tool
+    def completeTask(
+        projectRoot: str,
+        taskId: str,
+        summary: str | None = None,
+        filesChanged: list[str] | None = None,
+    ) -> dict[str, str | dict[str, str]]:
+        """Complete a task that is in in-progress or review status.
+
+        Validates that the specified task is in a valid status for completion
+        (in-progress or review) and optionally appends a log entry with summary
+        and list of changed files. This is part of the task completion workflow.
+
+        Args:
+            projectRoot: Root directory for the planning structure
+            taskId: ID of the task to complete (with or without T- prefix)
+            summary: Optional summary text for the log entry
+            filesChanged: Optional list of relative file paths that were changed
+
+        Returns:
+            Dictionary containing the validated task data and file path
+
+        Raises:
+            TrellisValidationError: If task is not in valid status for completion
+            FileNotFoundError: If task with the given ID cannot be found
+            OSError: If file operations fail
+
+        Example:
+            >>> result = completeTask("./planning", "T-implement-auth")
+            >>> result["task"]["status"]
+            'in-progress'
+        """
+        # Basic parameter validation
+        if not projectRoot or not projectRoot.strip():
+            raise ValueError("Project root cannot be empty")
+
+        if not taskId or not taskId.strip():
+            raise ValueError("Task ID cannot be empty")
+
+        # Call the core complete_task function
+        try:
+            validated_task = complete_task(projectRoot, taskId, summary, filesChanged)
+        except InvalidStatusForCompletion as e:
+            raise TrellisValidationError([str(e)])
+        except FileNotFoundError as e:
+            raise TrellisValidationError([f"Task not found: {str(e)}"])
+        except Exception as e:
+            raise TrellisValidationError([f"Failed to validate task for completion: {str(e)}"])
+
+        # Resolve the task file path for response
+        project_root_path = Path(projectRoot)
+        task_file_path = id_to_path(project_root_path, "task", validated_task.id)
+
+        # Build task dictionary in the format expected by the API
+        task_dict = {
+            "id": validated_task.id,
+            "title": validated_task.title,
+            "status": validated_task.status.value,
+            "priority": str(validated_task.priority),
+            "parent": validated_task.parent or "",
+            "file_path": str(task_file_path),
+            "created": validated_task.created.isoformat(),
+            "updated": validated_task.updated.isoformat(),
+        }
+
+        # Return the validated task info in the expected format
+        return {
+            "task": task_dict,
+            "validation_status": "ready_for_completion",
             "file_path": str(task_file_path),
         }
 

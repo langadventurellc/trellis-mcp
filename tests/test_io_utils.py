@@ -2,6 +2,7 @@
 
 import tempfile
 from pathlib import Path
+
 import pytest
 import yaml
 
@@ -380,8 +381,8 @@ class TestWriteMarkdown:
 
     def test_write_markdown_enum_roundtrip_consistency(self):
         """Test that enum objects maintain consistency through multiple write/read cycles."""
-        from trellis_mcp.schema.status_enum import StatusEnum
         from trellis_mcp.models.common import Priority
+        from trellis_mcp.schema.status_enum import StatusEnum
 
         status_enum = StatusEnum.OPEN
         priority_enum = Priority.HIGH
@@ -427,8 +428,9 @@ class TestWriteMarkdown:
         """Test comprehensive roundtrip with mixed data types including datetime,
         enums, and complex structures."""
         from datetime import datetime
-        from trellis_mcp.schema.status_enum import StatusEnum
+
         from trellis_mcp.models.common import Priority
+        from trellis_mcp.schema.status_enum import StatusEnum
 
         test_datetime = datetime(2025, 1, 15, 9, 45, 30, 987654)
         yaml_dict = {

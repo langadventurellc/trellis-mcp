@@ -5,9 +5,10 @@ correctly with a realistic repository structure containing ~6 objects
 across the full project hierarchy.
 """
 
-from pathlib import Path
-import pytest
 from datetime import datetime
+from pathlib import Path
+
+import pytest
 
 from trellis_mcp import (
     get_all_objects,
@@ -49,9 +50,9 @@ async def test_integration_load_sample_repo_tree(temp_dir: Path) -> None:
             assert False, f"Object {obj_id} failed validation: {e}"
 
         # Parse to model instance for type checking
-        from trellis_mcp.schema.project import ProjectModel
         from trellis_mcp.schema.epic import EpicModel
         from trellis_mcp.schema.feature import FeatureModel
+        from trellis_mcp.schema.project import ProjectModel
         from trellis_mcp.schema.task import TaskModel
 
         if obj_data["kind"] == "project":

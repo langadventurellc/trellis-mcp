@@ -36,6 +36,7 @@ dev = [
     "black",
     "flake8",
     "flake8-pyproject",
+    "isort",
     "pyright",
     "pytest",
     "pytest-asyncio",
@@ -77,3 +78,8 @@ ignore = ["E203", "W503"]
 [tool.pyright]
 include = ["src/trellis_mcp"]
 exclude = ["bin", "temp", ".venv"]
+
+[dependency-groups]
+dev = [
+    "isort>=6.0.1",
+]

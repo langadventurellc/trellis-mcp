@@ -6,7 +6,6 @@ unblocked task from the backlog.
 
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Union
 
 from .backlog_loader import load_backlog_tasks
 from .dependency_resolver import is_unblocked
@@ -17,9 +16,7 @@ from .schema.task import TaskModel
 from .task_sorter import sort_tasks_by_priority
 
 
-def claim_next_task(
-    project_root: Union[str, Path], worktree_path: Optional[str] = None
-) -> TaskModel:
+def claim_next_task(project_root: str | Path, worktree_path: str | None = None) -> TaskModel:
     """Claim the next highest-priority unblocked task.
 
     Atomically selects the highest-priority open task where all prerequisites
