@@ -4,12 +4,18 @@ Main command-line interface for the Trellis MCP server using Click.
 Provides the foundation command group for all CLI operations.
 """
 
+import json
 from pathlib import Path
 
 import click
 
 from .complete_task import complete_task
+from .filters import apply_filters, filter_by_scope
 from .loader import ConfigLoader
+from .models.filter_params import FilterParams
+from .models.task_sort_key import task_sort_key
+from .path_resolver import id_to_path, resolve_project_roots
+from .scanner import scan_tasks
 from .server import create_server
 
 
@@ -249,3 +255,95 @@ def complete(ctx: click.Context, task_id: str, summary: str | None, files: tuple
         if settings.debug_mode:
             raise
         raise click.ClickException(f"Failed to complete task: {e}")
+
+
+@cli.command()
+@click.option("--scope", type=str, help="Filter by scope ID (project/epic/feature)")
+@click.option(
+    "--status",
+    type=click.Choice(["open", "in-progress", "review", "done"], case_sensitive=False),
+    help="Filter by task status",
+)
+@click.option(
+    "--priority",
+    type=click.Choice(["high", "normal", "low"], case_sensitive=False),
+    help="Filter by task priority",
+)
+@click.pass_context
+def backlog(
+    ctx: click.Context, scope: str | None, status: str | None, priority: str | None
+) -> None:
+    """List tasks from the backlog with optional filtering.
+
+    Lists all tasks in the project hierarchy with optional filtering by scope,
+    status, and priority. Output is JSON formatted for easy processing.
+
+    Examples:
+      trellis-mcp backlog                        # List all open tasks
+      trellis-mcp backlog --scope F-001          # Tasks in feature F-001
+      trellis-mcp backlog --status open          # Only open tasks
+      trellis-mcp backlog --priority high        # Only high priority tasks
+      trellis-mcp backlog --status review --priority high  # Combined filters
+    """
+    settings = ctx.obj["settings"]
+
+    try:
+        # Resolve project roots using centralized utility
+        scanning_root, path_resolution_root = resolve_project_roots(settings.planning_root)
+
+        # Create FilterParams from individual parameters, handling validation gracefully
+        try:
+            # Default to "open" tasks when no status filter is specified
+            filter_status = [status] if status else ["open"]
+            filter_priority = [priority] if priority else []
+            filter_params = FilterParams(status=filter_status, priority=filter_priority)
+        except Exception:
+            # If validation fails (e.g., invalid status/priority), return empty results
+            result = {"tasks": []}
+            click.echo(json.dumps(result, indent=2))
+            return
+
+        # Get tasks using modular components
+        if scope:
+            # Use scope filtering if provided
+            tasks_iterator = filter_by_scope(scanning_root, scope)
+        else:
+            # Use scanner to get all tasks
+            tasks_iterator = scan_tasks(scanning_root)
+
+        # Apply status and priority filters
+        filtered_tasks = apply_filters(tasks_iterator, filter_params)
+
+        # Convert to list and sort by priority
+        tasks_list = list(filtered_tasks)
+        tasks_list.sort(key=task_sort_key)
+
+        # Convert TaskModel objects to JSON-serializable format
+        result_tasks = []
+        for task in tasks_list:
+            try:
+                # Resolve file path - use path_resolution_root for path resolution
+                task_file_path = id_to_path(path_resolution_root, "task", task.id)
+
+                task_data = {
+                    "id": f"T-{task.id}" if not task.id.startswith("T-") else task.id,
+                    "title": task.title,
+                    "status": task.status.value,
+                    "priority": str(task.priority),
+                    "parent": task.parent or "",
+                    "file_path": str(task_file_path),
+                    "created": task.created.isoformat(),
+                    "updated": task.updated.isoformat(),
+                }
+                result_tasks.append(task_data)
+            except Exception:
+                # Skip tasks that can't be processed
+                continue
+
+        result = {"tasks": result_tasks}
+        click.echo(json.dumps(result, indent=2))
+
+    except Exception as e:
+        if settings.debug_mode:
+            raise
+        raise click.ClickException(f"Failed to list backlog: {e}")
