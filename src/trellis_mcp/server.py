@@ -16,6 +16,7 @@ from .exceptions.invalid_status_for_completion import InvalidStatusForCompletion
 from .exceptions.no_available_task import NoAvailableTask
 from .filters import apply_filters, filter_by_scope
 from .fs_utils import ensure_parent_dirs
+from .graph_utils import DependencyGraph
 from .id_utils import generate_id
 from .io_utils import read_markdown, write_markdown
 from .models.filter_params import FilterParams
@@ -25,10 +26,7 @@ from .query import get_oldest_review
 from .scanner import scan_tasks
 from .settings import Settings
 from .validation import (
-    CircularDependencyError,
     TrellisValidationError,
-    check_prereq_cycles,
-    check_prereq_cycles_in_memory,
     enforce_status_transition,
     validate_front_matter,
     validate_object_data,
@@ -207,17 +205,6 @@ def create_server(settings: Settings) -> FastMCP:
         if file_path.exists():
             raise FileExistsError(f"Object with ID '{id}' already exists at {file_path}")
 
-        # Check for cycles in memory BEFORE writing any files
-        # This prevents unnecessary file operations when cycles would be detected
-        try:
-            check_prereq_cycles_in_memory(project_root_path, front_matter, "create")
-        except CircularDependencyError:
-            raise TrellisValidationError(
-                ["Creating this object would introduce circular dependencies in prerequisites"]
-            )
-        except Exception as e:
-            raise TrellisValidationError([f"Failed to validate prerequisites: {str(e)}"])
-
         # Ensure parent directories exist
         ensure_parent_dirs(file_path)
 
@@ -236,7 +223,12 @@ def create_server(settings: Settings) -> FastMCP:
         # Validate acyclic prerequisites after file creation as fallback safety measure
         # This ensures the newly created object doesn't introduce cycles (defense in depth)
         try:
-            if not check_prereq_cycles(project_root_path):
+            # Build dependency graph with the new object included
+            dependency_graph = DependencyGraph()
+            dependency_graph.build(project_root_path)
+
+            # Check if the new object created a cycle
+            if dependency_graph.has_cycle():
                 # If cycles are detected, remove the created file and raise error
                 try:
                     file_path.unlink()
@@ -245,6 +237,8 @@ def create_server(settings: Settings) -> FastMCP:
                 raise TrellisValidationError(
                     ["Creating this object would introduce circular dependencies in prerequisites"]
                 )
+        except TrellisValidationError:
+            raise
         except Exception as e:
             # If cycle check fails for other reasons, remove the created file
             try:
@@ -492,17 +486,6 @@ def create_server(settings: Settings) -> FastMCP:
             except ValueError as e:
                 raise TrellisValidationError([f"Status transition validation failed: {str(e)}"])
 
-        # Check for cycles in memory BEFORE writing any files
-        # This prevents unnecessary file operations when cycles would be detected
-        try:
-            check_prereq_cycles_in_memory(project_root_path, updated_yaml, "update")
-        except CircularDependencyError:
-            raise TrellisValidationError(
-                ["Updating this object would introduce circular dependencies in prerequisites"]
-            )
-        except Exception as e:
-            raise TrellisValidationError([f"Failed to validate prerequisites: {str(e)}"])
-
         # Write the updated file atomically
         try:
             write_markdown(file_path, updated_yaml, updated_body)
@@ -512,7 +495,12 @@ def create_server(settings: Settings) -> FastMCP:
         # Validate acyclic prerequisites after file update as fallback safety measure
         # This ensures the update doesn't introduce cycles (defense in depth)
         try:
-            if not check_prereq_cycles(project_root_path):
+            # Build dependency graph with the updated object included
+            dependency_graph = DependencyGraph()
+            dependency_graph.build(project_root_path)
+
+            # Check if the updated object created a cycle
+            if dependency_graph.has_cycle():
                 # If cycles are detected, restore the original file and raise error
                 try:
                     write_markdown(file_path, existing_yaml, existing_body)
@@ -521,6 +509,8 @@ def create_server(settings: Settings) -> FastMCP:
                 raise TrellisValidationError(
                     ["Updating this object would introduce circular dependencies in prerequisites"]
                 )
+        except TrellisValidationError:
+            raise
         except Exception as e:
             # If cycle check fails for other reasons, restore the original file
             try:
