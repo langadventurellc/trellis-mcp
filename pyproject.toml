@@ -36,6 +36,7 @@ dev = [
     "black",
     "flake8",
     "flake8-pyproject",
+    "freezegun>=1.5.3",
     "isort",
     "pyright",
     "pytest",
@@ -76,11 +77,10 @@ max-line-length = 100
 ignore = ["E203", "W503"]
 
 [tool.pyright]
-include = ["src/trellis_mcp"]
+include = ["src/trellis_mcp", "tests"]
 exclude = ["bin", "temp", ".venv"]
 
 [dependency-groups]
 dev = [
-    "freezegun>=1.5.3",
     "isort>=6.0.1",
 ]

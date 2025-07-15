@@ -1044,6 +1044,7 @@ dev = [
     { name = "black" },
     { name = "flake8" },
     { name = "flake8-pyproject" },
+    { name = "freezegun" },
     { name = "isort" },
     { name = "pre-commit" },
     { name = "pyright" },
@@ -1054,7 +1055,6 @@ dev = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "freezegun" },
     { name = "isort" },
 ]
 
@@ -1065,6 +1065,7 @@ requires-dist = [
     { name = "fastmcp", specifier = ">=0.7" },
     { name = "flake8", marker = "extra == 'dev'" },
     { name = "flake8-pyproject", marker = "extra == 'dev'" },
+    { name = "freezegun", marker = "extra == 'dev'", specifier = ">=1.5.3" },
     { name = "isort", marker = "extra == 'dev'" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pydantic-settings", specifier = ">=2.0.0" },
@@ -1078,10 +1079,7 @@ requires-dist = [
 provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
-dev = [
-    { name = "freezegun", specifier = ">=1.5.3" },
-    { name = "isort", specifier = ">=6.0.1" },
-]
+dev = [{ name = "isort", specifier = ">=6.0.1" }]
 
 [[package]]
 name = "typing-extensions"
