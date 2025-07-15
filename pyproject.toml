@@ -81,5 +81,6 @@ exclude = ["bin", "temp", ".venv"]
 
 [dependency-groups]
 dev = [
+    "freezegun>=1.5.3",
     "isort>=6.0.1",
 ]

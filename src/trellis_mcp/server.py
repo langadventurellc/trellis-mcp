@@ -21,6 +21,8 @@ from .fs_utils import ensure_parent_dirs, recursive_delete
 from .graph_utils import DependencyGraph
 from .id_utils import generate_id
 from .io_utils import read_markdown, write_markdown
+from .json_rpc_logging_middleware import JsonRpcLoggingMiddleware
+from .logger import write_event
 from .models.filter_params import FilterParams
 from .models.task_sort_key import task_sort_key
 from .path_resolver import (
@@ -29,6 +31,7 @@ from .path_resolver import (
     resolve_path_for_new_object,
     resolve_project_roots,
 )
+from .prune_logs import prune_logs
 from .query import get_oldest_review
 from .scanner import scan_tasks
 from .settings import Settings
@@ -918,5 +921,18 @@ def create_server(settings: Settings) -> FastMCP:
 
         # Return the reviewable task info
         return {"task": task_dict}
+
+    # Register JSON-RPC logging middleware
+    server.add_middleware(JsonRpcLoggingMiddleware(settings))
+
+    # Prune old log files at startup if retention is configured
+    if settings.log_retention_days > 0:
+        try:
+            prune_logs(settings)
+        except Exception as e:
+            # Log the error but don't prevent server startup
+            write_event(
+                "ERROR", "Log pruning failed during startup", settings=settings, error=str(e)
+            )
 
     return server
