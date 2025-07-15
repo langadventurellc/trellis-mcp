@@ -24,30 +24,20 @@ class FilterParams(TrellisBaseModel):
         priority: List of priority values to filter by (empty = no priority filtering)
     """
 
-    status: Sequence[StatusEnum | str] | None = Field(
-        default_factory=list,
+    status: Sequence[StatusEnum | str] = Field(
+        default=[],
         description="List of status values to filter by (empty = no status filtering)",
     )
 
-    priority: Sequence[Priority | str] | None = Field(
-        default_factory=list,
+    priority: Sequence[Priority | str] = Field(
+        default=[],
         description="List of priority values to filter by (empty = no priority filtering)",
     )
 
-    @field_validator("status")
+    @field_validator("status", mode="before")
     @classmethod
     def validate_status_list(cls, v: Sequence[StatusEnum | str] | None) -> list[StatusEnum]:
-        """Validate that all status values are valid StatusEnum values.
-
-        Args:
-            v: List of status values to validate
-
-        Returns:
-            Validated list of StatusEnum values
-
-        Raises:
-            ValueError: If any status value is invalid
-        """
+        """Validate that all status values are valid StatusEnum values."""
         if v is None:
             return []
 
@@ -60,20 +50,10 @@ class FilterParams(TrellisBaseModel):
                 result.append(item)
         return result
 
-    @field_validator("priority")
+    @field_validator("priority", mode="before")
     @classmethod
     def validate_priority_list(cls, v: Sequence[Priority | str] | None) -> list[Priority]:
-        """Validate that all priority values are valid Priority values.
-
-        Args:
-            v: List of priority values to validate
-
-        Returns:
-            Validated list of Priority values
-
-        Raises:
-            ValueError: If any priority value is invalid
-        """
+        """Validate that all priority values are valid Priority values."""
         if v is None:
             return []
 

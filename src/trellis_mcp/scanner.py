@@ -8,21 +8,16 @@ from .schema.task import TaskModel
 
 
 def scan_tasks(project_root: Path) -> Iterator[TaskModel]:
-    """
-    Walk the nested planning tree and yield task front-matters.
+    """Walk the nested planning tree and yield task front-matters.
 
-    Traverses the hierarchy: planning/projects/P-*/epics/E-*/features/F-*/tasks-open/
-    and tasks-done/ directories, parsing YAML front-matter from each task file.
+    Traverses planning/projects/P-*/epics/E-*/features/F-*/tasks-open/ and tasks-done/
+    directories, parsing YAML front-matter from each task file.
 
     Args:
         project_root: Root path of the project containing planning/ directory
 
     Yields:
         TaskModel: Parsed task objects with front-matter data
-
-    Note:
-        Gracefully handles missing directories and unparseable files by skipping them.
-        Files are validated to ensure they stay within the project root.
     """
     # Validate and resolve project root to prevent path traversal
     project_root = project_root.resolve()

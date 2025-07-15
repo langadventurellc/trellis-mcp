@@ -52,7 +52,7 @@ class TestFilterParams:
 
     def test_create_filter_params_with_none(self):
         """Test creating FilterParams with None values."""
-        filter_params = FilterParams(status=None, priority=None)
+        filter_params = FilterParams(status=None, priority=None)  # type: ignore
         assert filter_params.status == []
         assert filter_params.priority == []
 

@@ -12,19 +12,15 @@ from .schema.task import TaskModel
 def filter_by_scope(root: Path, scope_id: str) -> Iterator[TaskModel]:
     """Filter tasks by scope (project, epic, or feature).
 
+    Hierarchical filtering: project scope includes all child tasks,
+    epic scope includes tasks in child features, feature scope includes direct tasks.
+
     Args:
         root: Path to the project root containing planning/ directory
         scope_id: ID of the scope to filter by (project/epic/feature ID)
 
     Yields:
         TaskModel: Tasks that belong to the specified scope
-
-    Note:
-        Scope filtering works hierarchically:
-        - Project scope includes all tasks in all epics/features under that project
-        - Epic scope includes all tasks in all features under that epic
-        - Feature scope includes all tasks directly under that feature
-        - Also matches tasks where scope_id is the direct parent
     """
     # Validate and resolve project root to prevent path traversal
     project_root = root.resolve()
@@ -106,18 +102,14 @@ def filter_by_scope(root: Path, scope_id: str) -> Iterator[TaskModel]:
 def apply_filters(tasks: Iterator[TaskModel], filter_params: FilterParams) -> Iterator[TaskModel]:
     """Apply status and priority filters to a collection of tasks.
 
+    Empty filter lists mean no filtering is applied. Both filters use logical AND.
+
     Args:
         tasks: Iterator of TaskModel objects to filter
         filter_params: FilterParams object specifying status and priority filters
 
     Yields:
         TaskModel: Tasks that match the specified filter criteria
-
-    Note:
-        - If filter_params.status is empty, no status filtering is applied
-        - If filter_params.priority is empty, no priority filtering is applied
-        - Both filters are applied as logical AND (task must match both if specified)
-        - Tasks that fail to parse are gracefully skipped
     """
     for task in tasks:
         try:
