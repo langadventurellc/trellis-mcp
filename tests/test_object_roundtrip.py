@@ -5,8 +5,6 @@ files and dumping them back to markdown format. Each object kind (project,
 epic, feature, task) should maintain data integrity through the load/dump cycle.
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 from pathlib import Path
 

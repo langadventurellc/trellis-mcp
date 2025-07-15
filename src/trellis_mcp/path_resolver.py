@@ -4,8 +4,6 @@ Provides functions for converting object IDs to filesystem paths within the
 hierarchical project structure (Projects → Epics → Features → Tasks).
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Final
 

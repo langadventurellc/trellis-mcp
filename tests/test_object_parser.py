@@ -1,7 +1,5 @@
 """Tests for object parser functionality."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest

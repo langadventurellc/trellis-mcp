@@ -3,8 +3,6 @@
 Provides common fields and validation for all Trellis MCP schema objects.
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 from typing import ClassVar, Dict, List, Literal, Optional, Set
 from typing_extensions import Self

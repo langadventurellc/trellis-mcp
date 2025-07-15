@@ -4,8 +4,6 @@ Creates and configures the FastMCP server instance for the Trellis MCP applicati
 Provides server setup with basic tools and resources for project management.
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -26,6 +24,7 @@ from .validation import (
     TrellisValidationError,
     CircularDependencyError,
 )
+from .models.common import Priority
 
 
 def create_server(settings: Settings) -> FastMCP:
@@ -544,6 +543,7 @@ def create_server(settings: Settings) -> FastMCP:
         scope: str | None = None,
         status: str | None = None,
         priority: str | None = None,
+        sortByPriority: bool = True,
     ):
         """List tasks filtered by scope, status, and priority.
 
@@ -556,6 +556,7 @@ def create_server(settings: Settings) -> FastMCP:
             scope: Optional scope ID to filter tasks by parent (project/epic/feature ID)
             status: Optional status filter ('open', 'in-progress', 'review', 'done')
             priority: Optional priority filter ('high', 'normal', 'low')
+            sortByPriority: Whether to sort tasks by priority and creation date (default: True)
 
         Returns:
             Dictionary with structure:
@@ -691,13 +692,205 @@ def create_server(settings: Settings) -> FastMCP:
                             tasks.append(task_data)
 
         # Sort tasks by priority (high -> normal -> low) and then by creation date
-        def sort_key(task):
-            priority_order = {"high": 1, "normal": 2, "low": 3}
-            priority_value = priority_order.get(task["priority"], 2)
-            return (priority_value, task["created"])
+        if sortByPriority:
 
-        tasks.sort(key=sort_key)
+            def sort_key(task):
+                try:
+                    priority_value = Priority[task["priority"].upper()].value
+                except (KeyError, AttributeError):
+                    priority_value = Priority.NORMAL.value
+                return (priority_value, task["created"])
+
+            tasks.sort(key=sort_key)
 
         return {"tasks": tasks}
+
+    @server.tool
+    def claimNextTask(
+        projectRoot: str,
+        worktree: str | None = None,
+    ) -> dict[str, str | dict[str, str | list[str] | None]]:
+        """Claim the next highest-priority open task with all prerequisites completed.
+
+        Atomically selects the highest-priority open task (where all prerequisites
+        have status='done'), sets its status to 'in-progress', and optionally
+        stamps the worktree field.
+
+        Tasks are sorted by priority (high=1, normal=2, low=3) then by creation date.
+        Only tasks with status='open' and completed prerequisites are eligible.
+
+        Args:
+            projectRoot: Root directory for the planning structure
+            worktree: Optional worktree identifier to stamp on the claimed task
+
+        Returns:
+            Dictionary containing the claimed task data and file path, or error info
+
+        Raises:
+            TrellisValidationError: If no eligible tasks are available
+            OSError: If file operations fail
+        """
+        from .validation import get_all_objects, build_prerequisites_graph
+        from .io_utils import read_markdown
+
+        # Load all objects to check prerequisites
+        try:
+            all_objects_result = get_all_objects(projectRoot)
+            # Handle both tuple and dict return types
+            if isinstance(all_objects_result, tuple):
+                all_objects, _ = all_objects_result
+            else:
+                all_objects = all_objects_result
+        except Exception as e:
+            raise TrellisValidationError([f"Failed to load objects: {str(e)}"])
+
+        # Build prerequisite graph
+        try:
+            prereq_graph = build_prerequisites_graph(all_objects)
+        except Exception as e:
+            raise TrellisValidationError([f"Failed to build prerequisite graph: {str(e)}"])
+
+        # Get all open tasks by traversing directory structure (same as listBacklog)
+        candidate_tasks = []
+        project_root_path = Path(projectRoot)
+        projects_dir = project_root_path / "projects"
+
+        if projects_dir.exists():
+            # Traverse: projects -> epics -> features -> tasks-open
+            for project_dir in projects_dir.iterdir():
+                if not project_dir.is_dir() or not project_dir.name.startswith("P-"):
+                    continue
+
+                epics_dir = project_dir / "epics"
+                if not epics_dir.exists():
+                    continue
+
+                for epic_dir in epics_dir.iterdir():
+                    if not epic_dir.is_dir() or not epic_dir.name.startswith("E-"):
+                        continue
+
+                    features_dir = epic_dir / "features"
+                    if not features_dir.exists():
+                        continue
+
+                    for feature_dir in features_dir.iterdir():
+                        if not feature_dir.is_dir() or not feature_dir.name.startswith("F-"):
+                            continue
+
+                        # Only check tasks-open directory for open tasks
+                        task_dir = feature_dir / "tasks-open"
+                        if not task_dir.exists():
+                            continue
+
+                        for task_file in task_dir.iterdir():
+                            if not task_file.is_file() or not task_file.name.endswith(".md"):
+                                continue
+
+                            # Parse task filename: T-{id}.md
+                            if not task_file.name.startswith("T-"):
+                                continue
+
+                            task_id = task_file.name[:-3]  # Remove .md suffix but keep T- prefix
+
+                            # Read and parse task file
+                            try:
+                                yaml_dict, body_str = read_markdown(task_file)
+                                task_status = yaml_dict.get("status", "")
+
+                                # Only include open tasks
+                                if task_status == "open":
+                                    task_data = {
+                                        "id": task_id,
+                                        "title": yaml_dict.get("title", ""),
+                                        "status": task_status,
+                                        "priority": yaml_dict.get("priority", "normal"),
+                                        "parent": yaml_dict.get("parent", ""),
+                                        "file_path": str(task_file),
+                                        "created": str(yaml_dict.get("created", "")),
+                                        "updated": str(yaml_dict.get("updated", "")),
+                                    }
+                                    candidate_tasks.append(task_data)
+                            except Exception:
+                                # Skip files that can't be parsed
+                                continue
+
+        # Sort tasks by priority (high -> normal -> low) and then by creation date
+        def sort_key(task):
+            try:
+                priority_value = Priority[task["priority"].upper()].value
+            except (KeyError, AttributeError):
+                priority_value = Priority.NORMAL.value
+            return (priority_value, task["created"])
+
+        candidate_tasks.sort(key=sort_key)
+
+        if not candidate_tasks:
+            raise TrellisValidationError(["No open tasks available"])
+
+        # Filter tasks by prerequisite completion
+        eligible_tasks = []
+        for task in candidate_tasks:
+            task_id = task["id"]
+            # Get prerequisites for this task
+            task_prereqs = prereq_graph.get(task_id, [])
+
+            # Check if all prerequisites are completed
+            prereqs_completed = True
+            for prereq_id in task_prereqs:
+                if prereq_id in all_objects:
+                    prereq_status = all_objects[prereq_id].get("status", "")
+                    if prereq_status != "done":
+                        prereqs_completed = False
+                        break
+                else:
+                    # Prerequisite doesn't exist - task not eligible
+                    prereqs_completed = False
+                    break
+
+            if prereqs_completed:
+                eligible_tasks.append(task)
+
+        if not eligible_tasks:
+            raise TrellisValidationError(
+                ["No eligible tasks found - all open tasks have incomplete prerequisites"]
+            )
+
+        # Select the first task (already sorted by priority, created in listBacklog)
+        selected_task = eligible_tasks[0]
+
+        # Prepare update data
+        update_data = {"status": "in-progress"}
+        if worktree is not None:
+            update_data["worktree"] = worktree
+
+        # Atomically update the task using existing file I/O operations
+        try:
+            from .path_resolver import id_to_path
+            from .io_utils import write_markdown
+
+            # Get the task file path
+            task_id = selected_task["id"]
+            task_file_path = id_to_path(project_root_path, "task", task_id)
+
+            # Read current task content
+            yaml_dict, body_content = read_markdown(task_file_path)
+
+            # Update the YAML front-matter
+            yaml_dict.update(update_data)
+            yaml_dict["updated"] = datetime.now().isoformat()
+
+            # Write the updated file
+            write_markdown(task_file_path, yaml_dict, body_content)
+
+            # Return the claimed task info
+            return {
+                "task": selected_task,
+                "claimed_status": "in-progress",
+                "worktree": worktree if worktree is not None else "",
+                "file_path": str(task_file_path),
+            }
+
+        except Exception as e:
+            raise TrellisValidationError([f"Failed to claim task {selected_task['id']}: {str(e)}"])
 
     return server

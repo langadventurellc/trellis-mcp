@@ -39,19 +39,32 @@ Any ❌ = block. Fix → re‑run → commit.
 
 ## 🔧 Common Commands
 
-| Goal               | Command                                        |
-| ------------------ | ---------------------------------------------- |
-| Start server (dev) | `uv pip install -e . && python -m trellis_mcp` |
-| Run unit tests     | `uv run pytest -q`                             |
-| Lint & format      | `uv run pre-commit run --all-files`            |
-| Type check         | `uv run pyright src/`                          |
-| Generate docs      | `uv run mkdocs serve`                          |
+| Goal                    | Command                                          |
+| ----------------------- | ------------------------------------------------ |
+| Install dependencies    | `uv sync`                                        |
+| Install for development | `uv pip install -e .`                            |
+| Start server (STDIO)    | `uv run trellis-mcp serve`                       |
+| Start server (HTTP)     | `uv run trellis-mcp serve --http localhost:8000` |
+| Initialize planning     | `uv run trellis-mcp init`                        |
+| Run unit tests          | `uv run pytest -q`                               |
+| Lint & format           | `uv run pre-commit run --all-files`              |
+| Type check              | `uv run pyright src/`                            |
+
+## 🖥️ CLI Commands
+
+| Command                                     | Description                                        |
+| ------------------------------------------- | -------------------------------------------------- |
+| `uv run trellis-mcp --help`                 | Show CLI help and available commands               |
+| `uv run trellis-mcp init [PATH]`            | Initialize planning structure in PATH (default: .) |
+| `uv run trellis-mcp serve`                  | Start MCP server with STDIO transport              |
+| `uv run trellis-mcp serve --http HOST:PORT` | Start MCP server with HTTP transport               |
+| `uv run trellis-mcp --debug serve`          | Start server with debug logging enabled            |
+| `uv run trellis-mcp --config FILE serve`    | Start server with custom config file               |
 
 ---
 
 ## 📑 Coding Standards
 
-- **Type hints everywhere** (`from __future__ import annotations`).
 - **flake8/black** decide style—no bikeshedding.
 - Functions ≤ 40 LOC; classes ≤ 200 LOC; refactor otherwise.
 - Prefer composition over inheritance.

@@ -4,8 +4,6 @@ Provides default configuration values for the Trellis MCP server with support
 for hierarchical configuration loading (defaults → file → env → CLI).
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Literal
 

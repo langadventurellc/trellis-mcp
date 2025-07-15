@@ -5,8 +5,6 @@ files, environment variables, and CLI arguments. Maintains the precedence
 chain: defaults → file → env → CLI.
 """
 
-from __future__ import annotations
-
 import tomllib
 from pathlib import Path
 from typing import Any, Dict, Type

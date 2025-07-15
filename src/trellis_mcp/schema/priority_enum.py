@@ -3,8 +3,6 @@
 Defines the valid priority levels for objects in the system.
 """
 
-from __future__ import annotations
-
 from enum import Enum
 
 

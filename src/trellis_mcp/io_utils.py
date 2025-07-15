@@ -3,8 +3,6 @@
 This module provides utilities for reading and writing markdown files with YAML front-matter.
 """
 
-from __future__ import annotations
-
 import os
 import tempfile
 from datetime import datetime

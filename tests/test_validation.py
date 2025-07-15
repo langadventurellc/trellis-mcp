@@ -4,8 +4,6 @@ This module tests the validation functions for checking object relationships
 and constraints beyond basic field validation.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest
@@ -40,7 +38,7 @@ class TestValidateParentExists:
         project_dir = tmp_path / "planning" / "projects" / "P-test-project"
         project_dir.mkdir(parents=True)
         project_file = project_dir / "project.md"
-        project_file.write_text("---\nkind: project\n---\n")
+        project_file.write_text("---\nkind: project\npriority: normal\n---\n")
 
         # Test that the project exists
         assert validate_parent_exists("test-project", KindEnum.PROJECT, tmp_path / "planning")
@@ -78,7 +76,7 @@ class TestValidateParentExists:
         project_dir = tmp_path / "planning" / "projects" / "P-test-project"
         project_dir.mkdir(parents=True)
         project_file = project_dir / "project.md"
-        project_file.write_text("---\nkind: project\n---\n")
+        project_file.write_text("---\nkind: project\npriority: normal\n---\n")
 
         # Valid case: epic with existing parent
         assert validate_parent_exists_for_object(
@@ -101,12 +99,12 @@ class TestValidateParentExists:
         project_dir = tmp_path / "planning" / "projects" / "P-test-project"
         project_dir.mkdir(parents=True)
         project_file = project_dir / "project.md"
-        project_file.write_text("---\nkind: project\n---\n")
+        project_file.write_text("---\nkind: project\npriority: normal\n---\n")
 
         epic_dir = project_dir / "epics" / "E-test-epic"
         epic_dir.mkdir(parents=True)
         epic_file = epic_dir / "epic.md"
-        epic_file.write_text("---\nkind: epic\n---\n")
+        epic_file.write_text("---\nkind: epic\npriority: normal\n---\n")
 
         # Valid case: feature with existing parent
         assert validate_parent_exists_for_object(
@@ -124,17 +122,17 @@ class TestValidateParentExists:
         project_dir = tmp_path / "planning" / "projects" / "P-test-project"
         project_dir.mkdir(parents=True)
         project_file = project_dir / "project.md"
-        project_file.write_text("---\nkind: project\n---\n")
+        project_file.write_text("---\nkind: project\npriority: normal\n---\n")
 
         epic_dir = project_dir / "epics" / "E-test-epic"
         epic_dir.mkdir(parents=True)
         epic_file = epic_dir / "epic.md"
-        epic_file.write_text("---\nkind: epic\n---\n")
+        epic_file.write_text("---\nkind: epic\npriority: normal\n---\n")
 
         feature_dir = epic_dir / "features" / "F-test-feature"
         feature_dir.mkdir(parents=True)
         feature_file = feature_dir / "feature.md"
-        feature_file.write_text("---\nkind: feature\n---\n")
+        feature_file.write_text("---\nkind: feature\npriority: normal\n---\n")
 
         # Valid case: task with existing parent
         assert validate_parent_exists_for_object(
@@ -359,7 +357,7 @@ class TestValidateObjectData:
         project_dir = tmp_path / "planning" / "projects" / "P-test-project"
         project_dir.mkdir(parents=True)
         project_file = project_dir / "project.md"
-        project_file.write_text("---\nkind: project\n---\n")
+        project_file.write_text("---\nkind: project\npriority: normal\n---\n")
 
         data = {
             "kind": "epic",

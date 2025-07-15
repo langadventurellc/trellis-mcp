@@ -4,8 +4,6 @@ This module tests specific failure scenarios for validation functions,
 Pydantic models, and object parsing to ensure proper error handling.
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 from pathlib import Path
 
@@ -699,6 +697,7 @@ kind: invalid_kind
 id: P-test
 status: draft
 title: Invalid Object
+priority: normal
 ---
 
 Invalid object
@@ -757,6 +756,7 @@ Project with invalid parent
             """---
 kind: project
 id: P-test
+priority: normal
 invalid: yaml: syntax: [
 ---
 

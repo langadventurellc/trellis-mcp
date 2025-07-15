@@ -4,8 +4,6 @@ This module provides functionality to parse markdown files with YAML front-matte
 into typed Pydantic model instances based on the object kind.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Union
 

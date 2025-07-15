@@ -4,8 +4,6 @@ Provides functionality to load markdown files with YAML front-matter and
 separate the front-matter dictionary from the markdown body content.
 """
 
-from __future__ import annotations
-
 import re
 from pathlib import Path
 from typing import Dict, Any, Tuple

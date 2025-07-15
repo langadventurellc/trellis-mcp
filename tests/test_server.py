@@ -4,8 +4,6 @@ Tests server creation, configuration, and basic server instantiation
 to ensure proper FastMCP integration and server behavior.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest
@@ -3181,4 +3179,300 @@ class TestListBacklog:
 
         # Add another file with invalid name format
         invalid_name_file = feature_path / "invalid-name.md"
-        invalid_name_file.write_text("---\nkind: task\n---\nSome content")
+        invalid_name_file.write_text("---\nkind: task\npriority: normal\n---\nSome content")
+
+
+class TestClaimNextTaskPriority:
+    """Test cases for claimNextTask priority-based task selection."""
+
+    @pytest.mark.asyncio
+    async def test_claims_highest_priority_first(self, temp_dir):
+        """Test that claimNextTask selects highest priority task first."""
+        project_root = await self._create_mixed_priority_tasks(temp_dir)
+
+        settings = Settings(planning_root=project_root.parent)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Claim first task - should be high priority
+            result = await client.call_tool("claimNextTask", {"projectRoot": str(project_root)})
+
+            claimed_result = result.data
+            claimed_task = claimed_result["task"]
+            assert claimed_task["priority"] == "high"
+            assert claimed_task["title"] == "High Priority Task 1"
+            assert claimed_result["claimed_status"] == "in-progress"
+
+    @pytest.mark.asyncio
+    async def test_claims_by_creation_date_for_same_priority(self, temp_dir):
+        """Test that tasks with same priority are claimed by creation date."""
+        project_root = await self._create_same_priority_tasks(temp_dir)
+
+        settings = Settings(planning_root=project_root.parent)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Claim first task - should be earliest created high priority
+            result = await client.call_tool("claimNextTask", {"projectRoot": str(project_root)})
+
+            claimed_result = result.data
+            claimed_task = claimed_result["task"]
+            assert claimed_task["priority"] == "high"
+            assert claimed_task["title"] == "High Priority Task 1"  # Created first
+
+    @pytest.mark.asyncio
+    async def test_claims_next_highest_after_first_claimed(self, temp_dir):
+        """Test sequential claiming follows priority order."""
+        project_root = await self._create_mixed_priority_tasks(temp_dir)
+
+        settings = Settings(planning_root=project_root.parent)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Claim first task (high priority)
+            result1 = await client.call_tool("claimNextTask", {"projectRoot": str(project_root)})
+            assert result1.data["task"]["priority"] == "high"
+            assert result1.data["task"]["title"] == "High Priority Task 1"
+
+            # Claim second task (second high priority)
+            result2 = await client.call_tool("claimNextTask", {"projectRoot": str(project_root)})
+            assert result2.data["task"]["priority"] == "high"
+            assert result2.data["task"]["title"] == "High Priority Task 2"
+
+            # Claim third task (normal priority)
+            result3 = await client.call_tool("claimNextTask", {"projectRoot": str(project_root)})
+            assert result3.data["task"]["priority"] == "normal"
+            assert result3.data["task"]["title"] == "Normal Priority Task"
+
+            # Claim fourth task (low priority)
+            result4 = await client.call_tool("claimNextTask", {"projectRoot": str(project_root)})
+            assert result4.data["task"]["priority"] == "low"
+            assert result4.data["task"]["title"] == "Low Priority Task"
+
+    @pytest.mark.asyncio
+    async def test_no_eligible_tasks_raises_error(self, temp_dir):
+        """Test that claimNextTask raises error when no eligible tasks available."""
+        project_root = await self._create_basic_structure_no_tasks(temp_dir)
+
+        settings = Settings(planning_root=project_root.parent)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Should raise error - no open tasks
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool("claimNextTask", {"projectRoot": str(project_root)})
+
+            assert "No open tasks available" in str(exc_info.value)
+
+    async def _create_mixed_priority_tasks(self, temp_dir: Path) -> Path:
+        """Create test structure with tasks of different priorities."""
+        project_root = temp_dir / "planning"
+        project_root.mkdir()
+
+        settings = Settings(planning_root=project_root.parent)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Create project
+            await client.call_tool(
+                "createObject",
+                {
+                    "kind": "project",
+                    "title": "Priority Test Project",
+                    "projectRoot": str(project_root),
+                    "id": "priority-project",
+                },
+            )
+
+            # Create epic
+            await client.call_tool(
+                "createObject",
+                {
+                    "kind": "epic",
+                    "title": "Priority Test Epic",
+                    "projectRoot": str(project_root),
+                    "id": "priority-epic",
+                    "parent": "P-priority-project",
+                },
+            )
+
+            # Create feature
+            await client.call_tool(
+                "createObject",
+                {
+                    "kind": "feature",
+                    "title": "Priority Test Feature",
+                    "projectRoot": str(project_root),
+                    "id": "priority-feature",
+                    "parent": "E-priority-epic",
+                },
+            )
+
+            # Create tasks with different priorities
+            # High priority tasks (should be claimed first)
+            await client.call_tool(
+                "createObject",
+                {
+                    "kind": "task",
+                    "title": "High Priority Task 1",
+                    "projectRoot": str(project_root),
+                    "id": "high-task-1",
+                    "parent": "F-priority-feature",
+                    "priority": "high",
+                },
+            )
+
+            await client.call_tool(
+                "createObject",
+                {
+                    "kind": "task",
+                    "title": "High Priority Task 2",
+                    "projectRoot": str(project_root),
+                    "id": "high-task-2",
+                    "parent": "F-priority-feature",
+                    "priority": "high",
+                },
+            )
+
+            # Normal priority task
+            await client.call_tool(
+                "createObject",
+                {
+                    "kind": "task",
+                    "title": "Normal Priority Task",
+                    "projectRoot": str(project_root),
+                    "id": "normal-task",
+                    "parent": "F-priority-feature",
+                    "priority": "normal",
+                },
+            )
+
+            # Low priority task
+            await client.call_tool(
+                "createObject",
+                {
+                    "kind": "task",
+                    "title": "Low Priority Task",
+                    "projectRoot": str(project_root),
+                    "id": "low-task",
+                    "parent": "F-priority-feature",
+                    "priority": "low",
+                },
+            )
+
+        return project_root
+
+    async def _create_same_priority_tasks(self, temp_dir: Path) -> Path:
+        """Create test structure with tasks of same priority but different creation dates."""
+        project_root = temp_dir / "planning"
+        project_root.mkdir()
+
+        settings = Settings(planning_root=project_root.parent)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Create basic structure
+            await client.call_tool(
+                "createObject",
+                {
+                    "kind": "project",
+                    "title": "Same Priority Test Project",
+                    "projectRoot": str(project_root),
+                    "id": "same-priority-project",
+                },
+            )
+
+            await client.call_tool(
+                "createObject",
+                {
+                    "kind": "epic",
+                    "title": "Same Priority Test Epic",
+                    "projectRoot": str(project_root),
+                    "id": "same-priority-epic",
+                    "parent": "P-same-priority-project",
+                },
+            )
+
+            await client.call_tool(
+                "createObject",
+                {
+                    "kind": "feature",
+                    "title": "Same Priority Test Feature",
+                    "projectRoot": str(project_root),
+                    "id": "same-priority-feature",
+                    "parent": "E-same-priority-epic",
+                },
+            )
+
+            # Create high priority tasks with different creation dates
+            await client.call_tool(
+                "createObject",
+                {
+                    "kind": "task",
+                    "title": "High Priority Task 1",
+                    "projectRoot": str(project_root),
+                    "id": "high-same-1",
+                    "parent": "F-same-priority-feature",
+                    "priority": "high",
+                },
+            )
+
+            await client.call_tool(
+                "createObject",
+                {
+                    "kind": "task",
+                    "title": "High Priority Task 2",
+                    "projectRoot": str(project_root),
+                    "id": "high-same-2",
+                    "parent": "F-same-priority-feature",
+                    "priority": "high",
+                },
+            )
+
+        return project_root
+
+    async def _create_basic_structure_no_tasks(self, temp_dir: Path) -> Path:
+        """Create basic structure with no tasks at all."""
+        project_root = temp_dir / "planning"
+        project_root.mkdir()
+
+        settings = Settings(planning_root=project_root.parent)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Create basic structure
+            await client.call_tool(
+                "createObject",
+                {
+                    "kind": "project",
+                    "title": "No Tasks Project",
+                    "projectRoot": str(project_root),
+                    "id": "no-tasks-project",
+                },
+            )
+
+            await client.call_tool(
+                "createObject",
+                {
+                    "kind": "epic",
+                    "title": "No Tasks Epic",
+                    "projectRoot": str(project_root),
+                    "id": "no-tasks-epic",
+                    "parent": "P-no-tasks-project",
+                },
+            )
+
+            await client.call_tool(
+                "createObject",
+                {
+                    "kind": "feature",
+                    "title": "No Tasks Feature",
+                    "projectRoot": str(project_root),
+                    "id": "no-tasks-feature",
+                    "parent": "E-no-tasks-epic",
+                },
+            )
+
+            # Don't create any tasks - this will trigger "No open tasks available"
+
+        return project_root

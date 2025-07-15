@@ -4,8 +4,6 @@ Provides common configuration for all Pydantic models in the Trellis MCP schema 
 This includes validation settings, field behavior, and other shared model configurations.
 """
 
-from __future__ import annotations
-
 from pydantic import BaseModel, ConfigDict
 
 

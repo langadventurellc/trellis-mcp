@@ -4,8 +4,6 @@ Provides utilities for filesystem operations required by the Trellis MCP server,
 including directory creation, path handling, and object discovery.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Final
 
