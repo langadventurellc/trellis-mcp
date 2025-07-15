@@ -19,6 +19,7 @@ from .id_utils import generate_id
 from .io_utils import read_markdown, write_markdown
 from .models.common import Priority
 from .path_resolver import id_to_path, resolve_path_for_new_object
+from .query import get_oldest_review
 from .settings import Settings
 from .validation import (
     CircularDependencyError,
@@ -841,5 +842,81 @@ def create_server(settings: Settings) -> FastMCP:
             "validation_status": "ready_for_completion",
             "file_path": str(task_file_path),
         }
+
+    @server.tool
+    def getNextReviewableTask(
+        projectRoot: str,
+    ) -> dict[str, str | dict[str, str] | None]:
+        """Get the next task that needs review, ordered by oldest updated timestamp.
+
+        Finds the task in 'review' status with the oldest 'updated' timestamp across
+        the entire project hierarchy. If multiple tasks have the same timestamp,
+        priority is used as a tiebreaker (high > normal > low).
+
+        Args:
+            projectRoot: Root directory for the planning structure
+
+        Returns:
+            Dictionary containing the reviewable task data, or None if no reviewable tasks exist.
+            Structure when task found:
+            {
+                "task": {
+                    "id": str,           # Clean task ID (e.g., "implement-auth")
+                    "title": str,        # Task title
+                    "status": str,       # Task status ("review")
+                    "priority": str,     # Task priority ("high", "normal", "low")
+                    "parent": str,       # Parent feature ID
+                    "file_path": str,    # Path to task file
+                    "created": str,      # Creation timestamp
+                    "updated": str,      # Last update timestamp
+                }
+            }
+
+            When no reviewable tasks exist:
+            {
+                "task": None
+            }
+
+        Raises:
+            ValueError: If projectRoot is empty or invalid
+            TrellisValidationError: If there are issues accessing the project structure
+        """
+        # Basic parameter validation
+        if not projectRoot or not projectRoot.strip():
+            raise ValueError("Project root cannot be empty")
+
+        # Convert projectRoot to Path object
+        project_root_path = Path(projectRoot)
+
+        # Call the query function to get the oldest reviewable task
+        try:
+            reviewable_task = get_oldest_review(project_root_path)
+        except Exception as e:
+            raise TrellisValidationError([f"Failed to query reviewable tasks: {str(e)}"])
+
+        # Handle case where no reviewable tasks exist
+        if reviewable_task is None:
+            return {"task": None}
+
+        # Convert TaskModel to dictionary format
+        try:
+            task_file_path = id_to_path(project_root_path, "task", reviewable_task.id)
+        except Exception as e:
+            raise TrellisValidationError([f"Failed to resolve task file path: {str(e)}"])
+
+        # Build task dictionary in the format expected by the API
+        task_dict = {
+            "id": reviewable_task.id,
+            "title": reviewable_task.title,
+            "status": reviewable_task.status.value,
+            "priority": str(reviewable_task.priority),
+            "parent": reviewable_task.parent or "",
+            "file_path": str(task_file_path),
+            "created": reviewable_task.created.isoformat(),
+            "updated": reviewable_task.updated.isoformat(),
+        }
+
+        # Return the reviewable task info
+        return {"task": task_dict}
 
     return server
