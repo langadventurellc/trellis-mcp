@@ -1,7 +1,12 @@
-"""Integration test for S-09: claim → modify file list → complete → verify move & YAML.
+"""Integration test for complete task lifecycle workflow.
 
 Tests the complete task lifecycle from claiming through completion using
-the MCP server RPC calls to verify end-to-end functionality.
+the MCP server RPC calls to verify end-to-end functionality including:
+- Task claiming (open → in-progress)
+- Task completion with summary and file changes
+- File movement from tasks-open to tasks-done
+- YAML front-matter updates
+- Log entry generation
 """
 
 from pathlib import Path
@@ -15,10 +20,12 @@ from trellis_mcp.settings import Settings
 
 
 @pytest.mark.asyncio
-async def test_s09_claim_complete_workflow_with_file_movement_and_yaml_verification(temp_dir):
-    """Integration test: claim → modify file list → complete → verify move & YAML.
+async def test_task_lifecycle_claim_complete_workflow_with_file_movement_and_yaml_verification(
+    temp_dir,
+):
+    """Integration test: complete task lifecycle workflow.
 
-    This test covers the S-09 requirement by:
+    This test covers the complete task lifecycle by:
     1. Creating a complete project hierarchy via MCP calls
     2. Using claimNextTask to claim a task (open → in-progress)
     3. Using completeTask with summary and filesChanged
@@ -44,8 +51,8 @@ async def test_s09_claim_complete_workflow_with_file_movement_and_yaml_verificat
             "createObject",
             {
                 "kind": "project",
-                "title": "S-09 Integration Test Project",
-                "description": "Project for testing claim → complete workflow",
+                "title": "Task Lifecycle Integration Test Project",
+                "description": "Project for testing complete task lifecycle workflow",
                 "projectRoot": planning_root,
             },
         )
@@ -57,8 +64,8 @@ async def test_s09_claim_complete_workflow_with_file_movement_and_yaml_verificat
             "createObject",
             {
                 "kind": "epic",
-                "title": "S-09 Test Epic",
-                "description": "Epic for claim completion workflow test",
+                "title": "Task Lifecycle Test Epic",
+                "description": "Epic for task lifecycle workflow test",
                 "projectRoot": planning_root,
                 "parent": project_id,
             },
@@ -71,8 +78,8 @@ async def test_s09_claim_complete_workflow_with_file_movement_and_yaml_verificat
             "createObject",
             {
                 "kind": "feature",
-                "title": "S-09 Test Feature",
-                "description": "Feature for testing task completion workflow",
+                "title": "Task Lifecycle Test Feature",
+                "description": "Feature for testing complete task lifecycle workflow",
                 "projectRoot": planning_root,
                 "parent": epic_id,
             },
@@ -199,7 +206,7 @@ async def test_s09_claim_complete_workflow_with_file_movement_and_yaml_verificat
         # Verify status was updated to done
         assert done_yaml["status"] == "done"
 
-        # Verify worktree was cleared (S-06 requirement)
+        # Verify worktree was cleared after task completion
         assert done_yaml["worktree"] is None
 
         # Verify other fields preserved correctly
@@ -209,7 +216,7 @@ async def test_s09_claim_complete_workflow_with_file_movement_and_yaml_verificat
         assert done_yaml["priority"] == 1  # HIGH priority = 1
         assert done_yaml["kind"] == "task"
 
-        # Step 6: Verify log entry was appended with summary and filesChanged (S-04 requirement)
+        # Step 6: Verify log entry was appended with summary and filesChanged
         assert "### Log" in done_body
 
         # Verify log entry contains summary
