@@ -21,6 +21,8 @@ from .validation import (
     check_prereq_cycles,
     check_prereq_cycles_in_memory,
     enforce_status_transition,
+    get_all_objects,
+    build_prerequisites_graph,
     TrellisValidationError,
     CircularDependencyError,
 )
@@ -730,9 +732,6 @@ def create_server(settings: Settings) -> FastMCP:
             TrellisValidationError: If no eligible tasks are available
             OSError: If file operations fail
         """
-        from .validation import get_all_objects, build_prerequisites_graph
-        from .io_utils import read_markdown
-
         # Load all objects to check prerequisites
         try:
             all_objects_result = get_all_objects(projectRoot)
@@ -865,9 +864,6 @@ def create_server(settings: Settings) -> FastMCP:
 
         # Atomically update the task using existing file I/O operations
         try:
-            from .path_resolver import id_to_path
-            from .io_utils import write_markdown
-
             # Get the task file path
             task_id = selected_task["id"]
             task_file_path = id_to_path(project_root_path, "task", task_id)

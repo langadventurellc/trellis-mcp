@@ -381,10 +381,10 @@ class TestWriteMarkdown:
     def test_write_markdown_enum_roundtrip_consistency(self):
         """Test that enum objects maintain consistency through multiple write/read cycles."""
         from trellis_mcp.schema.status_enum import StatusEnum
-        from trellis_mcp.schema.priority_enum import PriorityEnum
+        from trellis_mcp.models.common import Priority
 
         status_enum = StatusEnum.OPEN
-        priority_enum = PriorityEnum.HIGH
+        priority_enum = Priority.HIGH
         yaml_dict = {
             "title": "Enum Roundtrip Test",
             "status": status_enum,
@@ -416,9 +416,9 @@ class TestWriteMarkdown:
             assert yaml_result1["status"] == status_enum.value
             assert yaml_result2["status"] == status_enum.value
             assert yaml_result3["status"] == status_enum.value
-            assert yaml_result1["priority"] == priority_enum.value
-            assert yaml_result2["priority"] == priority_enum.value
-            assert yaml_result3["priority"] == priority_enum.value
+            assert yaml_result1["priority"] == str(priority_enum)
+            assert yaml_result2["priority"] == str(priority_enum)
+            assert yaml_result3["priority"] == str(priority_enum)
 
             # Clean up
             Path(f.name).unlink()
@@ -428,13 +428,13 @@ class TestWriteMarkdown:
         enums, and complex structures."""
         from datetime import datetime
         from trellis_mcp.schema.status_enum import StatusEnum
-        from trellis_mcp.schema.priority_enum import PriorityEnum
+        from trellis_mcp.models.common import Priority
 
         test_datetime = datetime(2025, 1, 15, 9, 45, 30, 987654)
         yaml_dict = {
             "title": "Comprehensive Roundtrip Test",
             "status": StatusEnum.IN_PROGRESS,
-            "priority": PriorityEnum.NORMAL,
+            "priority": Priority.NORMAL,
             "created": test_datetime,
             "updated": test_datetime,
             "prerequisites": ["T-001", "T-002"],
@@ -477,7 +477,7 @@ class TestWriteMarkdown:
             # Verify specific serialization formats remain consistent
             expected_datetime_str = test_datetime.isoformat()
             expected_status_str = StatusEnum.IN_PROGRESS.value
-            expected_priority_str = PriorityEnum.NORMAL.value
+            expected_priority_str = str(Priority.NORMAL)
 
             for result in [yaml_result1, yaml_result2, yaml_result3]:
                 assert result["created"] == expected_datetime_str

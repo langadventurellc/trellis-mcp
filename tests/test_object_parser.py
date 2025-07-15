@@ -9,7 +9,7 @@ from trellis_mcp.object_parser import parse_object
 from trellis_mcp.schema.epic import EpicModel
 from trellis_mcp.schema.feature import FeatureModel
 from trellis_mcp.schema.kind_enum import KindEnum
-from trellis_mcp.schema.priority_enum import PriorityEnum
+from trellis_mcp.models.common import Priority
 from trellis_mcp.schema.project import ProjectModel
 from trellis_mcp.schema.status_enum import StatusEnum
 from trellis_mcp.schema.task import TaskModel
@@ -49,7 +49,7 @@ This is a sample project description.
         assert result.parent is None
         assert result.status == StatusEnum.DRAFT
         assert result.title == "Sample Project"
-        assert result.priority == PriorityEnum.HIGH
+        assert result.priority == Priority.HIGH
         assert result.prerequisites == []
         assert result.schema_version == "1.0"
 
@@ -84,7 +84,7 @@ This is a sample epic description.
         assert result.parent == "P-001"
         assert result.status == StatusEnum.IN_PROGRESS
         assert result.title == "Sample Epic"
-        assert result.priority == PriorityEnum.NORMAL
+        assert result.priority == Priority.NORMAL
 
     def test_parse_feature_object(self, temp_dir: Path) -> None:
         """Test parsing a valid feature markdown file."""
@@ -117,7 +117,7 @@ This is a sample feature description.
         assert result.parent == "E-001"
         assert result.status == StatusEnum.DONE
         assert result.title == "Sample Feature"
-        assert result.priority == PriorityEnum.LOW
+        assert result.priority == Priority.LOW
 
     def test_parse_task_object(self, temp_dir: Path) -> None:
         """Test parsing a valid task markdown file."""
@@ -150,7 +150,7 @@ This is a sample task description.
         assert result.parent == "F-001"
         assert result.status == StatusEnum.OPEN
         assert result.title == "Sample Task"
-        assert result.priority == PriorityEnum.HIGH
+        assert result.priority == Priority.HIGH
 
     def test_parse_with_string_path(self, temp_dir: Path) -> None:
         """Test parsing with string path instead of Path object."""

@@ -15,7 +15,7 @@ from trellis_mcp.schema.project import ProjectModel
 from trellis_mcp.schema.task import TaskModel
 from trellis_mcp.schema.kind_enum import KindEnum
 from trellis_mcp.schema.status_enum import StatusEnum
-from trellis_mcp.schema.priority_enum import PriorityEnum
+from trellis_mcp.models.common import Priority
 from trellis_mcp.validation import (
     validate_required_fields_per_kind,
     validate_enum_membership,
@@ -568,7 +568,7 @@ class TestPydanticModelFailures:
                 parent="some-parent",  # Should fail
                 status=StatusEnum.DRAFT,
                 title="Test Project",
-                priority=PriorityEnum.NORMAL,
+                priority=Priority.NORMAL,
                 prerequisites=[],
                 worktree=None,
                 created=datetime(2023, 1, 1),
@@ -588,7 +588,7 @@ class TestPydanticModelFailures:
                 parent=None,
                 status=StatusEnum.OPEN,  # Invalid for project
                 title="Test Project",
-                priority=PriorityEnum.NORMAL,
+                priority=Priority.NORMAL,
                 prerequisites=[],
                 worktree=None,
                 created=datetime(2023, 1, 1),
@@ -608,7 +608,7 @@ class TestPydanticModelFailures:
                 parent=None,  # Should fail
                 status=StatusEnum.OPEN,
                 title="Test Task",
-                priority=PriorityEnum.NORMAL,
+                priority=Priority.NORMAL,
                 prerequisites=[],
                 worktree=None,
                 created=datetime(2023, 1, 1),
@@ -628,7 +628,7 @@ class TestPydanticModelFailures:
                 parent="F-test",
                 status=StatusEnum.DRAFT,  # Invalid for task
                 title="Test Task",
-                priority=PriorityEnum.NORMAL,
+                priority=Priority.NORMAL,
                 prerequisites=[],
                 worktree=None,
                 created=datetime(2023, 1, 1),

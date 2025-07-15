@@ -16,7 +16,7 @@ from .path_resolver import id_to_path
 from .id_utils import clean_prerequisite_id
 from .schema.kind_enum import KindEnum
 from .schema.status_enum import StatusEnum
-from .schema.priority_enum import PriorityEnum
+from .models.common import Priority
 
 # Configure logger for this module
 logger = logging.getLogger(__name__)
@@ -765,7 +765,7 @@ def validate_enum_membership(data: Dict[str, Any]) -> List[str]:
                         f"Invalid status '{input_value}'. Must be one of: {valid_statuses}"
                     )
                 elif "priority" in str(field):
-                    valid_priorities = [p.value for p in PriorityEnum]
+                    valid_priorities = [str(p) for p in Priority]
                     errors.append(
                         f"Invalid priority '{input_value}'. Must be one of: {valid_priorities}"
                     )
@@ -800,9 +800,9 @@ def _validate_enum_membership_manual(data: Dict[str, Any]) -> List[str]:
     # Validate priority enum
     if "priority" in data:
         try:
-            PriorityEnum(data["priority"])
+            Priority(data["priority"])
         except ValueError:
-            valid_priorities = [p.value for p in PriorityEnum]
+            valid_priorities = [str(p) for p in Priority]
             errors.append(
                 f"Invalid priority '{data['priority']}'. Must be one of: {valid_priorities}"
             )
@@ -826,14 +826,14 @@ def validate_priority_field(data: Dict[str, Any]) -> List[str]:
 
     # Set default priority if missing
     if "priority" not in data or data["priority"] is None:
-        data["priority"] = PriorityEnum.NORMAL.value
+        data["priority"] = str(Priority.NORMAL)
 
     # Validate priority field value
     priority_value = data["priority"]
     try:
-        PriorityEnum(priority_value)
+        Priority(priority_value)
     except ValueError:
-        valid_priorities = [p.value for p in PriorityEnum]
+        valid_priorities = [str(p) for p in Priority]
         errors.append(f"Invalid priority '{priority_value}'. Must be one of: {valid_priorities}")
 
     return errors
@@ -984,7 +984,7 @@ def validate_object_data(data: Dict[str, Any], project_root: str | Path) -> None
                         f"Invalid status '{input_value}'. Must be one of: {valid_statuses}"
                     )
                 elif "priority" in str(field):
-                    valid_priorities = [p.value for p in PriorityEnum]
+                    valid_priorities = [str(p) for p in Priority]
                     errors.append(
                         f"Invalid priority '{input_value}'. Must be one of: {valid_priorities}"
                     )
@@ -1177,7 +1177,7 @@ def validate_front_matter(yaml_dict: Dict[str, Any], kind: str | KindEnum) -> Li
                 elif "priority" in str(field):
                     # Skip priority errors if they were already handled by explicit validation
                     if not priority_errors:
-                        valid_priorities = [p.value for p in PriorityEnum]
+                        valid_priorities = [str(p) for p in Priority]
                         errors.append(
                             f"Invalid priority '{input_value}'. Must be one of: {valid_priorities}"
                         )
