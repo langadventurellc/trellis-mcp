@@ -1,14 +1,18 @@
 """Shared test utilities and fixtures for integration tests."""
 
-from fastmcp import Client
+from pathlib import Path
+
+from fastmcp import Client, FastMCP
 
 from trellis_mcp.server import create_server
 from trellis_mcp.settings import Settings
 
 
 async def create_test_hierarchy(
-    client: Client, planning_root: str, project_title: str = "Test Project"
-):
+    client: Client,
+    planning_root: str,
+    project_title: str = "Test Project",
+) -> dict[str, str]:
     """Create a standard project → epic → feature → task hierarchy for testing.
 
     Args:
@@ -63,8 +67,12 @@ async def create_test_hierarchy(
 
 
 async def create_task_with_priority(
-    client: Client, planning_root: str, parent_id: str, title: str, priority: str = "normal"
-):
+    client: Client,
+    planning_root: str,
+    parent_id: str,
+    title: str,
+    priority: str = "normal",
+) -> dict[str, str]:
     """Create a task with specified priority.
 
     Args:
@@ -90,7 +98,11 @@ async def create_task_with_priority(
     return task_result.data
 
 
-async def create_mixed_priority_tasks(client: Client, planning_root: str, parent_id: str):
+async def create_mixed_priority_tasks(
+    client: Client,
+    planning_root: str,
+    parent_id: str,
+) -> dict[str, list[str]]:
     """Create tasks with mixed priorities for testing priority ordering.
 
     Args:
@@ -127,7 +139,12 @@ async def create_mixed_priority_tasks(client: Client, planning_root: str, parent
     }
 
 
-async def update_task_status(client: Client, planning_root: str, task_id: str, target_status: str):
+async def update_task_status(
+    client: Client,
+    planning_root: str,
+    task_id: str,
+    target_status: str,
+):
     """Update task status following proper state transitions.
 
     Args:
@@ -179,7 +196,11 @@ async def update_task_status(client: Client, planning_root: str, task_id: str, t
         )
 
 
-async def create_mixed_status_tasks(client: Client, planning_root: str, parent_id: str):
+async def create_mixed_status_tasks(
+    client: Client,
+    planning_root: str,
+    parent_id: str,
+) -> dict[str, list[str]]:
     """Create tasks with mixed statuses for testing status filtering.
 
     Args:
@@ -226,7 +247,7 @@ async def create_mixed_status_tasks(client: Client, planning_root: str, parent_i
     return tasks_by_status
 
 
-def create_test_server(temp_dir):
+def create_test_server(temp_dir: Path) -> tuple[FastMCP, str]:
     """Create a test server instance with temporary planning directory.
 
     Args:
@@ -309,8 +330,13 @@ def extract_raw_id(prefixed_id: str) -> str:
 
 
 def build_task_path(
-    temp_dir, project_id: str, epic_id: str, feature_id: str, task_id: str, status: str = "open"
-):
+    temp_dir: Path,
+    project_id: str,
+    epic_id: str,
+    feature_id: str,
+    task_id: str,
+    status: str = "open",
+) -> Path:
     """Build expected task file path based on hierarchy and status.
 
     Args:
