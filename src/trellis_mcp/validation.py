@@ -12,11 +12,11 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from .path_resolver import id_to_path
 from .id_utils import clean_prerequisite_id
+from .models.common import Priority
+from .path_resolver import id_to_path
 from .schema.kind_enum import KindEnum
 from .schema.status_enum import StatusEnum
-from .models.common import Priority
 
 # Configure logger for this module
 logger = logging.getLogger(__name__)
@@ -855,8 +855,9 @@ def validate_status_for_kind(status: StatusEnum, object_kind: KindEnum) -> bool:
     Raises:
         ValueError: If status is invalid for the kind
     """
-    from .schema import get_model_class_for_kind
     from datetime import datetime
+
+    from .schema import get_model_class_for_kind
 
     try:
         # Get the appropriate Pydantic model class for this kind

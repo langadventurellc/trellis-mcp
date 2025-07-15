@@ -1,16 +1,17 @@
 """Tests for claim_next_task core functionality."""
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
+
 import pytest
 
 from trellis_mcp.claim_next_task import claim_next_task
 from trellis_mcp.exceptions.no_available_task import NoAvailableTask
 from trellis_mcp.models.common import Priority
-from trellis_mcp.schema.task import TaskModel
-from trellis_mcp.schema.status_enum import StatusEnum
 from trellis_mcp.schema.kind_enum import KindEnum
+from trellis_mcp.schema.status_enum import StatusEnum
+from trellis_mcp.schema.task import TaskModel
 
 
 def create_test_task(

@@ -4,13 +4,14 @@ Tests the complete task lifecycle from claiming through completion using
 the MCP server RPC calls to verify end-to-end functionality.
 """
 
-import pytest
-from fastmcp import Client
 from pathlib import Path
 
+import pytest
+from fastmcp import Client
+
+from trellis_mcp.io_utils import read_markdown
 from trellis_mcp.server import create_server
 from trellis_mcp.settings import Settings
-from trellis_mcp.io_utils import read_markdown
 
 
 @pytest.mark.asyncio

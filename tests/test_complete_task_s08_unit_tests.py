@@ -6,15 +6,16 @@ Focused unit tests specifically covering the three core scenarios requested in S
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
+
 import pytest
 
 from trellis_mcp.complete_task import complete_task
 from trellis_mcp.exceptions.invalid_status_for_completion import InvalidStatusForCompletion
 from trellis_mcp.exceptions.prerequisites_not_complete import PrerequisitesNotComplete
 from trellis_mcp.models.common import Priority
-from trellis_mcp.schema.task import TaskModel
-from trellis_mcp.schema.status_enum import StatusEnum
 from trellis_mcp.schema.kind_enum import KindEnum
+from trellis_mcp.schema.status_enum import StatusEnum
+from trellis_mcp.schema.task import TaskModel
 
 
 def create_test_task(

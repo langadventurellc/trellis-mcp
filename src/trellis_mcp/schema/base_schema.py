@@ -8,10 +8,10 @@ from typing import ClassVar, Literal
 
 from pydantic import Field, ValidationInfo, field_validator, model_validator
 
+from ..models.common import Priority
 from .base import TrellisBaseModel
 from .kind_enum import KindEnum
 from .status_enum import StatusEnum
-from ..models.common import Priority
 
 
 class BaseSchemaModel(TrellisBaseModel):

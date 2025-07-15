@@ -5,11 +5,11 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from trellis_mcp.models.common import Priority
 from trellis_mcp.object_parser import parse_object
 from trellis_mcp.schema.epic import EpicModel
 from trellis_mcp.schema.feature import FeatureModel
 from trellis_mcp.schema.kind_enum import KindEnum
-from trellis_mcp.models.common import Priority
 from trellis_mcp.schema.project import ProjectModel
 from trellis_mcp.schema.status_enum import StatusEnum
 from trellis_mcp.schema.task import TaskModel

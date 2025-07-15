@@ -4,10 +4,10 @@ from datetime import datetime
 from unittest.mock import patch
 
 from trellis_mcp.dependency_resolver import is_unblocked
-from trellis_mcp.schema.task import TaskModel
+from trellis_mcp.models.common import Priority
 from trellis_mcp.schema.kind_enum import KindEnum
 from trellis_mcp.schema.status_enum import StatusEnum
-from trellis_mcp.models.common import Priority
+from trellis_mcp.schema.task import TaskModel
 
 
 class TestIsUnblocked:

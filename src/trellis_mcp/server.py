@@ -10,25 +10,25 @@ from typing import Any
 
 from fastmcp import FastMCP
 
-from .settings import Settings
-from .id_utils import generate_id
+from .claim_next_task import claim_next_task
+from .complete_task import complete_task
+from .exceptions.invalid_status_for_completion import InvalidStatusForCompletion
+from .exceptions.no_available_task import NoAvailableTask
 from .fs_utils import ensure_parent_dirs
+from .id_utils import generate_id
+from .io_utils import read_markdown, write_markdown
+from .models.common import Priority
 from .path_resolver import id_to_path, resolve_path_for_new_object
-from .io_utils import write_markdown, read_markdown
+from .settings import Settings
 from .validation import (
-    validate_front_matter,
-    validate_object_data,
+    CircularDependencyError,
+    TrellisValidationError,
     check_prereq_cycles,
     check_prereq_cycles_in_memory,
     enforce_status_transition,
-    TrellisValidationError,
-    CircularDependencyError,
+    validate_front_matter,
+    validate_object_data,
 )
-from .models.common import Priority
-from .claim_next_task import claim_next_task
-from .complete_task import complete_task
-from .exceptions.no_available_task import NoAvailableTask
-from .exceptions.invalid_status_for_completion import InvalidStatusForCompletion
 
 
 def create_server(settings: Settings) -> FastMCP:

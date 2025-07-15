@@ -8,9 +8,9 @@ from pathlib import Path
 
 import click
 
+from .complete_task import complete_task
 from .loader import ConfigLoader
 from .server import create_server
-from .complete_task import complete_task
 
 
 @click.group(

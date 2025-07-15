@@ -1,7 +1,7 @@
 """Tests for complete_task file movement functionality."""
 
 from trellis_mcp.complete_task import complete_task
-from trellis_mcp.io_utils import write_markdown, read_markdown
+from trellis_mcp.io_utils import read_markdown, write_markdown
 from trellis_mcp.schema.status_enum import StatusEnum
 
 

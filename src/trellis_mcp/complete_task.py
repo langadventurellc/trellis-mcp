@@ -4,13 +4,13 @@ Provides the core function for validating and completing tasks that are
 in-progress or in review status.
 """
 
+import os
 from datetime import datetime, timezone
 from pathlib import Path
-import os
 
+from .dependency_resolver import is_unblocked
 from .exceptions.invalid_status_for_completion import InvalidStatusForCompletion
 from .exceptions.prerequisites_not_complete import PrerequisitesNotComplete
-from .dependency_resolver import is_unblocked
 from .io_utils import read_markdown, write_markdown
 from .object_parser import parse_object
 from .path_resolver import id_to_path, resolve_path_for_new_object

@@ -10,19 +10,19 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from trellis_mcp.object_parser import parse_object
-from trellis_mcp.schema.project import ProjectModel
-from trellis_mcp.schema.task import TaskModel
-from trellis_mcp.schema.kind_enum import KindEnum
-from trellis_mcp.schema.status_enum import StatusEnum
 from trellis_mcp.models.common import Priority
+from trellis_mcp.object_parser import parse_object
+from trellis_mcp.schema.kind_enum import KindEnum
+from trellis_mcp.schema.project import ProjectModel
+from trellis_mcp.schema.status_enum import StatusEnum
+from trellis_mcp.schema.task import TaskModel
 from trellis_mcp.validation import (
-    validate_required_fields_per_kind,
-    validate_enum_membership,
-    validate_status_for_kind,
-    validate_parent_exists_for_object,
-    validate_acyclic_prerequisites,
     CircularDependencyError,
+    validate_acyclic_prerequisites,
+    validate_enum_membership,
+    validate_parent_exists_for_object,
+    validate_required_fields_per_kind,
+    validate_status_for_kind,
 )
 
 

@@ -7,6 +7,7 @@ with validation and serialization capabilities.
 
 from typing import Type
 
+from ..models.common import Priority
 from .base import TrellisBaseModel
 from .base_schema import BaseSchemaModel
 from .epic import EpicModel
@@ -15,7 +16,6 @@ from .kind_enum import KindEnum
 from .project import ProjectModel
 from .status_enum import StatusEnum
 from .task import TaskModel
-from ..models.common import Priority
 
 
 def get_model_class_for_kind(kind: str | KindEnum) -> Type[BaseSchemaModel]:

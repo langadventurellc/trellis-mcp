@@ -4,6 +4,7 @@ Contains shared enums and data structures used across the Trellis MCP system.
 """
 
 from enum import IntEnum
+
 import yaml
 
 
