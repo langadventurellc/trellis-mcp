@@ -898,3 +898,261 @@ async def test_two_agents_claim_tasks_sequentially_verify_priority_order(
         with pytest.raises(Exception) as exc_info:
             await agent1.call_tool("claimNextTask", {"projectRoot": planning_root})
         assert "No open tasks available" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_claim_next_task_returns_high_priority_before_normal(temp_dir):
+    """Integration test: create two tasks + satisfied prereqs, expect high priority first."""
+    # Create settings with temporary planning directory
+    settings = Settings(
+        planning_root=temp_dir / "planning",
+        debug_mode=True,
+        log_level="DEBUG",
+    )
+
+    # Create server instance
+    server = create_server(settings)
+    planning_root = str(temp_dir / "planning")
+
+    # Setup: Create test hierarchy with high and normal priority tasks
+    async with Client(server) as setup_client:
+        # Create project
+        project_result = await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "project",
+                "title": "Priority Test Project",
+                "projectRoot": planning_root,
+            },
+        )
+        project_id = project_result.data["id"]
+
+        # Create epic
+        epic_result = await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "epic",
+                "title": "Priority Test Epic",
+                "projectRoot": planning_root,
+                "parent": project_id,
+            },
+        )
+        epic_id = epic_result.data["id"]
+
+        # Create feature
+        feature_result = await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "feature",
+                "title": "Priority Test Feature",
+                "projectRoot": planning_root,
+                "parent": epic_id,
+            },
+        )
+        feature_id = feature_result.data["id"]
+
+        # Create normal priority task (created first, should be older)
+        await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "task",
+                "title": "Normal Priority Task",
+                "projectRoot": planning_root,
+                "parent": feature_id,
+                "priority": "normal",
+            },
+        )
+
+        # Create high priority task (created second, should be newer)
+        high_task_result = await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "task",
+                "title": "High Priority Task",
+                "projectRoot": planning_root,
+                "parent": feature_id,
+                "priority": "high",
+            },
+        )
+        high_task_id = high_task_result.data["id"]
+
+    # Test: Call claimNextTask and verify high priority task is returned first
+    async with Client(server) as client:
+        result = await client.call_tool("claimNextTask", {"projectRoot": planning_root})
+
+        # Verify the high priority task was claimed first (despite being created later)
+        claimed_task = result.data["task"]
+        assert claimed_task["priority"] == "high"
+        assert claimed_task["title"] == "High Priority Task"
+        assert claimed_task["id"] == high_task_id
+
+        # Verify response structure
+        assert result.data["claimed_status"] == "in-progress"
+        assert "file_path" in result.data
+
+        # Verify the task status was updated
+        assert claimed_task["status"] == "in-progress"
+
+
+@pytest.mark.asyncio
+async def test_two_sequential_claims_with_different_worktree_values_persist_to_disk(temp_dir):
+    """Integration test: two sequential claimNextTask calls with different worktreePath values.
+
+    Verify each task gets unique worktree stamp and persists to disk.
+    """
+    # Create settings with temporary planning directory
+    settings = Settings(
+        planning_root=temp_dir / "planning",
+        debug_mode=True,
+        log_level="DEBUG",
+    )
+
+    # Create server instance
+    server = create_server(settings)
+    planning_root = str(temp_dir / "planning")
+
+    # Setup: Create test hierarchy with two tasks
+    async with Client(server) as setup_client:
+        # Create project
+        project_result = await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "project",
+                "title": "Worktree Test Project",
+                "projectRoot": planning_root,
+            },
+        )
+        project_id = project_result.data["id"]
+
+        # Create epic
+        epic_result = await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "epic",
+                "title": "Worktree Test Epic",
+                "projectRoot": planning_root,
+                "parent": project_id,
+            },
+        )
+        epic_id = epic_result.data["id"]
+
+        # Create feature
+        feature_result = await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "feature",
+                "title": "Worktree Test Feature",
+                "projectRoot": planning_root,
+                "parent": epic_id,
+            },
+        )
+        feature_id = feature_result.data["id"]
+
+        # Create first task
+        task1_result = await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "task",
+                "title": "First Task",
+                "projectRoot": planning_root,
+                "parent": feature_id,
+                "priority": "high",
+            },
+        )
+        task1_id = task1_result.data["id"]
+
+        # Create second task
+        task2_result = await setup_client.call_tool(
+            "createObject",
+            {
+                "kind": "task",
+                "title": "Second Task",
+                "projectRoot": planning_root,
+                "parent": feature_id,
+                "priority": "normal",
+            },
+        )
+        task2_id = task2_result.data["id"]
+
+    # Test: Two sequential claimNextTask calls with different worktree values
+
+    # First claim with worktree="workspace-1"
+    async with Client(server) as client1:
+        result1 = await client1.call_tool(
+            "claimNextTask", {"projectRoot": planning_root, "worktree": "workspace-1"}
+        )
+        claimed_task1 = result1.data["task"]
+
+        # Verify first task claimed (high priority first)
+        assert claimed_task1["id"] == task1_id
+        assert claimed_task1["priority"] == "high"
+        assert claimed_task1["status"] == "in-progress"
+
+        # Verify API response contains worktree value
+        assert result1.data["worktree"] == "workspace-1"
+
+    # Second claim with worktree="workspace-2"
+    async with Client(server) as client2:
+        result2 = await client2.call_tool(
+            "claimNextTask", {"projectRoot": planning_root, "worktree": "workspace-2"}
+        )
+        claimed_task2 = result2.data["task"]
+
+        # Verify second task claimed (normal priority second)
+        assert claimed_task2["id"] == task2_id
+        assert claimed_task2["priority"] == "normal"
+        assert claimed_task2["status"] == "in-progress"
+
+        # Verify API response contains different worktree value
+        assert result2.data["worktree"] == "workspace-2"
+
+    # Critical: Verify worktree values persist to disk in YAML files
+    planning_path = temp_dir / "planning"
+
+    # Extract raw IDs for path construction
+    raw_project_id = project_id.removeprefix("P-")
+    raw_epic_id = epic_id.removeprefix("E-")
+    raw_feature_id = feature_id.removeprefix("F-")
+
+    # Construct expected task file paths
+    task_base_path = (
+        planning_path
+        / "projects"
+        / f"P-{raw_project_id}"
+        / "epics"
+        / f"E-{raw_epic_id}"
+        / "features"
+        / f"F-{raw_feature_id}"
+        / "tasks-open"
+    )
+
+    task1_file = task_base_path / f"{task1_id}.md"
+    task2_file = task_base_path / f"{task2_id}.md"
+
+    # Verify both task files exist
+    assert task1_file.exists(), f"Task 1 file not found: {task1_file}"
+    assert task2_file.exists(), f"Task 2 file not found: {task2_file}"
+
+    # Read task file contents and verify worktree values persist in YAML
+    task1_content = task1_file.read_text()
+    task2_content = task2_file.read_text()
+
+    # Verify task1 YAML contains worktree: "workspace-1"
+    assert 'worktree: "workspace-1"' in task1_content or "worktree: workspace-1" in task1_content
+    assert f"id: {task1_id}" in task1_content
+    assert "status: in-progress" in task1_content
+
+    # Verify task2 YAML contains worktree: "workspace-2"
+    assert 'worktree: "workspace-2"' in task2_content or "worktree: workspace-2" in task2_content
+    assert f"id: {task2_id}" in task2_content
+    assert "status: in-progress" in task2_content
+
+    # Verify each task has unique worktree stamp
+    assert (
+        'worktree: "workspace-1"' not in task2_content
+        and "worktree: workspace-1" not in task2_content
+    )
+    assert (
+        'worktree: "workspace-2"' not in task1_content
+        and "worktree: workspace-2" not in task1_content
+    )
