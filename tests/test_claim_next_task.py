@@ -2,7 +2,6 @@
 
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import Optional
 from unittest.mock import patch
 import pytest
 
@@ -20,8 +19,8 @@ def create_test_task(
     created: datetime,
     status: StatusEnum = StatusEnum.OPEN,
     title: str = "Test task",
-    prerequisites: Optional[list] = None,
-    worktree: Optional[str] = None,
+    prerequisites: list[str] | None = None,
+    worktree: str | None = None,
 ) -> TaskModel:
     """Create a test TaskModel with specified fields."""
     return TaskModel(

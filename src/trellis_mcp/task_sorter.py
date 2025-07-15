@@ -3,13 +3,11 @@
 Provides utility functions for sorting tasks by priority and creation date.
 """
 
-from typing import List
-
 from .models import priority_rank
 from .schema.task import TaskModel
 
 
-def sort_tasks_by_priority(tasks: List[TaskModel]) -> List[TaskModel]:
+def sort_tasks_by_priority(tasks: list[TaskModel]) -> list[TaskModel]:
     """Sort tasks by priority rank and creation date.
 
     Sorts tasks using a two-level sort key:

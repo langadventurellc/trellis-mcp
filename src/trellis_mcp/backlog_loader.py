@@ -5,13 +5,12 @@ from the tasks-open directories under all features.
 """
 
 from pathlib import Path
-from typing import List
 
 from .object_parser import parse_object
 from .schema.task import TaskModel
 
 
-def load_backlog_tasks(project_root: Path) -> List[TaskModel]:
+def load_backlog_tasks(project_root: Path) -> list[TaskModel]:
     """Load all open tasks from the backlog across all features.
 
     Scans the hierarchical project structure (Projects → Epics → Features → Tasks)
@@ -41,7 +40,7 @@ def load_backlog_tasks(project_root: Path) -> List[TaskModel]:
         - Maintains original file order within each feature directory
         - Task objects include all metadata: priority, prerequisites, status, etc.
     """
-    tasks: List[TaskModel] = []
+    tasks: list[TaskModel] = []
 
     # Check if projects directory exists
     projects_dir = project_root / "projects"

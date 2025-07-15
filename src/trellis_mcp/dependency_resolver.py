@@ -5,14 +5,14 @@ by checking the completion status of all its prerequisites.
 """
 
 from pathlib import Path
-from typing import Dict, Any, Union, cast
+from typing import Any, cast
 
 from .schema.task import TaskModel
 from .validation import get_all_objects
 from .id_utils import clean_prerequisite_id
 
 
-def is_unblocked(task: TaskModel, project_root: Union[str, Path] = ".") -> bool:
+def is_unblocked(task: TaskModel, project_root: str | Path = ".") -> bool:
     """Check if a task is unblocked by verifying all prerequisites are completed.
 
     A task is considered unblocked if all of its prerequisites have a status of "done".
@@ -34,7 +34,7 @@ def is_unblocked(task: TaskModel, project_root: Union[str, Path] = ".") -> bool:
         return True
 
     # Load all objects to check prerequisite status
-    all_objects = cast(Dict[str, Dict[str, Any]], get_all_objects(project_root))
+    all_objects = cast(dict[str, dict[str, Any]], get_all_objects(project_root))
 
     # Check each prerequisite
     for prereq_id in task.prerequisites:

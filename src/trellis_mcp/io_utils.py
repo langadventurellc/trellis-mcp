@@ -7,14 +7,14 @@ import os
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import yaml
 
 from .markdown_loader import load_markdown
 
 
-def read_markdown(path: str | Path) -> Tuple[Dict[str, Any], str]:
+def read_markdown(path: str | Path) -> tuple[dict[str, Any], str]:
     """Read markdown file and parse YAML front-matter.
 
     Parses a markdown file with YAML front-matter delimited by '---' lines.
@@ -51,7 +51,7 @@ def read_markdown(path: str | Path) -> Tuple[Dict[str, Any], str]:
     return load_markdown(path)
 
 
-def write_markdown(path: str | Path, yaml_dict: Dict[str, Any], body_str: str) -> None:
+def write_markdown(path: str | Path, yaml_dict: dict[str, Any], body_str: str) -> None:
     """Write markdown file with YAML front-matter.
 
     Creates a markdown file with YAML front-matter delimited by '---' lines.
@@ -130,7 +130,7 @@ def write_markdown(path: str | Path, yaml_dict: Dict[str, Any], body_str: str) -
         raise e
 
 
-def _serialize_yaml_dict(yaml_dict: Dict[str, Any]) -> Dict[str, Any]:
+def _serialize_yaml_dict(yaml_dict: dict[str, Any]) -> dict[str, Any]:
     """Serialize dictionary for YAML output.
 
     Handles datetime objects, enums, and None values properly.

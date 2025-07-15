@@ -4,8 +4,7 @@ Provides common fields and validation for all Trellis MCP schema objects.
 """
 
 from datetime import datetime
-from typing import ClassVar, Dict, List, Literal, Optional, Set
-from typing_extensions import Self
+from typing import ClassVar, Literal
 
 from pydantic import Field, ValidationInfo, field_validator, model_validator
 
@@ -23,20 +22,20 @@ class BaseSchemaModel(TrellisBaseModel):
     """
 
     # Type annotation for transition matrix (overridden in subclasses)
-    _valid_transitions: ClassVar[Dict[StatusEnum, Set[StatusEnum]]] = {}
+    _valid_transitions: ClassVar[dict[StatusEnum, set[StatusEnum]]] = {}
 
     kind: KindEnum = Field(..., description="The type of object")
     id: str = Field(..., description="Unique identifier for the object")
-    parent: Optional[str] = Field(
+    parent: str | None = Field(
         None, description="Parent object ID (absent for projects)", validate_default=True
     )
     status: StatusEnum = Field(..., description="Current status of the object")
     title: str = Field(..., description="Human-readable title")
     priority: Priority = Field(Priority.NORMAL, description="Priority level (default: normal)")
-    prerequisites: List[str] = Field(
+    prerequisites: list[str] = Field(
         default_factory=list, description="List of prerequisite object IDs"
     )
-    worktree: Optional[str] = Field(None, description="Optional worktree path for development")
+    worktree: str | None = Field(None, description="Optional worktree path for development")
     created: datetime = Field(..., description="Creation timestamp")
     updated: datetime = Field(..., description="Last update timestamp")
     schema_version: Literal["1.0"] = Field("1.0", description="Schema version (must be 1.0)")
@@ -87,7 +86,7 @@ class BaseSchemaModel(TrellisBaseModel):
 
     @field_validator("parent")
     @classmethod
-    def validate_parent(cls, v: Optional[str], info: ValidationInfo) -> Optional[str]:
+    def validate_parent(cls, v: str | None, info: ValidationInfo) -> str | None:
         """Validate parent existence and constraints for the object kind.
 
         Uses the info.data.get("kind") pattern to determine object type dynamically.
@@ -147,7 +146,7 @@ class BaseSchemaModel(TrellisBaseModel):
                 "This should not happen - check model definition."
             )
 
-        valid_next_statuses: Set[StatusEnum] = cls._valid_transitions.get(old_status, set())
+        valid_next_statuses: set[StatusEnum] = cls._valid_transitions.get(old_status, set())
 
         # Check if the new status is allowed
         if new_status not in valid_next_statuses:
@@ -175,7 +174,7 @@ class BaseSchemaModel(TrellisBaseModel):
         return True
 
     @model_validator(mode="after")
-    def validate_status_transitions_from_context(self) -> Self:
+    def validate_status_transitions_from_context(self) -> "BaseSchemaModel":
         """Validate status transitions when old status is available in context.
 
         This model validator checks for status transitions when the original status

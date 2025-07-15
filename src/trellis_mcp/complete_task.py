@@ -6,7 +6,6 @@ in-progress or in review status.
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Union
 import os
 
 from .exceptions.invalid_status_for_completion import InvalidStatusForCompletion
@@ -20,7 +19,7 @@ from .schema.task import TaskModel
 
 
 def complete_task(
-    project_root: Union[str, Path],
+    project_root: str | Path,
     task_id: str,
     summary: str | None = None,
     files_changed: list[str] | None = None,

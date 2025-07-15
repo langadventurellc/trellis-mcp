@@ -3,11 +3,10 @@
 Provides utility functions for converting priority enums to sortable integer ranks.
 """
 
-from typing import Union
 from .common import Priority
 
 
-def priority_rank(priority: Union[Priority, str, None]) -> int:
+def priority_rank(priority: Priority | str | None) -> int:
     """Convert priority value to integer rank for sorting.
 
     Args:

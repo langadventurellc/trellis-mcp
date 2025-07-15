@@ -8,7 +8,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from pydantic import ValidationError
 
@@ -30,11 +30,11 @@ class DependencyGraphCache:
     """
 
     def __init__(self):
-        self._cache: Dict[str, Tuple[Dict[str, List[str]], Dict[str, float]]] = {}
+        self._cache: dict[str, tuple[dict[str, list[str]], dict[str, float]]] = {}
 
     def get_cached_graph(
         self, project_root: Path
-    ) -> Optional[Tuple[Dict[str, List[str]], Dict[str, float]]]:
+    ) -> tuple[dict[str, list[str]], dict[str, float]] | None:
         """Get cached graph if it exists for the project root.
 
         Args:
@@ -47,7 +47,7 @@ class DependencyGraphCache:
         return self._cache.get(cache_key)
 
     def cache_graph(
-        self, project_root: Path, graph: Dict[str, List[str]], file_mtimes: Dict[str, float]
+        self, project_root: Path, graph: dict[str, list[str]], file_mtimes: dict[str, float]
     ) -> None:
         """Cache a dependency graph with its file modification times.
 
@@ -59,7 +59,7 @@ class DependencyGraphCache:
         cache_key = str(project_root)
         self._cache[cache_key] = (graph, file_mtimes)
 
-    def is_cache_valid(self, project_root: Path, cached_mtimes: Dict[str, float]) -> bool:
+    def is_cache_valid(self, project_root: Path, cached_mtimes: dict[str, float]) -> bool:
         """Check if cached graph is still valid by comparing file modification times.
 
         Uses tolerance-based comparison (1ms) to avoid floating point precision
@@ -110,7 +110,7 @@ class DependencyGraphCache:
             logger.debug(f"Cache validation failed: {e}")
             return False
 
-    def clear_cache(self, project_root: Optional[Path] = None) -> None:
+    def clear_cache(self, project_root: Path | None = None) -> None:
         """Clear cache for a specific project or all projects.
 
         Args:
@@ -127,8 +127,8 @@ class PerformanceBenchmark:
     """Utility class for benchmarking cycle detection performance."""
 
     def __init__(self):
-        self.start_time: Optional[float] = None
-        self.timings: Dict[str, float] = {}
+        self.start_time: float | None = None
+        self.timings: dict[str, float] = {}
 
     def start(self, operation: str) -> None:
         """Start timing an operation.
@@ -158,7 +158,7 @@ class PerformanceBenchmark:
         self.start_time = None
         return duration
 
-    def get_timings(self) -> Dict[str, float]:
+    def get_timings(self) -> dict[str, float]:
         """Get all recorded timings.
 
         Returns:
@@ -186,7 +186,7 @@ _graph_cache = DependencyGraphCache()
 class CircularDependencyError(ValueError):
     """Exception raised when a circular dependency is detected in prerequisites."""
 
-    def __init__(self, cycle_path: List[str]):
+    def __init__(self, cycle_path: list[str]):
         """Initialize circular dependency error.
 
         Args:
@@ -200,7 +200,7 @@ class CircularDependencyError(ValueError):
 class TrellisValidationError(Exception):
     """Custom validation error that can hold multiple error messages."""
 
-    def __init__(self, errors: List[str]):
+    def __init__(self, errors: list[str]):
         """Initialize validation error.
 
         Args:
@@ -230,8 +230,8 @@ def get_all_objects(project_root: str | Path, include_mtimes: bool = False):
     if not project_root_path.exists():
         raise FileNotFoundError(f"Project root not found: {project_root}")
 
-    objects: Dict[str, Dict[str, Any]] = {}
-    file_mtimes: Dict[str, float] = {}
+    objects: dict[str, dict[str, Any]] = {}
+    file_mtimes: dict[str, float] = {}
 
     # Use glob patterns to find all object files more efficiently
     patterns = [
@@ -262,8 +262,8 @@ def get_all_objects(project_root: str | Path, include_mtimes: bool = False):
 
 
 def build_prerequisites_graph(
-    objects: Dict[str, Dict[str, Any]], benchmark: Optional[PerformanceBenchmark] = None
-) -> Dict[str, List[str]]:
+    objects: dict[str, dict[str, Any]], benchmark: PerformanceBenchmark | None = None
+) -> dict[str, list[str]]:
     """Build an adjacency list representation of the prerequisites graph.
 
     Args:
@@ -295,8 +295,8 @@ def build_prerequisites_graph(
 
 
 def detect_cycle_dfs(
-    graph: Dict[str, List[str]], benchmark: Optional[PerformanceBenchmark] = None
-) -> Optional[List[str]]:
+    graph: dict[str, list[str]], benchmark: PerformanceBenchmark | None = None
+) -> list[str] | None:
     """Detect cycles in the prerequisites graph using DFS.
 
     Args:
@@ -312,7 +312,7 @@ def detect_cycle_dfs(
     visited = set()
     recursion_stack = set()
 
-    def dfs(node: str, path: List[str]) -> Optional[List[str]]:
+    def dfs(node: str, path: list[str]) -> list[str] | None:
         """Depth-first search to detect cycles.
 
         Args:
@@ -359,10 +359,10 @@ def detect_cycle_dfs(
 
 def build_dependency_graph_in_memory(
     project_root: str | Path,
-    proposed_object_data: Dict[str, Any],
+    proposed_object_data: dict[str, Any],
     operation_type: str,
-    benchmark: Optional[PerformanceBenchmark] = None,
-) -> Dict[str, List[str]]:
+    benchmark: PerformanceBenchmark | None = None,
+) -> dict[str, list[str]]:
     """Build dependency graph in memory including proposed changes without file writes.
 
     This function simulates the effect of creating or updating an object by building
@@ -433,7 +433,7 @@ def build_dependency_graph_in_memory(
 
 def check_prereq_cycles_in_memory(
     project_root: str | Path,
-    proposed_object_data: Dict[str, Any],
+    proposed_object_data: dict[str, Any],
     operation_type: str,
 ) -> bool:
     """Check if proposed object changes would introduce cycles in prerequisites.
@@ -476,8 +476,8 @@ def check_prereq_cycles_in_memory(
 
 
 def validate_acyclic_prerequisites(
-    project_root: str | Path, benchmark: Optional[PerformanceBenchmark] = None
-) -> List[str]:
+    project_root: str | Path, benchmark: PerformanceBenchmark | None = None
+) -> list[str]:
     """Validate that prerequisites do not form cycles with optimized caching.
 
     Args:
@@ -591,7 +591,7 @@ def validate_parent_exists(parent_id: str, parent_kind: KindEnum, project_root: 
 
 
 def validate_parent_exists_for_object(
-    parent_id: Optional[str], object_kind: KindEnum, project_root: str | Path
+    parent_id: str | None, object_kind: KindEnum, project_root: str | Path
 ) -> bool:
     """Validate parent existence for a specific object type.
 
@@ -636,7 +636,7 @@ def validate_parent_exists_for_object(
     return True
 
 
-def validate_required_fields_per_kind(data: Dict[str, Any], object_kind: KindEnum) -> List[str]:
+def validate_required_fields_per_kind(data: dict[str, Any], object_kind: KindEnum) -> list[str]:
     """Validate that all required fields are present for a specific object kind.
 
     This function now uses Pydantic schema model validation to detect missing fields
@@ -711,7 +711,7 @@ def validate_required_fields_per_kind(data: Dict[str, Any], object_kind: KindEnu
         return []
 
 
-def validate_enum_membership(data: Dict[str, Any]) -> List[str]:
+def validate_enum_membership(data: dict[str, Any]) -> list[str]:
     """Validate that enum fields have valid values.
 
     This function now uses Pydantic schema model validation to detect invalid enum values
@@ -777,7 +777,7 @@ def validate_enum_membership(data: Dict[str, Any]) -> List[str]:
         return _validate_enum_membership_manual(data)
 
 
-def _validate_enum_membership_manual(data: Dict[str, Any]) -> List[str]:
+def _validate_enum_membership_manual(data: dict[str, Any]) -> list[str]:
     """Manual enum validation fallback when Pydantic validation cannot be used."""
     errors = []
 
@@ -810,7 +810,7 @@ def _validate_enum_membership_manual(data: Dict[str, Any]) -> List[str]:
     return errors
 
 
-def validate_priority_field(data: Dict[str, Any]) -> List[str]:
+def validate_priority_field(data: dict[str, Any]) -> list[str]:
     """Validate priority field and set default value if missing.
 
     This function explicitly validates the priority field in YAML data and
@@ -909,7 +909,7 @@ def validate_status_for_kind(status: StatusEnum, object_kind: KindEnum) -> bool:
         raise e
 
 
-def validate_object_data(data: Dict[str, Any], project_root: str | Path) -> None:
+def validate_object_data(data: dict[str, Any], project_root: str | Path) -> None:
     """Comprehensive validation of object data.
 
     This function now uses Pydantic schema model validation for field validation,
@@ -1091,7 +1091,7 @@ def enforce_status_transition(
 
 
 def check_prereq_cycles(
-    project_root: str | Path, benchmark: Optional[PerformanceBenchmark] = None
+    project_root: str | Path, benchmark: PerformanceBenchmark | None = None
 ) -> bool:
     """Check if there are cycles in prerequisites with optimized caching.
 
@@ -1113,7 +1113,7 @@ def check_prereq_cycles(
         return False  # Other errors (treat as validation failure)
 
 
-def validate_front_matter(yaml_dict: Dict[str, Any], kind: str | KindEnum) -> List[str]:
+def validate_front_matter(yaml_dict: dict[str, Any], kind: str | KindEnum) -> list[str]:
     """Validate front matter for required fields and enum values.
 
     This function validates YAML front matter using Pydantic schema models.
@@ -1225,7 +1225,7 @@ def validate_front_matter(yaml_dict: Dict[str, Any], kind: str | KindEnum) -> Li
         return [str(e)]
 
 
-def benchmark_cycle_detection(project_root: str | Path, operations: int = 10) -> Dict[str, float]:
+def benchmark_cycle_detection(project_root: str | Path, operations: int = 10) -> dict[str, float]:
     """Benchmark cycle detection performance.
 
     This function runs multiple cycle detection operations to measure performance
@@ -1288,7 +1288,7 @@ def benchmark_cycle_detection(project_root: str | Path, operations: int = 10) ->
     return results
 
 
-def get_cache_stats() -> Dict[str, Any]:
+def get_cache_stats() -> dict[str, Any]:
     """Get statistics about the dependency graph cache.
 
     Returns:
@@ -1300,7 +1300,7 @@ def get_cache_stats() -> Dict[str, Any]:
     }
 
 
-def clear_dependency_cache(project_root: Optional[str | Path] = None) -> None:
+def clear_dependency_cache(project_root: str | Path | None = None) -> None:
     """Clear the dependency graph cache.
 
     Args:
