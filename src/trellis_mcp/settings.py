@@ -34,6 +34,12 @@ class Settings(BaseSettings):
         default="INFO", description="Logging level for server operations"
     )
 
+    log_dir: Path = Field(default=Path("./logs"), description="Directory for system log files")
+
+    log_retention_days: int = Field(
+        default=30, description="Number of days to retain log files before automatic cleanup", gt=0
+    )
+
     # Transport Configuration
     default_transport: Literal["stdio", "http"] = Field(
         default="stdio", description="Default transport type for MCP server"

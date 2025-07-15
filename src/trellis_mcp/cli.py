@@ -15,6 +15,7 @@ from .loader import ConfigLoader
 from .models.filter_params import FilterParams
 from .models.task_sort_key import task_sort_key
 from .path_resolver import children_of, id_to_path, resolve_project_roots
+from .prune_logs import prune_logs
 from .scanner import scan_tasks
 from .server import create_server
 
@@ -456,3 +457,87 @@ def delete(ctx: click.Context, kind: str, object_id: str, force: bool) -> None:
         if settings.debug_mode:
             raise
         raise click.ClickException(f"Failed to delete {kind} {object_id}: {e}")
+
+
+@cli.command("prune-logs")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show which files would be removed without actually deleting them",
+)
+@click.option(
+    "--retention-days",
+    type=int,
+    help="Override the configured retention period (must be > 0)",
+)
+@click.pass_context
+def prune_logs_command(ctx: click.Context, dry_run: bool, retention_days: int | None) -> None:
+    """Remove old log files based on retention policy.
+
+    Scans the log directory for daily log files matching the pattern YYYY-MM-DD.log
+    and removes those older than the configured retention period. Uses the configured
+    log_retention_days setting by default, or the --retention-days override.
+
+    The retention window is calculated from the current date minus retention_days.
+    Only files matching the exact pattern YYYY-MM-DD.log are considered for removal.
+
+    Examples:
+      trellis-mcp prune-logs                        # Remove old files using configured retention
+      trellis-mcp prune-logs --dry-run              # Show which files would be removed
+      trellis-mcp prune-logs --retention-days 7     # Use 7-day retention instead of configured
+      trellis-mcp prune-logs --dry-run --retention-days 14  # Preview with 14-day retention
+    """
+    settings = ctx.obj["settings"]
+
+    # Override retention_days if provided
+    if retention_days is not None:
+        if retention_days <= 0:
+            raise click.ClickException("Retention days must be greater than 0")
+
+        # Create a new Settings instance with the override
+        from .settings import Settings
+
+        # Get all current settings as a dict and override log_retention_days
+        settings_dict = settings.model_dump()
+        settings_dict["log_retention_days"] = retention_days
+        settings = Settings(**settings_dict)
+
+    try:
+        if dry_run:
+            # Use the centralized prune_logs function with dry_run=True
+            files_to_remove = prune_logs(settings, dry_run=True)
+
+            # Type narrowing: we know dry_run=True returns list[Path]
+            assert isinstance(files_to_remove, list), "dry_run=True should return list[Path]"
+
+            # Show results
+            click.echo(f"Using retention period: {settings.log_retention_days} days")
+            click.echo(f"Log directory: {settings.log_dir}")
+            click.echo(f"Files that would be removed: {len(files_to_remove)}")
+
+            if files_to_remove:
+                click.echo("Files to remove:")
+                for file_path in sorted(files_to_remove):
+                    click.echo(f"  - {file_path.name}")
+            else:
+                click.echo("No files match the removal criteria")
+
+        else:
+            # Actual pruning
+            removed_count = prune_logs(settings, dry_run=False)
+
+            click.echo("✓ Log pruning completed")
+            click.echo(f"Files removed: {removed_count}")
+
+            if settings.debug_mode:
+                click.echo(f"Debug: Log directory: {settings.log_dir}")
+                click.echo(f"Debug: Retention period: {settings.log_retention_days} days")
+
+    except ValueError as e:
+        raise click.ClickException(f"Configuration error: {e}")
+    except OSError as e:
+        raise click.ClickException(f"File system error: {e}")
+    except Exception as e:
+        if settings.debug_mode:
+            raise
+        raise click.ClickException(f"Failed to prune logs: {e}")
