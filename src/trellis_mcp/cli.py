@@ -10,6 +10,7 @@ import click
 
 from .loader import ConfigLoader
 from .server import create_server
+from .complete_task import complete_task
 
 
 @click.group(
@@ -203,3 +204,48 @@ def init(ctx: click.Context, path: str | None) -> None:
         raise click.ClickException(f"Permission denied: Cannot create directories in {target_dir}")
     except OSError as e:
         raise click.ClickException(f"Failed to create directory structure: {e}")
+
+
+@cli.command()
+@click.argument("task_id", type=str)
+@click.option("--summary", "-s", type=str, help="Summary text for the log entry")
+@click.option(
+    "--files", "-f", multiple=True, help="File paths that were changed (can be used multiple times)"
+)
+@click.pass_context
+def complete(ctx: click.Context, task_id: str, summary: str | None, files: tuple[str, ...]) -> None:
+    """Complete a task that is in in-progress or review status.
+
+    TASK_ID: ID of the task to complete (with or without T- prefix)
+
+    Examples:
+      trellis-mcp complete T-001 --summary "Fixed authentication bug"
+      trellis-mcp complete 001 --summary "Added feature" --files src/auth.py \\
+                                                          --files tests/test_auth.py
+    """
+    settings = ctx.obj["settings"]
+
+    # Convert tuple to list for files_changed parameter
+    files_changed = list(files) if files else None
+
+    try:
+        completed_task = complete_task(
+            project_root=settings.planning_root,
+            task_id=task_id,
+            summary=summary,
+            files_changed=files_changed,
+        )
+
+        click.echo(f"✓ Completed task: {completed_task.title}")
+        click.echo(f"  Task ID: {completed_task.id}")
+        click.echo(f"  Status: {completed_task.status.value}")
+
+        if summary:
+            click.echo(f"  Summary: {summary}")
+        if files_changed:
+            click.echo(f"  Files changed: {', '.join(files_changed)}")
+
+    except Exception as e:
+        if settings.debug_mode:
+            raise
+        raise click.ClickException(f"Failed to complete task: {e}")
