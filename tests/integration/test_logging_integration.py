@@ -2,7 +2,7 @@
 
 import json
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -52,7 +52,8 @@ async def test_server_logging_and_pruning_integration():
             assert project_result.data["kind"] == "project"
 
         # Test Phase 2: Verify log file content
-        today = datetime.now().strftime("%Y-%m-%d")
+        # Use UTC time to match the actual log filename generation in daily_log_filename()
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         log_file = log_dir / f"{today}.log"
 
         assert log_file.exists(), f"Log file {log_file} should exist"

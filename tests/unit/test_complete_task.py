@@ -354,6 +354,7 @@ class TestCompleteTaskPrerequisites:
 class TestCompleteTaskLogAppending:
     """Test log appending functionality of complete_task."""
 
+    @patch("trellis_mcp.complete_task.datetime")
     @patch("trellis_mcp.complete_task._move_task_to_done")
     @patch("trellis_mcp.complete_task.write_markdown")
     @patch("trellis_mcp.complete_task.read_markdown")
@@ -368,8 +369,13 @@ class TestCompleteTaskLogAppending:
         mock_read_markdown,
         mock_write_markdown,
         mock_move,
+        mock_datetime,
     ):
         """Test that providing summary appends log entry to task file."""
+        # Setup datetime mock to return consistent timestamp
+        fixed_datetime = datetime(2025, 7, 15, 10, 30, 45, tzinfo=timezone.utc)
+        mock_datetime.now.return_value = fixed_datetime
+
         # Setup mocks
         mock_task = create_test_task("test-task", StatusEnum.IN_PROGRESS, "Test task")
         completed_task = create_test_task("test-task", StatusEnum.DONE, "Test task")
@@ -401,8 +407,8 @@ class TestCompleteTaskLogAppending:
         assert "Task created." in written_body
         assert "Implemented authentication feature" in written_body
         assert 'filesChanged: ["src/auth.py", "tests/test_auth.py"]' in written_body
-        # Verify timestamp format (ISO with timezone)
-        assert "**2025-07-15T" in written_body and "Z**" in written_body
+        # Verify timestamp format (ISO with timezone) - should match our mocked datetime
+        assert "**2025-07-15T10:30:45Z**" in written_body
 
     @patch("trellis_mcp.complete_task._move_task_to_done")
     @patch("trellis_mcp.complete_task.write_markdown")
