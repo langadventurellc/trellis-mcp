@@ -28,8 +28,8 @@ def create_complete_task_tool(settings: Settings):
     def completeTask(
         projectRoot: str,
         taskId: str,
-        summary: str | None = None,
-        filesChanged: list[str] | None = None,
+        summary: str = "",
+        filesChanged: list[str] = [],
     ) -> dict[str, str | dict[str, str]]:
         """Complete a task that is in in-progress or review status.
 
@@ -40,8 +40,8 @@ def create_complete_task_tool(settings: Settings):
         Args:
             projectRoot: Root directory for the planning structure
             taskId: ID of the task to complete (with or without T- prefix)
-            summary: Optional summary text for the log entry
-            filesChanged: Optional list of relative file paths that were changed
+            summary: Summary text for the log entry (empty string to skip logging)
+            filesChanged: List of relative file paths that were changed
 
         Returns:
             Dictionary containing the validated task data and file path

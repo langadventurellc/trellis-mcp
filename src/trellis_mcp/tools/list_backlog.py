@@ -29,9 +29,9 @@ def create_list_backlog_tool(settings: Settings):
     @mcp.tool
     def listBacklog(
         projectRoot: str,
-        scope: str | None = None,
-        status: str | None = None,
-        priority: str | None = None,
+        scope: str = "",
+        status: str = "",
+        priority: str = "",
         sortByPriority: bool = True,
     ):
         """List tasks filtered by scope, status, and priority.
@@ -77,15 +77,15 @@ def create_list_backlog_tool(settings: Settings):
 
         # Create FilterParams from individual parameters, handling validation gracefully
         try:
-            filter_status = [status] if status else []
-            filter_priority = [priority] if priority else []
+            filter_status = [status] if status and status.strip() else []
+            filter_priority = [priority] if priority and priority.strip() else []
             filter_params = FilterParams(status=filter_status, priority=filter_priority)
         except Exception:
             # If validation fails (e.g., invalid status/priority), return empty results
             return {"tasks": []}
 
         # Get tasks using modular components
-        if scope:
+        if scope and scope.strip():
             # Use scope filtering if provided
             tasks_iterator = filter_by_scope(scanning_root, scope)
         else:
