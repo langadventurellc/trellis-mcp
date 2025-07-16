@@ -21,8 +21,8 @@ from .schema.task import TaskModel
 def complete_task(
     project_root: str | Path,
     task_id: str,
-    summary: str | None = None,
-    files_changed: list[str] | None = None,
+    summary: str = "",
+    files_changed: list[str] = [],
 ) -> TaskModel:
     """Complete a task by validating prerequisites and moving to tasks-done.
 
@@ -35,8 +35,8 @@ def complete_task(
     Args:
         project_root: Root directory of the planning structure
         task_id: ID of the task to complete (with or without T- prefix)
-        summary: Optional summary text for the log entry
-        files_changed: Optional list of relative file paths that were changed
+        summary: Summary text for the log entry (empty string to skip logging)
+        files_changed: List of relative file paths that were changed
 
     Returns:
         TaskModel: The completed task object with status=done
@@ -105,7 +105,7 @@ def complete_task(
         )
 
     # Append log entry if summary is provided
-    if summary is not None:
+    if summary:
         _append_log_entry(task_file_path, summary, files_changed or [])
 
     # Now actually complete the task by moving to tasks-done and updating status

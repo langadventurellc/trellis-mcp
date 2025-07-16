@@ -38,12 +38,12 @@ def create_create_object_tool(settings: Settings):
         kind: str,
         title: str,
         projectRoot: str,
-        id: str | None = None,
-        parent: str | None = None,
-        status: str | None = None,
-        priority: str | None = None,
-        prerequisites: list[str] | None = None,
-        description: str | None = None,
+        id: str = "",
+        parent: str = "",
+        status: str = "",
+        priority: str = "",
+        prerequisites: list[str] = [],
+        description: str = "",
     ) -> dict[str, str]:
         """Create a new Trellis MCP object (Project, Epic, Feature, or Task).
 
@@ -83,19 +83,19 @@ def create_create_object_tool(settings: Settings):
         _, planning_root = resolve_project_roots(projectRoot)
 
         # Generate ID if not provided
-        if not id:
+        if not id or not id.strip():
             id = generate_id(kind, title, planning_root)
 
         # Set default status based on kind
-        if not status:
+        if not status or not status.strip():
             status = "draft" if kind in {"project", "epic", "feature"} else "open"
 
         # Set default priority
-        if not priority:
+        if not priority or not priority.strip():
             priority = "normal"
 
         # Set default prerequisites
-        if prerequisites is None:
+        if not prerequisites:
             prerequisites = []
 
         # Generate timestamps
@@ -115,7 +115,7 @@ def create_create_object_tool(settings: Settings):
         }
 
         # Add parent if provided
-        if parent:
+        if parent and parent.strip():
             front_matter["parent"] = parent
 
         # Validate front-matter using validation utilities
@@ -153,7 +153,7 @@ def create_create_object_tool(settings: Settings):
 
         # Create markdown body content
         body_content = ""
-        if description:
+        if description and description.strip():
             body_content += f"{description}\n\n"
         body_content += "### Log\n\n"
 

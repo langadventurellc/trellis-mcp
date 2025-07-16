@@ -27,7 +27,7 @@ def create_claim_next_task_tool(settings: Settings):
     @mcp.tool
     def claimNextTask(
         projectRoot: str,
-        worktree: str | None = None,
+        worktree: str = "",
     ) -> dict[str, str | dict[str, str]]:
         """Claim the next highest-priority open task with all prerequisites completed.
 
@@ -81,7 +81,7 @@ def create_claim_next_task_tool(settings: Settings):
         return {
             "task": task_dict,
             "claimed_status": "in-progress",
-            "worktree": worktree if worktree is not None else "",
+            "worktree": worktree,
             "file_path": str(task_file_path),
         }
 

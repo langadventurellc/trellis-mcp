@@ -75,7 +75,7 @@ def claim_next_task(project_root: str | Path, worktree_path: str | None = None) 
     # Update task metadata
     selected_task.status = StatusEnum.IN_PROGRESS
     selected_task.updated = datetime.now()
-    if worktree_path is not None:
+    if worktree_path and worktree_path.strip():
         selected_task.worktree = worktree_path
 
     # Atomically write the updated task to filesystem

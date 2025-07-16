@@ -73,8 +73,8 @@ def create_update_object_tool(settings: Settings):
         kind: str,
         id: str,
         projectRoot: str,
-        yamlPatch: dict[str, str | list[str] | None] | None = None,
-        bodyPatch: str | None = None,
+        yamlPatch: dict[str, str | list[str] | None] = {},
+        bodyPatch: str = "",
         force: bool = False,
     ) -> dict[str, str | dict[str, str | list[str] | bool]]:
         """Update a Trellis MCP object by applying patches to YAML front-matter and/or body content.
@@ -120,7 +120,7 @@ def create_update_object_tool(settings: Settings):
             raise ValueError("Project root cannot be empty")
 
         # At least one patch parameter must be provided
-        if yamlPatch is None and bodyPatch is None:
+        if not yamlPatch and not bodyPatch:
             raise ValueError("At least one of yamlPatch or bodyPatch must be provided")
 
         # Resolve project roots to get planning directory
@@ -155,7 +155,7 @@ def create_update_object_tool(settings: Settings):
             updated_yaml = _deep_merge_dict(updated_yaml, yamlPatch)
 
         # Update body if bodyPatch is provided
-        updated_body = bodyPatch if bodyPatch is not None else existing_body
+        updated_body = bodyPatch if bodyPatch else existing_body
 
         # Always update the timestamp
         updated_yaml["updated"] = datetime.now().isoformat()
@@ -297,7 +297,7 @@ def create_update_object_tool(settings: Settings):
         changes = {}
         if yamlPatch:
             changes["yaml_fields"] = list(yamlPatch.keys())
-        if bodyPatch is not None:
+        if bodyPatch:
             changes["body_updated"] = True
 
         # Return success information

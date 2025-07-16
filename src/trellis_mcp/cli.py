@@ -233,13 +233,13 @@ def complete(ctx: click.Context, task_id: str, summary: str | None, files: tuple
     settings = ctx.obj["settings"]
 
     # Convert tuple to list for files_changed parameter
-    files_changed = list(files) if files else None
+    files_changed = list(files) if files else []
 
     try:
         completed_task = complete_task(
             project_root=settings.planning_root,
             task_id=task_id,
-            summary=summary,
+            summary=summary or "",
             files_changed=files_changed,
         )
 
