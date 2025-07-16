@@ -18,7 +18,28 @@ Install the package in development mode:
 uv pip install -e .
 ```
 
-## Quick Start
+## Quick Start
+
+### 1 · Zero‑install (run directly from PyPI)
+
+```bash
+# 1) install uv once
+curl -LsSf https://astral.sh/uv/install.sh | sh
+# 2) run the server (STDIO transport)
+uvx trellis-mcp serve
+# 3) optional – HTTP transport on port 8545
+uvx trellis-mcp serve --http 0.0.0.0:8545
+```
+
+### 2 · Zero‑install from GitHub
+
+```bash
+uvx --from git+https://github.com/langadventurellc/trellis-mcp.git trellis-mcp serve
+```
+
+Add `--http` to expose HTTP.
+
+### 3 · Local development workflow (editable clone)
 
 1. **Initialize a new planning structure:**
    ```bash

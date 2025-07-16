@@ -5,7 +5,6 @@ Provides server setup with basic tools and resources for project management.
 """
 
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 from fastmcp import FastMCP
@@ -146,12 +145,12 @@ def create_server(settings: Settings) -> FastMCP:
         if not projectRoot or not projectRoot.strip():
             raise ValueError("Project root cannot be empty")
 
-        # Convert projectRoot to Path object
-        project_root_path = Path(projectRoot)
+        # Resolve project roots to get planning directory
+        _, planning_root = resolve_project_roots(projectRoot)
 
         # Generate ID if not provided
         if not id:
-            id = generate_id(kind, title, project_root_path)
+            id = generate_id(kind, title, planning_root)
 
         # Set default status based on kind
         if not status:
@@ -197,7 +196,7 @@ def create_server(settings: Settings) -> FastMCP:
 
         # Comprehensive object validation (includes parent existence check)
         try:
-            validate_object_data(front_matter, project_root_path)
+            validate_object_data(front_matter, planning_root)
         except TrellisValidationError:
             raise
         except Exception as e:
@@ -205,7 +204,7 @@ def create_server(settings: Settings) -> FastMCP:
 
         # Determine file path using centralized path logic
         try:
-            file_path = resolve_path_for_new_object(kind, id, parent, project_root_path, status)
+            file_path = resolve_path_for_new_object(kind, id, parent, planning_root, status)
         except ValueError as e:
             raise ValueError(str(e))
         except FileNotFoundError as e:
@@ -235,7 +234,7 @@ def create_server(settings: Settings) -> FastMCP:
         try:
             # Build dependency graph with the new object included
             dependency_graph = DependencyGraph()
-            dependency_graph.build(project_root_path)
+            dependency_graph.build(planning_root)
 
             # Check if the new object created a cycle
             if dependency_graph.has_cycle():
@@ -309,8 +308,8 @@ def create_server(settings: Settings) -> FastMCP:
         if not projectRoot or not projectRoot.strip():
             raise ValueError("Project root cannot be empty")
 
-        # Convert projectRoot to Path object
-        project_root_path = Path(projectRoot)
+        # Resolve project roots to get planning directory
+        _, planning_root = resolve_project_roots(projectRoot)
 
         # Clean the ID (remove prefix if present)
         clean_id = id.strip()
@@ -319,7 +318,7 @@ def create_server(settings: Settings) -> FastMCP:
 
         # Resolve the file path using path_resolver
         try:
-            file_path = id_to_path(project_root_path, kind, clean_id)
+            file_path = id_to_path(planning_root, kind, clean_id)
         except FileNotFoundError:
             raise
         except ValueError as e:
@@ -429,8 +428,8 @@ def create_server(settings: Settings) -> FastMCP:
         if yamlPatch is None and bodyPatch is None:
             raise ValueError("At least one of yamlPatch or bodyPatch must be provided")
 
-        # Convert projectRoot to Path object
-        project_root_path = Path(projectRoot)
+        # Resolve project roots to get planning directory
+        _, planning_root = resolve_project_roots(projectRoot)
 
         # Clean the ID (remove prefix if present)
         clean_id = id.strip()
@@ -439,7 +438,7 @@ def create_server(settings: Settings) -> FastMCP:
 
         # Load existing object
         try:
-            file_path = id_to_path(project_root_path, kind, clean_id)
+            file_path = id_to_path(planning_root, kind, clean_id)
         except FileNotFoundError:
             raise
         except ValueError as e:
@@ -478,7 +477,7 @@ def create_server(settings: Settings) -> FastMCP:
 
         # Comprehensive object validation (includes parent existence check)
         try:
-            validate_object_data(updated_yaml, project_root_path)
+            validate_object_data(updated_yaml, planning_root)
         except TrellisValidationError:
             raise
         except Exception as e:
@@ -502,7 +501,7 @@ def create_server(settings: Settings) -> FastMCP:
         if new_status == "deleted":
             try:
                 # Find all children of the object being deleted
-                child_paths = children_of(kind, clean_id, project_root_path)
+                child_paths = children_of(kind, clean_id, planning_root)
 
                 # Check for protected children (tasks with in-progress or review status)
                 protected_children = []
@@ -577,7 +576,7 @@ def create_server(settings: Settings) -> FastMCP:
         try:
             # Build dependency graph with the updated object included
             dependency_graph = DependencyGraph()
-            dependency_graph.build(project_root_path)
+            dependency_graph.build(planning_root)
 
             # Check if the updated object created a cycle
             if dependency_graph.has_cycle():
@@ -751,8 +750,8 @@ def create_server(settings: Settings) -> FastMCP:
             raise TrellisValidationError([f"Failed to claim task: {str(e)}"])
 
         # Convert TaskModel to the expected dictionary format
-        project_root_path = Path(projectRoot)
-        task_file_path = id_to_path(project_root_path, "task", claimed_task.id)
+        _, planning_root = resolve_project_roots(projectRoot)
+        task_file_path = id_to_path(planning_root, "task", claimed_task.id)
 
         # Build task dictionary in the format expected by the API
         task_dict = {
@@ -824,8 +823,8 @@ def create_server(settings: Settings) -> FastMCP:
             raise TrellisValidationError([f"Failed to validate task for completion: {str(e)}"])
 
         # Resolve the task file path for response
-        project_root_path = Path(projectRoot)
-        task_file_path = id_to_path(project_root_path, "task", validated_task.id)
+        _, planning_root = resolve_project_roots(projectRoot)
+        task_file_path = id_to_path(planning_root, "task", validated_task.id)
 
         # Build task dictionary in the format expected by the API
         task_dict = {
@@ -888,12 +887,12 @@ def create_server(settings: Settings) -> FastMCP:
         if not projectRoot or not projectRoot.strip():
             raise ValueError("Project root cannot be empty")
 
-        # Convert projectRoot to Path object
-        project_root_path = Path(projectRoot)
+        # Resolve project roots to get planning directory
+        _, planning_root = resolve_project_roots(projectRoot)
 
         # Call the query function to get the oldest reviewable task
         try:
-            reviewable_task = get_oldest_review(project_root_path)
+            reviewable_task = get_oldest_review(planning_root)
         except Exception as e:
             raise TrellisValidationError([f"Failed to query reviewable tasks: {str(e)}"])
 
@@ -903,7 +902,7 @@ def create_server(settings: Settings) -> FastMCP:
 
         # Convert TaskModel to dictionary format
         try:
-            task_file_path = id_to_path(project_root_path, "task", reviewable_task.id)
+            task_file_path = id_to_path(planning_root, "task", reviewable_task.id)
         except Exception as e:
             raise TrellisValidationError([f"Failed to resolve task file path: {str(e)}"])
 
