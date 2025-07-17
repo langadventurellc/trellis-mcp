@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "task-trellis": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--refresh",
+        "--prerelease",
+        "allow",
+        "task-trellis-mcp==1.0.1rc10",
+        "serve"
+      ],
+      "env": {}
+    }
+  }
+}
