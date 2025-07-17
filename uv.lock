@@ -1043,7 +1043,7 @@ wheels = [
 
 [[package]]
 name = "task-trellis-mcp"
-version = "1.0.1rc1"
+version = "1.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -1077,7 +1077,7 @@ dev = [
 requires-dist = [
     { name = "black", marker = "extra == 'dev'" },
     { name = "click", specifier = ">=8.1" },
-    { name = "fastmcp", specifier = ">=0.7" },
+    { name = "fastmcp", specifier = ">=2.10.5" },
     { name = "flake8", marker = "extra == 'dev'" },
     { name = "flake8-pyproject", marker = "extra == 'dev'" },
     { name = "freezegun", marker = "extra == 'dev'", specifier = ">=1.5.3" },

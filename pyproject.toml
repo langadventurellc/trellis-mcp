@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "task-trellis-mcp"
-version = "1.0.1rc1"
+version = "1.0.1"
 description = "File-backed MCP server for hierarchical project management (Projects → Epics → Features → Tasks)"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -25,7 +25,7 @@ classifiers = [
 
 dependencies = [
     "click>=8.1",
-    "fastmcp>=0.7",
+    "fastmcp>=2.10.5",
     "pydantic-settings>=2.0.0",
     "python-slugify>=8.0.4",
     "PyYAML>=6.0",

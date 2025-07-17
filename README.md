@@ -136,15 +136,18 @@ Add `--http` to expose HTTP.
 
 ```bash
 uvx \
+  --prerelease allow \
   --index-url https://test.pypi.org/simple/ \
   --extra-index-url https://pypi.org/simple/ \
-  task-trellis-mcp==1.0.0 serve
+  task-trellis-mcp==1.0.0rc1 serve
 ```
 
 ```bash
 claude mcp add task-trellis-test \
-  -- uvx --index-url https://test.pypi.org/simple/ \
-         --extra-index-url https://pypi.org/simple/task-trellis-mcp==1.0.0 serve
+  -- uvx --prerelease allow \
+         --index-url https://test.pypi.org/simple/ \
+         --extra-index-url https://pypi.org/simple/ \
+         task-trellis-mcp==1.0.0rc1 serve
 ```
 
 ```json
@@ -154,9 +157,10 @@ claude mcp add task-trellis-test \
       "type": "stdio",
       "command": "uvx",
       "args": [
+        "--prerelease", "allow",
         "--index-url", "https://test.pypi.org/simple/",
         "--extra-index-url", "https://pypi.org/simple/",
-        "task-trellis-mcp==1.0.0",
+        "task-trellis-mcp==1.0.0rc1",
         "serve"
       ]
     }

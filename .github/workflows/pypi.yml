@@ -13,6 +13,30 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
+    - name: Modify version for non-main branches
+      run: |
+        if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+          # Extract branch name and sanitize it
+          BRANCH_NAME=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]')
+          
+          # Get current version from pyproject.toml
+          CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "//' | sed 's/"//')
+          
+          # Create unique pre-release version with timestamp and run number
+          TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+          RUN_NUMBER=${{ github.run_number }}
+          NEW_VERSION="${CURRENT_VERSION}-${BRANCH_NAME}.${TIMESTAMP}.${RUN_NUMBER}"
+          
+          # Update version in pyproject.toml
+          sed -i "s/version = \"${CURRENT_VERSION}\"/version = \"${NEW_VERSION}\"/" pyproject.toml
+          
+          echo "Updated version from ${CURRENT_VERSION} to ${NEW_VERSION}"
+          echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_ENV
+        else
+          CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "//' | sed 's/"//')
+          echo "Main branch - keeping version: ${CURRENT_VERSION}"
+          echo "NEW_VERSION=${CURRENT_VERSION}" >> $GITHUB_ENV
+        fi
     - name: Install pypa/build
       run: >-
         python3 -m
@@ -52,6 +76,7 @@ jobs:
   publish-to-testpypi:
     name: >-
       Publish Python 🐍 distribution 📦 to TestPyPI
+    if: github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')  # only publish to TestPyPI on non-main branches, not tags
     needs:
     - build
     runs-on: ubuntu-latest
