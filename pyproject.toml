@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=68", "setuptools-scm>=8", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "task-trellis-mcp"
-version = "1.0.1"
+dynamic = ["version"]
 description = "File-backed MCP server for hierarchical project management (Projects → Epics → Features → Tasks)"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -85,4 +85,9 @@ exclude = ["bin", "temp", ".venv"]
 dev = [
     "build>=1.2.2.post1",
     "isort>=6.0.1",
+    "setuptools-scm>=8.3.1",
 ]
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "no-local-version"
