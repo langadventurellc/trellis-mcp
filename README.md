@@ -26,15 +26,15 @@ uv pip install -e .
 # 1) install uv once
 curl -LsSf https://astral.sh/uv/install.sh | sh
 # 2) run the server (STDIO transport)
-uvx trellis-mcp serve
+uvx task-trellis-mcp serve
 # 3) optional – HTTP transport on port 8545
-uvx trellis-mcp serve --http 0.0.0.0:8545
+uvx task-trellis-mcp serve --http 0.0.0.0:8545
 ```
 
 ### 2 · Zero‑install from GitHub
 
 ```bash
-uvx --from git+https://github.com/langadventurellc/trellis-mcp.git trellis-mcp serve
+uvx --from git+https://github.com/langadventurellc/trellis-mcp.git task-trellis-mcp serve
 ```
 
 Add `--http` to expose HTTP.
@@ -43,16 +43,16 @@ Add `--http` to expose HTTP.
 
 1. **Initialize a new planning structure:**
    ```bash
-   trellis-mcp init
+   uv run task-trellis-mcp init
    ```
 
 2. **Start the MCP server:**
    ```bash
    # STDIO transport (default)
-   trellis-mcp serve
-   
+   uv run task-trellis-mcp serve
+
    # HTTP transport
-   trellis-mcp serve --http localhost:8000
+   uv run task-trellis-mcp serve --http localhost:8000
    ```
 
 3. **Create objects with priority fields:**
@@ -75,10 +75,10 @@ Add `--http` to expose HTTP.
 4. **Test RPC methods with mcp-inspector:**
    ```bash
    # Start mcp-inspector to test your server
-   npx @modelcontextprotocol/inspector node -e "require('child_process').spawn('trellis-mcp', ['serve'], {stdio: 'inherit'})"
+   npx @modelcontextprotocol/inspector node -e "require('child_process').spawn('task-trellis-mcp', ['serve'], {stdio: 'inherit'})"
    
    # Or test with CLI mode to call getNextReviewableTask
-   npx @modelcontextprotocol/inspector --cli trellis-mcp serve --method tools/call --tool-name getNextReviewableTask --tool-arg projectRoot=.
+   npx @modelcontextprotocol/inspector --cli task-trellis-mcp serve --method tools/call --tool-name getNextReviewableTask --tool-arg projectRoot=.
    ```
    
    Example output when reviewable task found:
@@ -107,18 +107,18 @@ Add `--http` to expose HTTP.
 5. **Delete objects with cascade deletion:**
    ```bash
    # Delete a task (no children to cascade)
-   trellis-mcp delete task T-001
+   task-trellis-mcp delete task T-001
    
    # Delete a feature with confirmation prompt
-   trellis-mcp delete feature F-user-management
+   task-trellis-mcp delete feature F-user-management
    # Output: ⚠️  Delete Feature F-user-management and 5 descendants? [y/N]
    
    # Delete an epic and all its children
-   trellis-mcp delete epic E-auth
+   task-trellis-mcp delete epic E-auth
    # Output: ⚠️  Delete Epic E-auth and 12 descendants? [y/N]
    
    # Force delete even if children have protected status (in-progress/review)
-   trellis-mcp delete project P-001 --force
+   task-trellis-mcp delete project P-001 --force
    ```
    
    Example output after successful deletion:
@@ -131,6 +131,42 @@ Add `--http` to expose HTTP.
        - planning/projects/P-001/epics/E-auth/features/F-login/tasks-done/2025-01-15T10:30:00-T-setup-db.md
        - ... (and 8 more files)
    ```
+
+6. Run from test.pypi.org:
+
+```bash
+uvx \
+  --prerelease allow \
+  --index-url https://test.pypi.org/simple/ \
+  --extra-index-url https://pypi.org/simple/ \
+  task-trellis-mcp==1.0.0rc1 serve
+```
+
+```bash
+claude mcp add task-trellis-test \
+  -- uvx --prerelease allow \
+         --index-url https://test.pypi.org/simple/ \
+         --extra-index-url https://pypi.org/simple/ \
+         task-trellis-mcp==1.0.0rc1 serve
+```
+
+```json
+{
+  "mcpServers": {
+    "trellis-test": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--prerelease", "allow",
+        "--index-url", "https://test.pypi.org/simple/",
+        "--extra-index-url", "https://pypi.org/simple/",
+        "task-trellis-mcp==1.0.0rc1",
+        "serve"
+      ]
+    }
+  }
+}
+```
 
 ## Requirements
 

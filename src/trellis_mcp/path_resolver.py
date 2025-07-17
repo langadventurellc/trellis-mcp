@@ -187,9 +187,12 @@ def resolve_path_for_new_object(
     if clean_id.startswith(("P-", "E-", "F-", "T-")):
         clean_id = clean_id[2:]
 
+    # Get the correct path resolution root
+    _, path_resolution_root = resolve_project_roots(project_root)
+
     # Build path based on kind
     if kind == "project":
-        return project_root / "projects" / f"P-{clean_id}" / "project.md"
+        return path_resolution_root / "projects" / f"P-{clean_id}" / "project.md"
 
     elif kind == "epic":
         if parent_id is None:
@@ -197,7 +200,12 @@ def resolve_path_for_new_object(
         # Remove prefix if present to get clean parent ID
         parent_clean = parent_id.replace("P-", "") if parent_id.startswith("P-") else parent_id
         return (
-            project_root / "projects" / f"P-{parent_clean}" / "epics" / f"E-{clean_id}" / "epic.md"
+            path_resolution_root
+            / "projects"
+            / f"P-{parent_clean}"
+            / "epics"
+            / f"E-{clean_id}"
+            / "epic.md"
         )
 
     elif kind == "feature":
@@ -211,7 +219,7 @@ def resolve_path_for_new_object(
             # Extract project directory from epic path
             project_dir = epic_path.parts[epic_path.parts.index("projects") + 1]
             return (
-                project_root
+                path_resolution_root
                 / "projects"
                 / project_dir
                 / "epics"
@@ -250,7 +258,7 @@ def resolve_path_for_new_object(
                 filename = f"T-{clean_id}.md"
 
             return (
-                project_root
+                path_resolution_root
                 / "projects"
                 / project_dir
                 / "epics"

@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=68", "setuptools-scm>=8", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "trellis-mcp"
-version = "0.1.0"
+name = "task-trellis-mcp"
+dynamic = ["version"]
 description = "File-backed MCP server for hierarchical project management (Projects → Epics → Features → Tasks)"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -25,7 +25,8 @@ classifiers = [
 
 dependencies = [
     "click>=8.1",
-    "fastmcp>=0.7",
+    "fastmcp>=2.10.5",
+    "httpx>=0.24.0,<1.0.0",  # Pin httpx to stable version to avoid TransportError compatibility issues
     "pydantic-settings>=2.0.0",
     "python-slugify>=8.0.4",
     "PyYAML>=6.0",
@@ -46,7 +47,7 @@ dev = [
 ]
 
 [project.scripts]
-trellis-mcp = "trellis_mcp.cli:cli"
+task-trellis-mcp = "trellis_mcp.cli:cli"
 
 [project.urls]
 Homepage = "https://github.com/langadventurellc/trellis-mcp"
@@ -82,5 +83,11 @@ exclude = ["bin", "temp", ".venv"]
 
 [dependency-groups]
 dev = [
+    "build>=1.2.2.post1",
     "isort>=6.0.1",
+    "setuptools-scm>=8.3.1",
 ]
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "no-local-version"

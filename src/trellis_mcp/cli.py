@@ -140,13 +140,14 @@ def serve(ctx: click.Context, http: str | None) -> None:
             # Start server with HTTP transport
             server.run(transport="http", host=host, port=port)
         else:
-            click.echo("Starting Trellis MCP Server...")
-            click.echo("Transport: STDIO")
-            click.echo(f"Planning root: {settings.planning_root}")
-            click.echo(f"Log level: {settings.log_level}")
+            # For STDIO transport, send startup messages to stderr to avoid polluting JSON-RPC
+            click.echo("Starting Trellis MCP Server...", err=True)
+            click.echo("Transport: STDIO", err=True)
+            click.echo(f"Planning root: {settings.planning_root}", err=True)
+            click.echo(f"Log level: {settings.log_level}", err=True)
 
             if settings.debug_mode:
-                click.echo("Debug mode: enabled")
+                click.echo("Debug mode: enabled", err=True)
 
             # Start server with STDIO transport (default)
             server.run(transport="stdio")
