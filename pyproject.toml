@@ -26,6 +26,7 @@ classifiers = [
 dependencies = [
     "click>=8.1",
     "fastmcp>=2.10.5",
+    "httpx>=0.24.0,<1.0.0",  # Pin httpx to stable version to avoid TransportError compatibility issues
     "pydantic-settings>=2.0.0",
     "python-slugify>=8.0.4",
     "PyYAML>=6.0",

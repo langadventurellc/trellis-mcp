@@ -1048,6 +1048,7 @@ source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "fastmcp" },
+    { name = "httpx" },
     { name = "pydantic-settings" },
     { name = "python-slugify" },
     { name = "pyyaml" },
@@ -1081,6 +1082,7 @@ requires-dist = [
     { name = "flake8", marker = "extra == 'dev'" },
     { name = "flake8-pyproject", marker = "extra == 'dev'" },
     { name = "freezegun", marker = "extra == 'dev'", specifier = ">=1.5.3" },
+    { name = "httpx", specifier = ">=0.24.0,<1.0.0" },
     { name = "isort", marker = "extra == 'dev'" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pydantic-settings", specifier = ">=2.0.0" },
