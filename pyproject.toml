@@ -3,8 +3,8 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "trellis-mcp"
-version = "0.1.0"
+name = "task-trellis-mcp"
+version = "1.0.0"
 description = "File-backed MCP server for hierarchical project management (Projects → Epics → Features → Tasks)"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -82,5 +82,6 @@ exclude = ["bin", "temp", ".venv"]
 
 [dependency-groups]
 dev = [
+    "build>=1.2.2.post1",
     "isort>=6.0.1",
 ]
