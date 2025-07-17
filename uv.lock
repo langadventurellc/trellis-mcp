@@ -1043,7 +1043,7 @@ wheels = [
 
 [[package]]
 name = "task-trellis-mcp"
-version = "1.0.1rc7"
+version = "1.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
