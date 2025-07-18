@@ -27,7 +27,7 @@ class TestIsUnblocked:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         with patch("trellis_mcp.dependency_resolver.get_all_objects", return_value={}):
@@ -47,7 +47,7 @@ class TestIsUnblocked:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         with patch("trellis_mcp.dependency_resolver.get_all_objects", return_value={}):
@@ -67,7 +67,7 @@ class TestIsUnblocked:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         mock_objects = {
@@ -92,7 +92,7 @@ class TestIsUnblocked:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         mock_objects = {
@@ -117,7 +117,7 @@ class TestIsUnblocked:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         mock_objects = {
@@ -142,7 +142,7 @@ class TestIsUnblocked:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         mock_objects = {
@@ -170,7 +170,7 @@ class TestIsUnblocked:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         mock_objects = {"no-status-task": {"kind": "task"}}  # No status field
@@ -192,7 +192,7 @@ class TestIsUnblocked:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         mock_objects = {"in-review-task": {"status": "review", "kind": "task"}}
@@ -214,7 +214,7 @@ class TestIsUnblocked:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         mock_objects = {
@@ -240,7 +240,7 @@ class TestIsUnblocked:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         mock_objects = {"single-task": {"status": "done", "kind": "task"}}

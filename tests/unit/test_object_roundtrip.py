@@ -37,7 +37,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -80,7 +80,7 @@ class TestObjectRoundTrip:
             worktree="/path/to/worktree",
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -122,7 +122,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -164,7 +164,7 @@ class TestObjectRoundTrip:
             worktree="/path/to/epic/worktree",
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -206,7 +206,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -248,7 +248,7 @@ class TestObjectRoundTrip:
             worktree="/path/to/feature/worktree",
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -290,7 +290,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -332,7 +332,7 @@ class TestObjectRoundTrip:
             worktree="/path/to/task/worktree",
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -374,7 +374,7 @@ class TestObjectRoundTrip:
             worktree="/path/to/worktree",
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Perform 3 round-trips
@@ -419,7 +419,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -451,7 +451,7 @@ class TestObjectRoundTrip:
             worktree=None,  # Explicitly null
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -486,7 +486,7 @@ class TestObjectRoundTrip:
                 worktree=None,
                 created=now,
                 updated=now,
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
             # Round-trip
@@ -517,7 +517,7 @@ class TestObjectRoundTrip:
                 worktree=None,
                 created=now,
                 updated=now,
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
             # Round-trip
@@ -546,7 +546,7 @@ class TestObjectRoundTrip:
                 worktree=None,
                 created=now,
                 updated=now,
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
             # Round-trip
@@ -580,7 +580,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Round-trip
@@ -616,7 +616,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=created_time,
             updated=updated_time,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Round-trip
@@ -631,3 +631,286 @@ class TestObjectRoundTrip:
         # Note: updated timestamp is modified during dump_object,
         # so we only check that it's >= the original timestamp
         assert loaded_task.updated >= updated_time
+
+    def test_standalone_task_roundtrip_minimal(self, temp_dir: Path) -> None:
+        """Test round-trip for standalone task with minimal required fields."""
+        # Create minimal standalone task model (parent=None)
+        now = datetime.now()
+        task = TaskModel(
+            kind=KindEnum.TASK,
+            id="standalone-task",
+            parent=None,  # Explicitly standalone
+            status=StatusEnum.OPEN,
+            title="Standalone Task",
+            priority=Priority.NORMAL,
+            prerequisites=[],
+            worktree=None,
+            created=now,
+            updated=now,
+            schema_version="1.1",
+        )
+
+        # Dump to markdown
+        markdown_content = dump_object(task)
+
+        # Verify parent field is not included in serialized output
+        assert "parent:" not in markdown_content
+        assert "parent: null" not in markdown_content
+
+        # Write to temporary file
+        task_file = temp_dir / "standalone_task.md"
+        task_file.write_text(markdown_content)
+
+        # Load from file
+        loaded_task = parse_object(task_file)
+
+        # Verify round-trip integrity
+        assert isinstance(loaded_task, TaskModel)
+        assert loaded_task.kind == task.kind
+        assert loaded_task.id == task.id
+        assert loaded_task.parent is None  # Should default to None when missing
+        assert loaded_task.status == task.status
+        assert loaded_task.title == task.title
+        assert loaded_task.priority == task.priority
+        assert loaded_task.prerequisites == task.prerequisites
+        assert loaded_task.worktree == task.worktree
+        assert loaded_task.created == task.created
+        assert loaded_task.updated >= task.updated
+        assert loaded_task.schema_version == task.schema_version
+
+    def test_standalone_task_roundtrip_full(self, temp_dir: Path) -> None:
+        """Test round-trip for standalone task with all possible fields."""
+        # Create full standalone task model (parent=None)
+        now = datetime.now()
+        task = TaskModel(
+            kind=KindEnum.TASK,
+            id="full-standalone-task",
+            parent=None,  # Explicitly standalone
+            status=StatusEnum.IN_PROGRESS,
+            title="Full Standalone Task",
+            priority=Priority.HIGH,
+            prerequisites=["prereq-task-1", "prereq-task-2"],
+            worktree="/path/to/standalone/worktree",
+            created=now,
+            updated=now,
+            schema_version="1.1",
+        )
+
+        # Dump to markdown
+        markdown_content = dump_object(task)
+
+        # Verify parent field is not included in serialized output
+        assert "parent:" not in markdown_content
+        assert "parent: null" not in markdown_content
+
+        # Write to temporary file
+        task_file = temp_dir / "full_standalone_task.md"
+        task_file.write_text(markdown_content)
+
+        # Load from file
+        loaded_task = parse_object(task_file)
+
+        # Verify round-trip integrity
+        assert isinstance(loaded_task, TaskModel)
+        assert loaded_task.kind == task.kind
+        assert loaded_task.id == task.id
+        assert loaded_task.parent is None  # Should default to None when missing
+        assert loaded_task.status == task.status
+        assert loaded_task.title == task.title
+        assert loaded_task.priority == task.priority
+        assert loaded_task.prerequisites == task.prerequisites
+        assert loaded_task.worktree == task.worktree
+        assert loaded_task.created == task.created
+        assert loaded_task.updated >= task.updated
+        assert loaded_task.schema_version == task.schema_version
+
+    def test_standalone_task_vs_hierarchy_task_serialization(self, temp_dir: Path) -> None:
+        """Test that standalone and hierarchy tasks serialize differently."""
+        now = datetime.now()
+
+        # Create standalone task
+        standalone_task = TaskModel(
+            kind=KindEnum.TASK,
+            id="standalone-task-compare",
+            parent=None,
+            status=StatusEnum.OPEN,
+            title="Standalone Task",
+            priority=Priority.NORMAL,
+            prerequisites=[],
+            worktree=None,
+            created=now,
+            updated=now,
+            schema_version="1.1",
+        )
+
+        # Create hierarchy task
+        hierarchy_task = TaskModel(
+            kind=KindEnum.TASK,
+            id="hierarchy-task-compare",
+            parent="F-parent-feature",
+            status=StatusEnum.OPEN,
+            title="Hierarchy Task",
+            priority=Priority.NORMAL,
+            prerequisites=[],
+            worktree=None,
+            created=now,
+            updated=now,
+            schema_version="1.1",
+        )
+
+        # Dump both to markdown
+        standalone_content = dump_object(standalone_task)
+        hierarchy_content = dump_object(hierarchy_task)
+
+        # Verify standalone task omits parent field
+        assert "parent:" not in standalone_content
+        assert "parent: null" not in standalone_content
+
+        # Verify hierarchy task includes parent field
+        assert "parent: F-parent-feature" in hierarchy_content
+
+        # Test round-trip for both
+        standalone_file = temp_dir / "standalone_compare.md"
+        standalone_file.write_text(standalone_content)
+        loaded_standalone = parse_object(standalone_file)
+
+        hierarchy_file = temp_dir / "hierarchy_compare.md"
+        hierarchy_file.write_text(hierarchy_content)
+        loaded_hierarchy = parse_object(hierarchy_file)
+
+        # Verify both load correctly
+        assert isinstance(loaded_standalone, TaskModel)
+        assert loaded_standalone.parent is None
+
+        assert isinstance(loaded_hierarchy, TaskModel)
+        assert loaded_hierarchy.parent == "F-parent-feature"
+
+    def test_task_with_missing_parent_field_in_yaml(self, temp_dir: Path) -> None:
+        """Test deserialization of task YAML that completely lacks parent field."""
+        # Create YAML content without parent field at all
+        yaml_content = """---
+kind: task
+id: missing-parent-field-task
+status: open
+title: Task Missing Parent Field
+priority: normal
+prerequisites: []
+created: '2025-01-15T14:30:45.123456'
+updated: '2025-01-15T15:45:30.654321'
+schema_version: '1.1'
+---
+Task description here.
+"""
+
+        # Write to file and load
+        task_file = temp_dir / "missing_parent.md"
+        task_file.write_text(yaml_content)
+        loaded_task = parse_object(task_file)
+
+        # Verify task loads correctly as standalone task
+        assert isinstance(loaded_task, TaskModel)
+        assert loaded_task.kind == KindEnum.TASK
+        assert loaded_task.id == "missing-parent-field-task"
+        assert loaded_task.parent is None  # Should default to None
+        assert loaded_task.status == StatusEnum.OPEN
+        assert loaded_task.title == "Task Missing Parent Field"
+
+    def test_task_with_explicit_null_parent_in_yaml(self, temp_dir: Path) -> None:
+        """Test deserialization of task YAML that explicitly sets parent: null."""
+        # Create YAML content with explicit null parent
+        yaml_content = """---
+kind: task
+id: explicit-null-parent-task
+parent: null
+status: open
+title: Task with Explicit Null Parent
+priority: normal
+prerequisites: []
+created: '2025-01-15T14:30:45.123456'
+updated: '2025-01-15T15:45:30.654321'
+schema_version: '1.1'
+---
+Task description here.
+"""
+
+        # Write to file and load
+        task_file = temp_dir / "explicit_null_parent.md"
+        task_file.write_text(yaml_content)
+        loaded_task = parse_object(task_file)
+
+        # Verify task loads correctly
+        assert isinstance(loaded_task, TaskModel)
+        assert loaded_task.kind == KindEnum.TASK
+        assert loaded_task.id == "explicit-null-parent-task"
+        assert loaded_task.parent is None
+        assert loaded_task.status == StatusEnum.OPEN
+        assert loaded_task.title == "Task with Explicit Null Parent"
+
+    def test_task_with_empty_string_parent_conversion(self, temp_dir: Path) -> None:
+        """Test that empty string parent is converted to None and serialized consistently."""
+        # Create task with empty string parent (should be converted to None)
+        now = datetime.now()
+        task = TaskModel(
+            kind=KindEnum.TASK,
+            id="empty-string-parent-task",
+            parent="",  # Empty string should be converted to None
+            status=StatusEnum.OPEN,
+            title="Task with Empty String Parent",
+            priority=Priority.NORMAL,
+            prerequisites=[],
+            worktree=None,
+            created=now,
+            updated=now,
+            schema_version="1.1",
+        )
+
+        # Verify empty string was converted to None
+        assert task.parent is None
+
+        # Dump to markdown
+        markdown_content = dump_object(task)
+
+        # Verify parent field is not included in serialized output (since it's None)
+        assert "parent:" not in markdown_content
+        assert "parent: null" not in markdown_content
+
+        # Write to file and load back
+        task_file = temp_dir / "empty_string_parent.md"
+        task_file.write_text(markdown_content)
+        loaded_task = parse_object(task_file)
+
+        # Verify round-trip integrity
+        assert isinstance(loaded_task, TaskModel)
+        assert loaded_task.parent is None
+        assert loaded_task.id == "empty-string-parent-task"
+
+    def test_task_with_empty_string_parent_in_yaml(self, temp_dir: Path) -> None:
+        """Test deserialization of task YAML that explicitly sets parent to empty string."""
+        # Create YAML content with empty string parent
+        yaml_content = """---
+kind: task
+id: empty-string-parent-yaml-task
+parent: ''
+status: open
+title: Task with Empty String Parent in YAML
+priority: normal
+prerequisites: []
+created: '2025-01-15T14:30:45.123456'
+updated: '2025-01-15T15:45:30.654321'
+schema_version: '1.1'
+---
+Task description here.
+"""
+
+        # Write to file and load
+        task_file = temp_dir / "empty_string_parent_yaml.md"
+        task_file.write_text(yaml_content)
+        loaded_task = parse_object(task_file)
+
+        # Verify empty string was converted to None during deserialization
+        assert isinstance(loaded_task, TaskModel)
+        assert loaded_task.kind == KindEnum.TASK
+        assert loaded_task.id == "empty-string-parent-yaml-task"
+        assert loaded_task.parent is None  # Should be converted from empty string to None
+        assert loaded_task.status == StatusEnum.OPEN
+        assert loaded_task.title == "Task with Empty String Parent in YAML"

@@ -36,7 +36,7 @@ priority: {priority.value}
 worktree: null
 created: {created_time.isoformat()}
 updated: {updated_time.isoformat()}
-schema_version: "1.0"
+schema_version: "1.1"
 prerequisites: []
 ---
 

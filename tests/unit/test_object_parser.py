@@ -32,7 +32,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 # Sample Project
@@ -51,7 +51,7 @@ This is a sample project description.
         assert result.title == "Sample Project"
         assert result.priority == Priority.HIGH
         assert result.prerequisites == []
-        assert result.schema_version == "1.0"
+        assert result.schema_version == "1.1"
 
     def test_parse_epic_object(self, temp_dir: Path) -> None:
         """Test parsing a valid epic markdown file."""
@@ -67,7 +67,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 # Sample Epic
@@ -100,7 +100,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 # Sample Feature
@@ -133,7 +133,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 # Sample Task
@@ -166,7 +166,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 # Sample Project
@@ -193,7 +193,7 @@ prerequisites: ["T-001", "T-003"]
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 # Task with Prerequisites
@@ -219,7 +219,7 @@ prerequisites: []
 worktree: "/path/to/worktree"
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 # Feature with Worktree
@@ -305,7 +305,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 # Invalid Project
@@ -329,7 +329,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 # Invalid Project
@@ -377,7 +377,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 # Invalid Project
@@ -428,7 +428,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 extra_field: "should not be allowed"
 ---
 
@@ -453,7 +453,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 # Task with Nulls
@@ -480,7 +480,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 # Task in Review
@@ -506,7 +506,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 # Project with Review Status

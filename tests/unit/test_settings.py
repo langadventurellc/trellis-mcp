@@ -35,7 +35,7 @@ class TestSettingsDefaults:
         assert settings.tasks_done_dir == "tasks-done"
 
         # File configuration defaults
-        assert settings.schema_version == "1.0"
+        assert settings.schema_version == "1.1"
         assert settings.file_encoding == "utf-8"
 
         # Performance configuration defaults
@@ -372,7 +372,7 @@ debug_mode: true
         assert settings.debug_mode is True
         # Non-specified values should use defaults
         assert settings.log_level == "INFO"
-        assert settings.schema_version == "1.0"
+        assert settings.schema_version == "1.1"
 
     def test_settings_serialization(self) -> None:
         """Test that Settings can be serialized/deserialized properly."""

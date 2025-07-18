@@ -41,7 +41,7 @@ class TestMissingFieldFailures:
             "worktree": None,
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         missing_fields = validate_required_fields_per_kind(data, KindEnum.PROJECT)
@@ -59,7 +59,7 @@ class TestMissingFieldFailures:
             "worktree": None,
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         missing_fields = validate_required_fields_per_kind(data, KindEnum.PROJECT)
@@ -77,7 +77,7 @@ class TestMissingFieldFailures:
             "worktree": None,
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         missing_fields = validate_required_fields_per_kind(data, KindEnum.PROJECT)
@@ -95,7 +95,7 @@ class TestMissingFieldFailures:
             "prerequisites": [],
             "worktree": None,
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         missing_fields = validate_required_fields_per_kind(data, KindEnum.PROJECT)
@@ -113,7 +113,7 @@ class TestMissingFieldFailures:
             "prerequisites": [],
             "worktree": None,
             "created": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         missing_fields = validate_required_fields_per_kind(data, KindEnum.PROJECT)
@@ -149,7 +149,7 @@ class TestMissingFieldFailures:
             "worktree": None,
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         missing_fields = validate_required_fields_per_kind(data, KindEnum.EPIC)
@@ -167,7 +167,7 @@ class TestMissingFieldFailures:
             "worktree": None,
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         missing_fields = validate_required_fields_per_kind(data, KindEnum.FEATURE)
@@ -185,7 +185,7 @@ class TestMissingFieldFailures:
             "worktree": None,
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         missing_fields = validate_required_fields_per_kind(data, KindEnum.TASK)
@@ -392,7 +392,7 @@ priority: normal
 prerequisites: ["task1"]
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 Task that depends on itself
@@ -437,7 +437,7 @@ priority: normal
 prerequisites: ["task2"]
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 Task 1 depends on task 2
@@ -457,7 +457,7 @@ priority: normal
 prerequisites: ["task1"]
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 Task 2 depends on task 1
@@ -502,7 +502,7 @@ priority: normal
 prerequisites: ["task2"]
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 Task 1 depends on task 2
@@ -522,7 +522,7 @@ priority: normal
 prerequisites: ["task3"]
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 Task 2 depends on task 3
@@ -542,7 +542,7 @@ priority: normal
 prerequisites: ["task1"]
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 Task 3 depends on task 1
@@ -574,7 +574,7 @@ class TestPydanticModelFailures:
                 worktree=None,
                 created=datetime(2023, 1, 1),
                 updated=datetime(2023, 1, 1),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
         error = exc_info.value
@@ -594,7 +594,7 @@ class TestPydanticModelFailures:
                 worktree=None,
                 created=datetime(2023, 1, 1),
                 updated=datetime(2023, 1, 1),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
         error = exc_info.value
@@ -614,7 +614,7 @@ class TestPydanticModelFailures:
             worktree=None,
             created=datetime(2023, 1, 1),
             updated=datetime(2023, 1, 1),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Verify the task was created successfully
@@ -635,7 +635,7 @@ class TestPydanticModelFailures:
                 worktree=None,
                 created=datetime(2023, 1, 1),
                 updated=datetime(2023, 1, 1),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
         error = exc_info.value
@@ -661,7 +661,7 @@ class TestPydanticModelFailures:
             ProjectModel.model_validate(data)
 
         error = exc_info.value
-        assert "Input should be '1.0'" in str(error)
+        assert "Input should be '1.1'" in str(error)
 
     def test_model_with_extra_fields(self):
         """Test model validation fails with extra fields (due to extra='forbid')."""
@@ -676,7 +676,7 @@ class TestPydanticModelFailures:
             "worktree": None,
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
             "extra_field": "should not be allowed",  # Should fail
         }
 
@@ -741,7 +741,7 @@ prerequisites: []
 worktree: null
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 Project with invalid parent

@@ -94,7 +94,7 @@ status: draft
 priority: normal
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 This is a test project.
 
@@ -142,7 +142,7 @@ status: draft
 priority: normal
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 This is a test epic.
 
@@ -197,7 +197,7 @@ status: draft
 priority: normal
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 This is a test feature.
 
@@ -254,7 +254,7 @@ status: open
 priority: normal
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 This is a test task.
 
@@ -310,7 +310,7 @@ status: done
 priority: normal
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 This is a completed test task.
 
@@ -357,7 +357,7 @@ status: draft
 priority: normal
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 This is a test project.
 
@@ -460,7 +460,7 @@ status: draft
 priority: normal
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 invalid_yaml: [unclosed bracket
 ---
 This is a test project.
@@ -511,7 +511,7 @@ status: open
 priority: normal
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 This is an open task.
 
@@ -534,7 +534,7 @@ status: done
 priority: normal
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 This is a done task.
 

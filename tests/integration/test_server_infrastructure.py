@@ -39,7 +39,7 @@ async def test_health_check_tool_functionality(temp_dir):
     # Create settings with temporary planning directory
     settings = Settings(
         planning_root=temp_dir / "planning",
-        schema_version="1.0",
+        schema_version="1.1",
     )
 
     # Create server instance
@@ -53,7 +53,7 @@ async def test_health_check_tool_functionality(temp_dir):
         assert result.data is not None
         assert result.data["status"] == "healthy"
         assert result.data["server"] == "Trellis MCP Server"
-        assert result.data["schema_version"] == "1.0"
+        assert result.data["schema_version"] == "1.1"
         assert result.data["planning_root"] == str(temp_dir / "planning")
 
 
@@ -121,7 +121,7 @@ async def test_server_configuration_consistency(temp_dir):
     planning_root = temp_dir / "planning"
     settings = Settings(
         planning_root=planning_root,
-        schema_version="1.0",
+        schema_version="1.1",
         host="localhost",
         port=9000,
         log_level="WARNING",
@@ -139,5 +139,5 @@ async def test_server_configuration_consistency(temp_dir):
 
         # Verify consistent planning root across both sources
         assert health_data["planning_root"] == str(planning_root)
-        assert health_data["schema_version"] == "1.0"
+        assert health_data["schema_version"] == "1.1"
         assert health_data["server"] == "Trellis MCP Server"

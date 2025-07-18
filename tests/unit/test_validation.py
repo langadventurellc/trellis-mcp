@@ -144,6 +144,16 @@ class TestValidateParentExists:
             "F-test-feature", KindEnum.TASK, tmp_path / "planning"
         )
 
+    def test_validate_parent_exists_for_object_task_standalone(self, tmp_path: Path):
+        """Test that standalone tasks (parent=None) are valid."""
+        # Valid case: task with no parent (standalone task)
+        assert validate_parent_exists_for_object(None, KindEnum.TASK, tmp_path / "planning")
+
+    def test_validate_parent_exists_for_object_task_with_empty_string_parent(self, tmp_path: Path):
+        """Test that tasks with empty string parent are valid (converted to None)."""
+        # Valid case: task with empty string parent (converted to None for standalone task)
+        assert validate_parent_exists_for_object("", KindEnum.TASK, tmp_path / "planning")
+
 
 class TestValidateRequiredFields:
     """Test required fields validation."""
@@ -157,7 +167,7 @@ class TestValidateRequiredFields:
             "title": "Test Project",
             "created": "2023-01-01T00:00:00",
             "updated": "2023-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         missing = validate_required_fields_per_kind(data, KindEnum.PROJECT)
@@ -184,7 +194,7 @@ class TestValidateRequiredFields:
             "title": "Test Epic",
             "created": "2023-01-01T00:00:00",
             "updated": "2023-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         missing = validate_required_fields_per_kind(data, KindEnum.EPIC)
@@ -199,7 +209,7 @@ class TestValidateRequiredFields:
             "title": "Test Epic",
             "created": "2023-01-01T00:00:00",
             "updated": "2023-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         missing = validate_required_fields_per_kind(data, KindEnum.EPIC)
@@ -215,7 +225,7 @@ class TestValidateRequiredFields:
             "title": "Test Task",
             "created": "2023-01-01T00:00:00",
             "updated": "2023-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         missing = validate_required_fields_per_kind(data, KindEnum.TASK)
@@ -326,7 +336,7 @@ class TestValidateObjectData:
             "title": "Test Project",
             "created": "2023-01-01T00:00:00",
             "updated": "2023-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         # Should not raise any exception
@@ -341,7 +351,7 @@ class TestValidateObjectData:
             "title": "Test Project",
             "created": "2023-01-01T00:00:00",
             "updated": "2023-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         with pytest.raises(TrellisValidationError) as exc_info:
@@ -367,7 +377,7 @@ class TestValidateObjectData:
             "title": "Test Epic",
             "created": "2023-01-01T00:00:00",
             "updated": "2023-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         # Should not raise any exception
@@ -383,7 +393,7 @@ class TestValidateObjectData:
             "title": "Test Epic",
             "created": "2023-01-01T00:00:00",
             "updated": "2023-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         with pytest.raises(TrellisValidationError) as exc_info:
@@ -450,7 +460,7 @@ class TestValidateObjectData:
             "priority": "invalid_priority",
             "created": "2023-01-01T00:00:00",
             "updated": "2023-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         with pytest.raises(TrellisValidationError) as exc_info:
@@ -521,7 +531,7 @@ priority: normal
 prerequisites: []
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Test project description
 """
@@ -550,7 +560,7 @@ priority: normal
 prerequisites: []
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Test project description
 """
@@ -572,7 +582,7 @@ priority: normal
 prerequisites: []
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Test epic description
 """
@@ -594,7 +604,7 @@ priority: normal
 prerequisites: []
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Test feature description
 """
@@ -616,7 +626,7 @@ priority: normal
 prerequisites: []
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Test task description
 """
@@ -790,7 +800,7 @@ priority: normal
 prerequisites: []
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Task 1 description
 """
@@ -809,7 +819,7 @@ priority: normal
 prerequisites: ["task1"]
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Task 2 description
 """
@@ -849,7 +859,7 @@ priority: normal
 prerequisites: ["task2"]
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Task 1 description
 """
@@ -868,7 +878,7 @@ priority: normal
 prerequisites: ["task1"]
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Task 2 description
 """
@@ -911,7 +921,7 @@ priority: normal
 prerequisites: ["task1"]
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Task 1 description
 """
@@ -975,7 +985,7 @@ priority: normal
 prerequisites: []
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Task 1 description
 """
@@ -994,7 +1004,7 @@ priority: normal
 prerequisites: ["task1"]
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Task 2 description
 """
@@ -1034,7 +1044,7 @@ priority: normal
 prerequisites: ["task2"]
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Task 1 description
 """
@@ -1053,7 +1063,7 @@ priority: normal
 prerequisites: ["task1"]
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Task 2 description
 """
@@ -1092,7 +1102,7 @@ priority: normal
 prerequisites: ["task1"]
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Task 1 description
 """
@@ -1143,7 +1153,7 @@ priority: normal
 prerequisites: []
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Task 1 description
 """
@@ -1162,7 +1172,7 @@ priority: normal
 prerequisites: ["task1"]
 created: 2023-01-01T00:00:00Z
 updated: 2023-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 Task 2 description
 """
@@ -1204,7 +1214,7 @@ class TestValidateFrontMatter:
             "prerequisites": [],
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         errors = validate_front_matter(yaml_dict, "project")
@@ -1221,7 +1231,7 @@ class TestValidateFrontMatter:
             "prerequisites": [],
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         errors = validate_front_matter(yaml_dict, KindEnum.PROJECT)
@@ -1239,7 +1249,7 @@ class TestValidateFrontMatter:
             "prerequisites": [],
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         errors = validate_front_matter(yaml_dict, "task")
@@ -1257,7 +1267,7 @@ class TestValidateFrontMatter:
             "prerequisites": ["other-epic"],
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         errors = validate_front_matter(yaml_dict, "epic")
@@ -1275,7 +1285,7 @@ class TestValidateFrontMatter:
             "prerequisites": [],
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         errors = validate_front_matter(yaml_dict, "feature")
@@ -1290,7 +1300,7 @@ class TestValidateFrontMatter:
             "title": "Test Project",
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         errors = validate_front_matter(yaml_dict, "invalid-kind")
@@ -1319,7 +1329,7 @@ class TestValidateFrontMatter:
             "title": "Test Epic",
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         errors = validate_front_matter(yaml_dict, "epic")
@@ -1336,7 +1346,7 @@ class TestValidateFrontMatter:
             "title": "Test Feature",
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         errors = validate_front_matter(yaml_dict, "feature")
@@ -1353,7 +1363,7 @@ class TestValidateFrontMatter:
             "title": "Test Task",
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         errors = validate_front_matter(yaml_dict, "task")
@@ -1369,7 +1379,7 @@ class TestValidateFrontMatter:
             "priority": "invalid-priority",
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         errors = validate_front_matter(yaml_dict, "project")
@@ -1391,7 +1401,7 @@ class TestValidateFrontMatter:
             "priority": "normal",
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         errors = validate_front_matter(yaml_dict, "project")
@@ -1409,7 +1419,7 @@ class TestValidateFrontMatter:
             "priority": "normal",
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         errors = validate_front_matter(yaml_dict, "task")
@@ -1430,7 +1440,7 @@ class TestValidateFrontMatter:
                 "priority": "normal",
                 "created": "2023-01-01T00:00:00Z",
                 "updated": "2023-01-01T00:00:00Z",
-                "schema_version": "1.0",
+                "schema_version": "1.1",
             }
 
             errors = validate_front_matter(yaml_dict, "task")
@@ -1449,7 +1459,7 @@ class TestValidateFrontMatter:
                 "priority": "normal",
                 "created": "2023-01-01T00:00:00Z",
                 "updated": "2023-01-01T00:00:00Z",
-                "schema_version": "1.0",
+                "schema_version": "1.1",
             }
 
             errors = validate_front_matter(yaml_dict, "project")
@@ -1464,7 +1474,7 @@ class TestValidateFrontMatter:
             "priority": "normal",
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         errors = validate_front_matter(yaml_dict, "project")
@@ -1482,7 +1492,7 @@ class TestValidateFrontMatter:
             "priority": "normal",
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         errors = validate_front_matter(yaml_dict, "project")
@@ -1500,7 +1510,7 @@ class TestValidateFrontMatter:
             "priority": "invalid-priority",  # Invalid priority
             "created": "2023-01-01T00:00:00Z",
             "updated": "2023-01-01T00:00:00Z",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         errors = validate_front_matter(yaml_dict, "epic")
@@ -1534,7 +1544,7 @@ class TestValidateFrontMatter:
                 "priority": priority,
                 "created": "2023-01-01T00:00:00Z",
                 "updated": "2023-01-01T00:00:00Z",
-                "schema_version": "1.0",
+                "schema_version": "1.1",
             }
 
             errors = validate_front_matter(yaml_dict, "project")

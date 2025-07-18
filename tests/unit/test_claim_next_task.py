@@ -34,7 +34,7 @@ def create_test_task(
         worktree=worktree,
         created=created,
         updated=created,
-        schema_version="1.0",
+        schema_version="1.1",
         prerequisites=prerequisites or [],
     )
 

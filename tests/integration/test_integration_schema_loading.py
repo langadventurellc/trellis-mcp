@@ -150,7 +150,7 @@ def _create_sample_repo_tree(planning_root: Path) -> dict[str, Path]:
     # 1. Project object
     project_path = project_dir / "project.md"
     project_content = f"""---
-schema_version: "1.0"
+schema_version: "1.1"
 kind: project
 id: web-platform
 title: Web Platform
@@ -169,7 +169,7 @@ worktree: null
     # 2. Epic object
     epic_path = epic_dir / "epic.md"
     epic_content = f"""---
-schema_version: "1.0"
+schema_version: "1.1"
 kind: epic
 id: user-authentication
 title: User Authentication System
@@ -188,7 +188,7 @@ worktree: null
     # 3. Feature object
     feature_path = feature_dir / "feature.md"
     feature_content = f"""---
-schema_version: "1.0"
+schema_version: "1.1"
 kind: feature
 id: login-system
 title: Login System Implementation
@@ -207,7 +207,7 @@ worktree: null
     # 4. Task (done) - setup-database
     task_done_path = tasks_done_dir / "2025-01-15T10:30:00-T-setup-database.md"
     task_done_content = f"""---
-schema_version: "1.0"
+schema_version: "1.1"
 kind: task
 id: setup-database
 title: Setup Database Schema
@@ -226,7 +226,7 @@ worktree: null
     # 5. Task (in-progress) - add-password-reset
     task_in_progress_path = tasks_open_dir / "T-add-password-reset.md"
     task_in_progress_content = f"""---
-schema_version: "1.0"
+schema_version: "1.1"
 kind: task
 id: add-password-reset
 title: Add Password Reset Feature
@@ -245,7 +245,7 @@ worktree: null
     # 6. Task (open) - implement-jwt
     task_open_path = tasks_open_dir / "T-implement-jwt.md"
     task_open_content = f"""---
-schema_version: "1.0"
+schema_version: "1.1"
 kind: task
 id: implement-jwt
 title: Implement JWT Authentication

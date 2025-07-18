@@ -48,7 +48,7 @@ def dump_object(model: TrellisObjectModel) -> str:
         worktree: null
         created: 2025-01-01T00:00:00.000000
         updated: 2025-01-01T00:00:00.000000
-        schema_version: '1.0'
+        schema_version: '1.1'
         ---
 
     """
@@ -92,7 +92,7 @@ def dump_object_with_body(model: TrellisObjectModel, body: str) -> str:
         worktree: null
         created: 2025-01-01T00:00:00.000000
         updated: 2025-01-01T00:00:00.000000
-        schema_version: '1.0'
+        schema_version: '1.1'
         ---
         This is the task description.
 
@@ -129,11 +129,24 @@ def _serialize_model_dict(model_dict: dict[str, Any]) -> dict[str, Any]:
     """
     serialized = {}
 
-    # Fields that should be excluded when None (optional fields)
-    optional_fields = {"worktree"}
+    # Get object kind to determine which fields are truly optional
+    object_kind = model_dict.get("kind")
+    # Handle enum objects
+    if object_kind is not None and hasattr(object_kind, "value"):
+        object_kind = object_kind.value
+
+    # Fields that should be excluded when None (always optional fields)
+    always_optional_fields = {"worktree"}
+
+    # Parent field is only optional for tasks (standalone tasks can have parent=None)
+    conditionally_optional_fields = {}
+    if object_kind == "task":
+        conditionally_optional_fields["parent"] = True
 
     for key, value in model_dict.items():
-        if value is None and key in optional_fields:
+        if value is None and (
+            key in always_optional_fields or key in conditionally_optional_fields
+        ):
             # Skip None values for optional fields to avoid cluttering YAML
             continue
         elif value is None:
