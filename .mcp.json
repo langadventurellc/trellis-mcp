@@ -4,6 +4,7 @@
       "type": "stdio",
       "command": "uvx",
       "args": [
+        "--no-cache",
         "--refresh",
         "task-trellis-mcp",
         "serve"

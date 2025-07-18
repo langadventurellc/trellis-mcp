@@ -54,6 +54,53 @@ def dump_object(model: TrellisObjectModel) -> str:
         ---
 
     """
+    return dump_object_with_body(model, "")
+
+
+def dump_object_with_body(model: TrellisObjectModel, body: str) -> str:
+    """
+    Convert a Trellis object model to markdown string with YAML front-matter and custom body.
+
+    Updates the 'updated' timestamp to current time before serialization.
+
+    Args:
+        model: A Trellis object model instance (Project, Epic, Feature, or Task)
+        body: The markdown body content to include after the front-matter
+
+    Returns:
+        Markdown string with YAML front-matter and provided body content
+
+    Example:
+        >>> from trellis_mcp.schema import TaskModel
+        >>> from datetime import datetime
+        >>> task = TaskModel(
+        ...     kind="task",
+        ...     id="T-001",
+        ...     parent="F-001",
+        ...     status="open",
+        ...     title="Sample Task",
+        ...     created=datetime.now(),
+        ...     updated=datetime.now()
+        ... )
+        >>> body = "This is the task description."
+        >>> markdown = dump_object_with_body(task, body)
+        >>> print(markdown)
+        ---
+        kind: task
+        id: T-001
+        parent: F-001
+        status: open
+        title: Sample Task
+        priority: normal
+        prerequisites: []
+        worktree: null
+        created: 2025-01-01T00:00:00.000000
+        updated: 2025-01-01T00:00:00.000000
+        schema_version: '1.0'
+        ---
+        This is the task description.
+
+    """
     # Create a copy with updated timestamp
     model_dict = model.model_dump()
     model_dict["updated"] = datetime.now()
@@ -66,8 +113,8 @@ def dump_object(model: TrellisObjectModel) -> str:
         front_matter, default_flow_style=False, sort_keys=False, allow_unicode=True
     )
 
-    # Format as markdown with YAML front-matter
-    markdown_content = f"---\n{yaml_content}---\n\n"
+    # Format as markdown with YAML front-matter and body
+    markdown_content = f"---\n{yaml_content}---\n{body}"
 
     return markdown_content
 
@@ -105,9 +152,9 @@ def write_object(model: TrellisObjectModel, project_root: Path) -> None:
 
     This function converts the model to markdown format using dump_object()
     and writes it to the appropriate location based on the object's kind and ID.
-    The write operation is atomic - it uses a temporary file in the same directory
-    and then replaces the target file to ensure the operation is either fully
-    completed or not done at all.
+    If the file already exists, it preserves the existing body content while
+    updating the front-matter. The write operation is atomic - it uses a temporary
+    file in the same directory and then replaces the target file.
 
     Args:
         model: A Trellis object model instance (Project, Epic, Feature, or Task)
@@ -141,6 +188,7 @@ def write_object(model: TrellisObjectModel, project_root: Path) -> None:
         This function will create parent directories as needed. The write operation
         is atomic - if the function fails, the target file will be left in its
         original state (if it existed) or will not be created (if it didn't exist).
+        When updating existing files, the body content is preserved.
     """
     # Get the target file path based on the object's kind and ID
     target_path = id_to_path(project_root, model.kind.value, model.id)
@@ -148,8 +196,19 @@ def write_object(model: TrellisObjectModel, project_root: Path) -> None:
     # Ensure parent directories exist
     ensure_parent_dirs(target_path)
 
-    # Get the markdown content
-    markdown_content = dump_object(model)
+    # Check if file already exists and preserve body content
+    existing_body = ""
+    if target_path.exists():
+        try:
+            from .markdown_loader import load_markdown
+
+            _, existing_body = load_markdown(target_path)
+        except Exception:
+            # If we can't read the existing file, use empty body
+            existing_body = ""
+
+    # Get the markdown content with preserved body
+    markdown_content = dump_object_with_body(model, existing_body)
 
     # Get the directory where the target file should be written
     target_dir = target_path.parent
