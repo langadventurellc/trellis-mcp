@@ -60,7 +60,8 @@ def id_to_path(project_root: Path, kind: str, obj_id: str) -> Path:
     the hierarchical structure: Projects → Epics → Features → Tasks.
 
     This function uses the shared find_object_path utility to locate objects
-    within the directory structure.
+    within the directory structure. For tasks, it supports both hierarchy-based
+    and standalone task discovery.
 
     Args:
         project_root: Root directory of the planning structure (e.g., ./planning)
@@ -72,10 +73,12 @@ def id_to_path(project_root: Path, kind: str, obj_id: str) -> Path:
         - project: planning/projects/P-{id}/project.md
         - epic: planning/projects/P-{parent}/epics/E-{id}/epic.md
         - feature: planning/projects/P-{parent}/epics/E-{parent}/features/F-{id}/feature.md
-        - task: planning/projects/P-{parent}/epics/E-{parent}/features/F-{parent}/tasks-open/
-                T-{id}.md
-                or planning/projects/P-{parent}/epics/E-{parent}/features/F-{parent}/tasks-done/
-                {timestamp}-T-{id}.md
+        - task (hierarchy): planning/projects/P-{parent}/epics/E-{parent}/features/
+                F-{parent}/tasks-open/T-{id}.md
+                or planning/projects/P-{parent}/epics/E-{parent}/features/
+                F-{parent}/tasks-done/{timestamp}-T-{id}.md
+        - task (standalone): planning/tasks-open/T-{id}.md
+                or planning/tasks-done/{timestamp}-T-{id}.md
 
     Raises:
         ValueError: If kind is not supported or obj_id is empty
@@ -87,13 +90,49 @@ def id_to_path(project_root: Path, kind: str, obj_id: str) -> Path:
         Path('planning/projects/P-user-auth/project.md')
         >>> id_to_path(project_root, "task", "implement-jwt")
         Path('planning/projects/P-user-auth/epics/E-auth/features/F-login/tasks-open/T-implement-jwt.md')
+        >>> id_to_path(project_root, "task", "standalone-task")
+        Path('planning/tasks-open/T-standalone-task.md')
 
     Note:
-        For tasks, this function will return the path to the actual file location,
-        checking both tasks-open and tasks-done directories to find where the task exists.
+        For tasks, this function searches standalone task directories first (tasks-open
+        and tasks-done at the root level), then falls back to hierarchical search if
+        not found. This ensures standalone tasks take priority over hierarchy tasks
+        with the same ID.
     """
+    # Validate inputs for security and data integrity
+    if not kind or kind not in VALID_KINDS:
+        raise ValueError(f"Invalid kind '{kind}'. Must be one of: {VALID_KINDS}")
+
+    if not obj_id or not obj_id.strip():
+        raise ValueError("Object ID cannot be empty")
+
+    # For tasks, validate input parameters to prevent path traversal attacks
+    if kind == "task":
+        from .validation.field_validation import validate_standalone_task_path_parameters
+        from .validation.security import validate_standalone_task_path_security
+
+        validation_errors = validate_standalone_task_path_parameters(obj_id)
+        if validation_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Invalid task ID: {validation_errors[0]}")
+
+        # Enhanced security validation for standalone task paths
+        security_errors = validate_standalone_task_path_security(obj_id, str(project_root))
+        if security_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Security validation failed: {security_errors[0]}")
+
     # Use the shared utility to find the object path
     result_path = find_object_path(kind, obj_id, project_root)
+
+    # Additional security validation for the resolved path
+    if kind == "task" and result_path:
+        from .validation.security import validate_path_boundaries
+
+        boundary_errors = validate_path_boundaries(str(result_path), str(project_root))
+        if boundary_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Path boundary validation failed: {boundary_errors[0]}")
 
     if result_path is None:
         # Clean the ID for error message (remove any existing prefix if present)
@@ -183,6 +222,22 @@ def resolve_path_for_new_object(
     if not obj_id or not obj_id.strip():
         raise ValueError("Object ID cannot be empty")
 
+    # For tasks, validate input parameters to prevent path traversal attacks
+    if kind == "task":
+        from .validation.field_validation import validate_standalone_task_path_parameters
+        from .validation.security import validate_standalone_task_path_security
+
+        validation_errors = validate_standalone_task_path_parameters(obj_id, status)
+        if validation_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Invalid task parameters: {validation_errors[0]}")
+
+        # Enhanced security validation for standalone task paths
+        security_errors = validate_standalone_task_path_security(obj_id, str(project_root))
+        if security_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Security validation failed: {security_errors[0]}")
+
     # Clean the ID (remove any existing prefix if present)
     clean_id = obj_id.strip()
     if clean_id.startswith(("P-", "E-", "F-", "T-")):
@@ -235,19 +290,24 @@ def resolve_path_for_new_object(
     elif kind == "task":
         if parent_id is None or not parent_id.strip():
             # Standalone task: place in root tasks directory
+            # These are tasks that exist independently of any feature hierarchy
+            # and are stored directly under planning/tasks-open or planning/tasks-done
             task_dir = "tasks-done" if status == "done" else "tasks-open"
 
             # Determine filename based on status
             if status == "done":
-                # For completed tasks, prefix with timestamp
+                # For completed tasks, prefix with timestamp for chronological ordering
+                # Format: YYYYMMDD_HHMMSS-T-{task-id}.md
                 from datetime import datetime
 
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 filename = f"{timestamp}-T-{clean_id}.md"
             else:
-                # For open tasks, use simple format
+                # For open tasks, use simple format for easy identification
+                # Format: T-{task-id}.md
                 filename = f"T-{clean_id}.md"
 
+            # Return path: planning/tasks-{open|done}/[timestamp-]T-{task-id}.md
             return path_resolution_root / task_dir / filename
         # Remove prefix if present to get clean parent ID
         parent_clean = parent_id.replace("F-", "") if parent_id.startswith("F-") else parent_id
@@ -294,7 +354,8 @@ def path_to_id(file_path: Path) -> tuple[str, str]:
     """Convert a filesystem path to object kind and ID.
 
     This function performs the reverse mapping of id_to_path(), taking a filesystem
-    path and returning the object kind and ID.
+    path and returning the object kind and ID. Supports both hierarchy-based and
+    standalone task structures.
 
     Args:
         file_path: Path to the object file
@@ -304,7 +365,8 @@ def path_to_id(file_path: Path) -> tuple[str, str]:
                          and obj_id is the clean ID without prefix
 
     Raises:
-        ValueError: If the path doesn't match expected Trellis MCP structure
+        ValueError: If the path doesn't match expected Trellis MCP structure or contains
+                   invalid characters in task ID
         FileNotFoundError: If the file doesn't exist
 
     Example:
@@ -314,6 +376,12 @@ def path_to_id(file_path: Path) -> tuple[str, str]:
         >>> path = Path("planning/projects/P-user-auth/epics/E-auth/features/F-login/tasks-open/T-implement-jwt.md")  # noqa: E501
         >>> path_to_id(path)
         ('task', 'implement-jwt')
+        >>> path = Path("planning/tasks-open/T-standalone-task.md")  # noqa: E501
+        >>> path_to_id(path)
+        ('task', 'standalone-task')
+        >>> path = Path("planning/tasks-done/20250718_143000-T-completed-task.md")  # noqa: E501
+        >>> path_to_id(path)
+        ('task', 'completed-task')
     """
     # Validate input
     if not file_path.exists():
@@ -362,17 +430,29 @@ def path_to_id(file_path: Path) -> tuple[str, str]:
 
     elif filename.startswith("T-") and filename.endswith(".md"):
         # Task in tasks-open: .../tasks-open/T-{id}.md
+        # Works for both standalone and hierarchy-based tasks
         kind = "task"
         task_id = filename[2:-3]  # Remove T- prefix and .md suffix
+
+        # Validate task ID format for security
+        if not task_id or ".." in task_id or "/" in task_id or "\\" in task_id:
+            raise ValueError(f"Invalid task ID format: {task_id}")
+
         return kind, task_id
 
     elif filename.endswith(".md") and "-T-" in filename:
         # Task in tasks-done: .../tasks-done/{timestamp}-T-{id}.md
+        # Works for both standalone and hierarchy-based tasks
         kind = "task"
         # Find the T- prefix and extract ID
         t_index = filename.rfind("-T-")
         if t_index != -1:
             task_id = filename[t_index + 3 : -3]  # Remove -T- prefix and .md suffix
+
+            # Validate task ID format for security
+            if not task_id or ".." in task_id or "/" in task_id or "\\" in task_id:
+                raise ValueError(f"Invalid task ID format: {task_id}")
+
             return kind, task_id
         raise ValueError(f"Could not parse task ID from filename: {filename}")
 
@@ -418,6 +498,22 @@ def children_of(kind: str, obj_id: str, project_root: Path) -> list[Path]:
 
     if not obj_id or not obj_id.strip():
         raise ValueError("Object ID cannot be empty")
+
+    # For tasks, validate input parameters to prevent path traversal attacks
+    if kind == "task":
+        from .validation.field_validation import validate_standalone_task_path_parameters
+        from .validation.security import validate_standalone_task_path_security
+
+        validation_errors = validate_standalone_task_path_parameters(obj_id)
+        if validation_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Invalid task ID: {validation_errors[0]}")
+
+        # Enhanced security validation for standalone task paths
+        security_errors = validate_standalone_task_path_security(obj_id, str(project_root))
+        if security_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Security validation failed: {security_errors[0]}")
 
     # Clean the ID (remove any existing prefix if present)
     clean_id = obj_id.strip()
@@ -518,3 +614,153 @@ def _add_tasks_from_feature(feature_dir: Path, descendant_paths: list[Path]) -> 
         for task_file in tasks_done_dir.iterdir():
             if task_file.is_file() and task_file.name.endswith(".md") and "-T-" in task_file.name:
                 descendant_paths.append(task_file)
+
+
+def construct_standalone_task_path(
+    obj_id: str, status: str | None, project_root: str | Path
+) -> Path:
+    """Construct the filesystem path for a standalone task.
+
+    Creates the complete filesystem path for a standalone task based on its ID and status.
+    This is a dedicated helper function for standalone task path construction that follows
+    the existing patterns in resolve_path_for_new_object().
+
+    Args:
+        obj_id: The task ID (without T- prefix, e.g., 'implement-auth')
+        status: The task status ('open', 'done', None defaults to 'open')
+        project_root: Root directory of the project (can be project root or planning root)
+
+    Returns:
+        Path object pointing to the standalone task file:
+        - For open tasks: planning/tasks-open/T-{obj_id}.md
+        - For done tasks: planning/tasks-done/{timestamp}-T-{obj_id}.md
+
+    Raises:
+        ValueError: If obj_id is empty or contains invalid characters
+        ValueError: If validation fails (input validation or security checks)
+
+    Example:
+        >>> construct_standalone_task_path("implement-auth", "open", "./planning")
+        Path('planning/tasks-open/T-implement-auth.md')
+        >>> construct_standalone_task_path("implement-auth", "done", "./planning")
+        Path('planning/tasks-done/20250718_143000-T-implement-auth.md')
+
+    Note:
+        This function applies the same validation and security checks as the main
+        path resolution functions to ensure consistent behavior and security.
+    """
+    # Validate inputs
+    if not obj_id or not obj_id.strip():
+        raise ValueError("Task ID cannot be empty")
+
+    # Validate input parameters to prevent path traversal attacks
+    from .validation.field_validation import validate_standalone_task_path_parameters
+    from .validation.security import validate_standalone_task_path_security
+
+    validation_errors = validate_standalone_task_path_parameters(obj_id, status)
+    if validation_errors:
+        raise ValueError(f"Invalid task parameters: {validation_errors[0]}")
+
+    # Enhanced security validation for standalone task paths
+    security_errors = validate_standalone_task_path_security(obj_id, str(project_root))
+    if security_errors:
+        raise ValueError(f"Security validation failed: {security_errors[0]}")
+
+    # Clean the ID (remove any existing prefix if present)
+    clean_id = obj_id.strip()
+    if clean_id.startswith("T-"):
+        clean_id = clean_id[2:]
+
+    # Get the correct path resolution root
+    _, path_resolution_root = resolve_project_roots(project_root)
+
+    # Determine task directory and filename based on status
+    task_dir = "tasks-done" if status == "done" else "tasks-open"
+    filename = get_standalone_task_filename(clean_id, status)
+
+    # Return the complete path
+    return path_resolution_root / task_dir / filename
+
+
+def get_standalone_task_filename(obj_id: str, status: str | None) -> str:
+    """Generate the filename for a standalone task based on its ID and status.
+
+    Creates the appropriate filename for a standalone task file following the
+    existing naming conventions used in the codebase.
+
+    Args:
+        obj_id: The task ID (without T- prefix, e.g., 'implement-auth')
+        status: The task status ('open', 'done', None defaults to 'open')
+
+    Returns:
+        String filename for the task:
+        - For open tasks: T-{obj_id}.md
+        - For done tasks: {timestamp}-T-{obj_id}.md
+
+    Example:
+        >>> get_standalone_task_filename("implement-auth", "open")
+        'T-implement-auth.md'
+        >>> get_standalone_task_filename("implement-auth", "done")
+        '20250718_143000-T-implement-auth.md'
+
+    Note:
+        This function encapsulates the filename generation logic that was previously
+        embedded in resolve_path_for_new_object() to make it reusable and testable.
+    """
+    # Clean the ID (remove any existing prefix if present)
+    clean_id = obj_id.strip()
+    if clean_id.startswith("T-"):
+        clean_id = clean_id[2:]
+
+    # Generate filename based on status
+    if status == "done":
+        # For completed tasks, prefix with timestamp for chronological ordering
+        from datetime import datetime
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        return f"{timestamp}-T-{clean_id}.md"
+    else:
+        # For open tasks, use simple format for easy identification
+        return f"T-{clean_id}.md"
+
+
+def ensure_standalone_task_directory(project_root: str | Path, status: str | None) -> Path:
+    """Ensure the standalone task directory exists and return its path.
+
+    Creates the appropriate directory for standalone tasks if it doesn't exist.
+    Uses the existing fs_utils.ensure_parent_dirs() for safe directory creation.
+
+    Args:
+        project_root: Root directory of the project (can be project root or planning root)
+        status: The task status ('open', 'done', None defaults to 'open')
+
+    Returns:
+        Path object pointing to the standalone task directory:
+        - For open tasks: planning/tasks-open/
+        - For done tasks: planning/tasks-done/
+
+    Raises:
+        OSError: If directory creation fails due to permissions or other issues
+
+    Example:
+        >>> ensure_standalone_task_directory("./planning", "open")
+        Path('planning/tasks-open')
+        >>> ensure_standalone_task_directory("./planning", "done")
+        Path('planning/tasks-done')
+
+    Note:
+        This function uses the existing fs_utils.ensure_parent_dirs() utility
+        to maintain consistency with the rest of the codebase.
+    """
+    # Get the correct path resolution root
+    _, path_resolution_root = resolve_project_roots(project_root)
+
+    # Determine task directory based on status
+    task_dir_name = "tasks-done" if status == "done" else "tasks-open"
+    task_dir = path_resolution_root / task_dir_name
+
+    # Use existing utility to ensure directory exists
+    from .fs_utils import ensure_parent_dirs
+
+    ensure_parent_dirs(task_dir / "dummy.md")  # Create the directory structure
+    return task_dir

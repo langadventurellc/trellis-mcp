@@ -396,3 +396,155 @@ def validate_front_matter(yaml_dict: dict[str, Any], kind: str | KindEnum) -> li
     except ValueError as e:
         # Handle invalid kind from get_model_class_for_kind
         return [str(e)]
+
+
+def validate_standalone_task_path_parameters(task_id: str, status: str | None = None) -> list[str]:
+    """Validate input parameters for standalone task path operations.
+
+    Validates task IDs and status parameters used in standalone task path resolution
+    to prevent security vulnerabilities and ensure data integrity.
+
+    Args:
+        task_id: The task ID to validate (with or without T- prefix)
+        status: The status parameter to validate (optional)
+
+    Returns:
+        List of validation errors (empty if valid)
+
+    Example:
+        >>> validate_standalone_task_path_parameters("valid-task-id", "open")
+        []
+        >>> validate_standalone_task_path_parameters("../../../etc/passwd", "open")
+        ['Task ID contains invalid characters for filesystem paths']
+        >>> validate_standalone_task_path_parameters("valid-task", "invalid-status")
+        ['Invalid status parameter for directory resolution']
+    """
+    from ..id_utils import validate_id_charset
+
+    errors = []
+
+    # Validate task_id parameter
+    if not task_id or not task_id.strip():
+        errors.append("Task ID cannot be empty")
+        return errors
+
+    # Clean the task ID (remove T- prefix if present)
+    clean_id = task_id.strip()
+    if clean_id.startswith("T-"):
+        clean_id = clean_id[2:]
+
+    # Validate character set for task ID
+    if not validate_id_charset(clean_id):
+        errors.append("Task ID contains invalid characters for filesystem paths")
+
+    # Validate length constraints (use more permissive check for compatibility)
+    # Focus on preventing excessively long IDs that could cause security issues
+    # rather than enforcing the strict 32-character limit for existing IDs
+    if len(clean_id) > 255:  # Filesystem limit, not the 32-char preference
+        errors.append("Task ID exceeds filesystem name limits (255 characters)")
+
+    # Additional security validation for task IDs
+    task_security_errors = _validate_task_id_security(clean_id)
+    errors.extend(task_security_errors)
+
+    # Validate status parameter if provided
+    if status is not None:
+        status_errors = _validate_status_parameter_security(status)
+        errors.extend(status_errors)
+
+    return errors
+
+
+def _validate_task_id_security(task_id: str) -> list[str]:
+    """Validate task ID for security vulnerabilities.
+
+    Checks for path traversal attempts, injection attacks, and other security issues.
+
+    Args:
+        task_id: The clean task ID to validate
+
+    Returns:
+        List of security validation errors
+    """
+    errors = []
+
+    # Check for path traversal attempts
+    if ".." in task_id:
+        errors.append("Task ID contains path traversal sequences")
+
+    # Check for absolute path attempts
+    if task_id.startswith("/") or task_id.startswith("\\"):
+        errors.append("Task ID cannot start with path separators")
+
+    # Check for control characters
+    if any(ord(c) < 32 for c in task_id if c not in ["\t", "\n", "\r"]):
+        errors.append("Task ID contains control characters")
+
+    # Check for reserved names that could cause filesystem issues
+    reserved_names = {
+        "con",
+        "prn",
+        "aux",
+        "nul",
+        "com1",
+        "com2",
+        "com3",
+        "com4",
+        "com5",
+        "com6",
+        "com7",
+        "com8",
+        "com9",
+        "lpt1",
+        "lpt2",
+        "lpt3",
+        "lpt4",
+        "lpt5",
+        "lpt6",
+        "lpt7",
+        "lpt8",
+        "lpt9",
+    }
+
+    if task_id.lower() in reserved_names:
+        errors.append("Task ID uses reserved system name")
+
+    # Check for excessively long components (filesystem limits)
+    # This is handled by the main validation function, so skip here to avoid duplicates
+    # if len(task_id) > 255:
+    #     errors.append("Task ID exceeds filesystem name limits")
+
+    return errors
+
+
+def _validate_status_parameter_security(status: str) -> list[str]:
+    """Validate status parameter for security vulnerabilities.
+
+    Ensures status parameters can be safely used in directory names.
+
+    Args:
+        status: The status parameter to validate
+
+    Returns:
+        List of security validation errors
+    """
+    errors = []
+
+    # Check for valid status values
+    valid_statuses = {"open", "in-progress", "review", "done"}
+    if status not in valid_statuses:
+        errors.append("Invalid status parameter for directory resolution")
+
+    # Check for path traversal attempts in status
+    if ".." in status:
+        errors.append("Status parameter contains path traversal sequences")
+
+    # Check for path separators
+    if "/" in status or "\\" in status:
+        errors.append("Status parameter contains path separators")
+
+    # Check for control characters
+    if any(ord(c) < 32 for c in status if c not in ["\t", "\n", "\r"]):
+        errors.append("Status parameter contains control characters")
+
+    return errors

@@ -44,8 +44,8 @@ class TestClaimNextTaskPriorityOrdering:
 
     @patch("trellis_mcp.claim_next_task.write_object")
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
-    def test_high_priority_selected_first(self, mock_load, mock_unblocked, mock_write):
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_high_priority_selected_first(self, mock_scan, mock_unblocked, mock_write):
         """Test that high priority tasks are selected before normal/low priority."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
 
@@ -56,7 +56,7 @@ class TestClaimNextTaskPriorityOrdering:
         )
         low_task = create_test_task("T-low", Priority.LOW, base_time, title="Low priority")
 
-        mock_load.return_value = [low_task, normal_task, high_task]  # Mixed order
+        mock_scan.return_value = [low_task, normal_task, high_task]  # Mixed order
         mock_unblocked.return_value = True  # All unblocked
 
         result = claim_next_task("/test/project")
@@ -69,15 +69,15 @@ class TestClaimNextTaskPriorityOrdering:
 
     @patch("trellis_mcp.claim_next_task.write_object")
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
-    def test_normal_priority_selected_when_no_high(self, mock_load, mock_unblocked, mock_write):
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_normal_priority_selected_when_no_high(self, mock_scan, mock_unblocked, mock_write):
         """Test that normal priority tasks are selected when no high priority available."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
 
         normal_task = create_test_task("T-normal", Priority.NORMAL, base_time)
         low_task = create_test_task("T-low", Priority.LOW, base_time)
 
-        mock_load.return_value = [low_task, normal_task]
+        mock_scan.return_value = [low_task, normal_task]
         mock_unblocked.return_value = True
 
         result = claim_next_task("/test/project")
@@ -87,8 +87,8 @@ class TestClaimNextTaskPriorityOrdering:
 
     @patch("trellis_mcp.claim_next_task.write_object")
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
-    def test_older_task_selected_when_priorities_equal(self, mock_load, mock_unblocked, mock_write):
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_older_task_selected_when_priorities_equal(self, mock_scan, mock_unblocked, mock_write):
         """Test that older tasks are selected first when priorities are equal."""
         older_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         newer_time = datetime(2025, 1, 2, 12, 0, 0, tzinfo=timezone.utc)
@@ -96,7 +96,7 @@ class TestClaimNextTaskPriorityOrdering:
         newer_task = create_test_task("T-newer", Priority.NORMAL, newer_time, title="Newer task")
         older_task = create_test_task("T-older", Priority.NORMAL, older_time, title="Older task")
 
-        mock_load.return_value = [newer_task, older_task]  # Newer first in list
+        mock_scan.return_value = [newer_task, older_task]  # Newer first in list
         mock_unblocked.return_value = True
 
         result = claim_next_task("/test/project")
@@ -107,8 +107,8 @@ class TestClaimNextTaskPriorityOrdering:
 
     @patch("trellis_mcp.claim_next_task.write_object")
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
-    def test_complex_priority_and_date_ordering(self, mock_load, mock_unblocked, mock_write):
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_complex_priority_and_date_ordering(self, mock_scan, mock_unblocked, mock_write):
         """Test complex scenarios with mixed priorities and dates."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
 
@@ -120,7 +120,7 @@ class TestClaimNextTaskPriorityOrdering:
         )
         high_newer = create_test_task("T-high-new", Priority.HIGH, base_time + timedelta(hours=2))
 
-        mock_load.return_value = [low_newer, normal_middle, high_newer, high_older]
+        mock_scan.return_value = [low_newer, normal_middle, high_newer, high_older]
         mock_unblocked.return_value = True
 
         result = claim_next_task("/test/project")
@@ -136,13 +136,13 @@ class TestClaimNextTaskPrerequisiteBlocking:
 
     @patch("trellis_mcp.claim_next_task.write_object")
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
-    def test_task_with_no_prerequisites_is_claimable(self, mock_load, mock_unblocked, mock_write):
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_task_with_no_prerequisites_is_claimable(self, mock_scan, mock_unblocked, mock_write):
         """Test that tasks with no prerequisites can be claimed."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         task = create_test_task("T-001", Priority.NORMAL, base_time, prerequisites=[])
 
-        mock_load.return_value = [task]
+        mock_scan.return_value = [task]
         mock_unblocked.return_value = True
 
         result = claim_next_task("/test/project")
@@ -152,15 +152,15 @@ class TestClaimNextTaskPrerequisiteBlocking:
 
     @patch("trellis_mcp.claim_next_task.write_object")
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
     def test_task_with_completed_prerequisites_is_claimable(
-        self, mock_load, mock_unblocked, mock_write
+        self, mock_scan, mock_unblocked, mock_write
     ):
         """Test that tasks with all prerequisites completed can be claimed."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         task = create_test_task("T-002", Priority.NORMAL, base_time, prerequisites=["T-001"])
 
-        mock_load.return_value = [task]
+        mock_scan.return_value = [task]
         mock_unblocked.return_value = True  # Simulate all prereqs completed
 
         result = claim_next_task("/test/project")
@@ -169,13 +169,13 @@ class TestClaimNextTaskPrerequisiteBlocking:
         mock_unblocked.assert_called_once_with(task, Path("/test/project"))
 
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
-    def test_task_with_incomplete_prerequisites_is_not_claimable(self, mock_load, mock_unblocked):
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_task_with_incomplete_prerequisites_is_not_claimable(self, mock_scan, mock_unblocked):
         """Test that tasks with incomplete prerequisites cannot be claimed."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         blocked_task = create_test_task("T-002", Priority.HIGH, base_time, prerequisites=["T-001"])
 
-        mock_load.return_value = [blocked_task]
+        mock_scan.return_value = [blocked_task]
         mock_unblocked.return_value = False  # Simulate incomplete prereqs
 
         with pytest.raises(NoAvailableTask) as exc_info:
@@ -186,8 +186,8 @@ class TestClaimNextTaskPrerequisiteBlocking:
 
     @patch("trellis_mcp.claim_next_task.write_object")
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
-    def test_mixed_blocked_and_unblocked_tasks(self, mock_load, mock_unblocked, mock_write):
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_mixed_blocked_and_unblocked_tasks(self, mock_scan, mock_unblocked, mock_write):
         """Test that only unblocked tasks are considered for claiming."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
 
@@ -198,7 +198,7 @@ class TestClaimNextTaskPrerequisiteBlocking:
             "T-unblocked", Priority.NORMAL, base_time, prerequisites=[]
         )
 
-        mock_load.return_value = [blocked_high, unblocked_normal]
+        mock_scan.return_value = [blocked_high, unblocked_normal]
 
         # Mock is_unblocked to return False for blocked, True for unblocked
         def mock_unblocked_side_effect(task, project_root):
@@ -218,13 +218,13 @@ class TestClaimNextTaskYAMLUpdateFields:
 
     @patch("trellis_mcp.claim_next_task.write_object")
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
-    def test_status_changes_to_in_progress(self, mock_load, mock_unblocked, mock_write):
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_status_changes_to_in_progress(self, mock_scan, mock_unblocked, mock_write):
         """Test that status changes from OPEN to IN_PROGRESS."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         task = create_test_task("T-001", Priority.NORMAL, base_time, status=StatusEnum.OPEN)
 
-        mock_load.return_value = [task]
+        mock_scan.return_value = [task]
         mock_unblocked.return_value = True
 
         result = claim_next_task("/test/project")
@@ -234,15 +234,15 @@ class TestClaimNextTaskYAMLUpdateFields:
 
     @patch("trellis_mcp.claim_next_task.write_object")
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
-    def test_updated_timestamp_reflects_claim_time(self, mock_load, mock_unblocked, mock_write):
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_updated_timestamp_reflects_claim_time(self, mock_scan, mock_unblocked, mock_write):
         """Test that updated timestamp is set to current time when claiming."""
         # Use naive datetime to match claim_next_task behavior
         base_time = datetime(2025, 1, 1, 12, 0, 0)
         task = create_test_task("T-001", Priority.NORMAL, base_time)
         original_updated = task.updated
 
-        mock_load.return_value = [task]
+        mock_scan.return_value = [task]
         mock_unblocked.return_value = True
 
         # Claim the task
@@ -256,13 +256,13 @@ class TestClaimNextTaskYAMLUpdateFields:
 
     @patch("trellis_mcp.claim_next_task.write_object")
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
-    def test_worktree_field_set_when_provided(self, mock_load, mock_unblocked, mock_write):
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_worktree_field_set_when_provided(self, mock_scan, mock_unblocked, mock_write):
         """Test that worktree field is set when worktree_path is provided."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         task = create_test_task("T-001", Priority.NORMAL, base_time, worktree=None)
 
-        mock_load.return_value = [task]
+        mock_scan.return_value = [task]
         mock_unblocked.return_value = True
 
         result = claim_next_task("/test/project", worktree_path="/workspace/feature-branch")
@@ -272,15 +272,15 @@ class TestClaimNextTaskYAMLUpdateFields:
 
     @patch("trellis_mcp.claim_next_task.write_object")
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
     def test_worktree_field_remains_none_when_not_provided(
-        self, mock_load, mock_unblocked, mock_write
+        self, mock_scan, mock_unblocked, mock_write
     ):
         """Test that worktree field remains None when worktree_path is not provided."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         task = create_test_task("T-001", Priority.NORMAL, base_time, worktree=None)
 
-        mock_load.return_value = [task]
+        mock_scan.return_value = [task]
         mock_unblocked.return_value = True
 
         result = claim_next_task("/test/project")  # No worktree_path provided
@@ -290,14 +290,14 @@ class TestClaimNextTaskYAMLUpdateFields:
 
     @patch("trellis_mcp.claim_next_task.write_object")
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
-    def test_atomic_file_write_called(self, mock_load, mock_unblocked, mock_write):
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_atomic_file_write_called(self, mock_scan, mock_unblocked, mock_write):
         """Test that atomic file write is called with updated task and project root."""
         # Use naive datetime to match claim_next_task behavior
         base_time = datetime(2025, 1, 1, 12, 0, 0)
         task = create_test_task("T-001", Priority.NORMAL, base_time)
 
-        mock_load.return_value = [task]
+        mock_scan.return_value = [task]
         mock_unblocked.return_value = True
 
         result = claim_next_task("/test/project", "/workspace/feature")
@@ -315,10 +315,10 @@ class TestClaimNextTaskYAMLUpdateFields:
 class TestClaimNextTaskEdgeCases:
     """Test edge cases and error conditions for claim_next_task."""
 
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
-    def test_no_open_tasks_raises_exception(self, mock_load):
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_no_open_tasks_raises_exception(self, mock_scan):
         """Test that NoAvailableTask is raised when no open tasks exist."""
-        mock_load.return_value = []
+        mock_scan.return_value = []
 
         with pytest.raises(NoAvailableTask) as exc_info:
             claim_next_task("/test/project")
@@ -326,9 +326,9 @@ class TestClaimNextTaskEdgeCases:
         assert "No open tasks available in backlog" in str(exc_info.value)
 
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
     def test_claiming_when_no_tasks_unblocked_raises_no_available_task(
-        self, mock_load, mock_unblocked
+        self, mock_scan, mock_unblocked
     ):
         """Test that NoAvailableTask is raised when no tasks are unblocked (C-08)."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
@@ -342,7 +342,7 @@ class TestClaimNextTaskEdgeCases:
         )
         low_task = create_test_task("T-low", Priority.LOW, base_time, prerequisites=["T-prereq3"])
 
-        mock_load.return_value = [high_task, normal_task, low_task]
+        mock_scan.return_value = [high_task, normal_task, low_task]
         mock_unblocked.return_value = False  # All tasks are blocked
 
         with pytest.raises(NoAvailableTask) as exc_info:
@@ -353,15 +353,15 @@ class TestClaimNextTaskEdgeCases:
         assert mock_unblocked.call_count == 3
 
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
-    def test_no_unblocked_tasks_raises_exception(self, mock_load, mock_unblocked):
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_no_unblocked_tasks_raises_exception(self, mock_scan, mock_unblocked):
         """Test that NoAvailableTask is raised when all tasks are blocked."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         blocked_task = create_test_task(
             "T-001", Priority.NORMAL, base_time, prerequisites=["T-prereq"]
         )
 
-        mock_load.return_value = [blocked_task]
+        mock_scan.return_value = [blocked_task]
         mock_unblocked.return_value = False  # All tasks blocked
 
         with pytest.raises(NoAvailableTask) as exc_info:
@@ -373,8 +373,8 @@ class TestClaimNextTaskEdgeCases:
 
     @patch("trellis_mcp.claim_next_task.write_object")
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
-    def test_filters_out_non_open_tasks(self, mock_load, mock_unblocked, mock_write):
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_filters_out_non_open_tasks(self, mock_scan, mock_unblocked, mock_write):
         """Test that only OPEN tasks are considered for claiming."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
 
@@ -384,7 +384,7 @@ class TestClaimNextTaskEdgeCases:
         done_task = create_test_task("T-done", Priority.HIGH, base_time, status=StatusEnum.DONE)
         open_task = create_test_task("T-open", Priority.NORMAL, base_time, status=StatusEnum.OPEN)
 
-        mock_load.return_value = [in_progress_task, done_task, open_task]
+        mock_scan.return_value = [in_progress_task, done_task, open_task]
         mock_unblocked.return_value = True
 
         result = claim_next_task("/test/project")
@@ -395,18 +395,20 @@ class TestClaimNextTaskEdgeCases:
 
     @patch("trellis_mcp.claim_next_task.write_object")
     @patch("trellis_mcp.claim_next_task.is_unblocked")
-    @patch("trellis_mcp.claim_next_task.load_backlog_tasks")
-    def test_project_root_path_conversion(self, mock_load, mock_unblocked, mock_write):
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_project_root_path_conversion(self, mock_scan, mock_unblocked, mock_write):
         """Test that project_root string is properly converted to Path object."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         task = create_test_task("T-001", Priority.NORMAL, base_time)
 
-        mock_load.return_value = [task]
+        mock_scan.return_value = [task]
         mock_unblocked.return_value = True
 
         result = claim_next_task("/test/project")  # String path
 
         # Verify Path object passed to dependencies
-        mock_load.assert_called_once_with(Path("/test/project"))
+        # Since /test/project doesn't have a planning directory, resolve_project_roots
+        # assumes it IS the planning directory, so scanning root is /test
+        mock_scan.assert_called_once_with(Path("/test"))
         mock_unblocked.assert_called_once_with(task, Path("/test/project"))
         mock_write.assert_called_once_with(result, Path("/test/project"))
