@@ -109,14 +109,30 @@ def id_to_path(project_root: Path, kind: str, obj_id: str) -> Path:
     # For tasks, validate input parameters to prevent path traversal attacks
     if kind == "task":
         from .validation.field_validation import validate_standalone_task_path_parameters
+        from .validation.security import validate_standalone_task_path_security
 
         validation_errors = validate_standalone_task_path_parameters(obj_id)
         if validation_errors:
             # Use the first error for the exception message
             raise ValueError(f"Invalid task ID: {validation_errors[0]}")
 
+        # Enhanced security validation for standalone task paths
+        security_errors = validate_standalone_task_path_security(obj_id, str(project_root))
+        if security_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Security validation failed: {security_errors[0]}")
+
     # Use the shared utility to find the object path
     result_path = find_object_path(kind, obj_id, project_root)
+
+    # Additional security validation for the resolved path
+    if kind == "task" and result_path:
+        from .validation.security import validate_path_boundaries
+
+        boundary_errors = validate_path_boundaries(str(result_path), str(project_root))
+        if boundary_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Path boundary validation failed: {boundary_errors[0]}")
 
     if result_path is None:
         # Clean the ID for error message (remove any existing prefix if present)
@@ -209,11 +225,18 @@ def resolve_path_for_new_object(
     # For tasks, validate input parameters to prevent path traversal attacks
     if kind == "task":
         from .validation.field_validation import validate_standalone_task_path_parameters
+        from .validation.security import validate_standalone_task_path_security
 
         validation_errors = validate_standalone_task_path_parameters(obj_id, status)
         if validation_errors:
             # Use the first error for the exception message
             raise ValueError(f"Invalid task parameters: {validation_errors[0]}")
+
+        # Enhanced security validation for standalone task paths
+        security_errors = validate_standalone_task_path_security(obj_id, str(project_root))
+        if security_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Security validation failed: {security_errors[0]}")
 
     # Clean the ID (remove any existing prefix if present)
     clean_id = obj_id.strip()
@@ -454,11 +477,18 @@ def children_of(kind: str, obj_id: str, project_root: Path) -> list[Path]:
     # For tasks, validate input parameters to prevent path traversal attacks
     if kind == "task":
         from .validation.field_validation import validate_standalone_task_path_parameters
+        from .validation.security import validate_standalone_task_path_security
 
         validation_errors = validate_standalone_task_path_parameters(obj_id)
         if validation_errors:
             # Use the first error for the exception message
             raise ValueError(f"Invalid task ID: {validation_errors[0]}")
+
+        # Enhanced security validation for standalone task paths
+        security_errors = validate_standalone_task_path_security(obj_id, str(project_root))
+        if security_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Security validation failed: {security_errors[0]}")
 
     # Clean the ID (remove any existing prefix if present)
     clean_id = obj_id.strip()
