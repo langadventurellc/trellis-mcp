@@ -5,6 +5,7 @@ and return appropriate data structures for standalone tasks.
 """
 
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
@@ -63,8 +64,11 @@ class TestMCPToolOptionalParentSimple:
 
     def test_documentation_updated_for_optional_parent(self):
         """Test that tool documentation reflects optional parent fields."""
-        # Read the updated documentation in list_backlog.py
-        with open("/Users/zach/code/trellis-mcp/src/trellis_mcp/tools/list_backlog.py", "r") as f:
+        # Get the project root directory
+        project_root = Path(__file__).parent.parent.parent
+        list_backlog_path = project_root / "src" / "trellis_mcp" / "tools" / "list_backlog.py"
+
+        with open(list_backlog_path, "r") as f:
             content = f.read()
 
         # Verify the documentation was updated to show optional parent
@@ -73,10 +77,13 @@ class TestMCPToolOptionalParentSimple:
 
     def test_get_next_reviewable_task_documentation_updated(self):
         """Test that getNextReviewableTask documentation reflects optional parent fields."""
-        # Read the updated documentation in get_next_reviewable_task.py
-        with open(
-            "/Users/zach/code/trellis-mcp/src/trellis_mcp/tools/get_next_reviewable_task.py", "r"
-        ) as f:
+        # Get the project root directory
+        project_root = Path(__file__).parent.parent.parent
+        get_next_reviewable_task_path = (
+            project_root / "src" / "trellis_mcp" / "tools" / "get_next_reviewable_task.py"
+        )
+
+        with open(get_next_reviewable_task_path, "r") as f:
             content = f.read()
 
         # Verify the documentation was updated to show optional parent
@@ -85,8 +92,11 @@ class TestMCPToolOptionalParentSimple:
 
     def test_create_object_tool_documentation_correct(self):
         """Test that createObject tool documentation is correct for optional parent."""
-        # Read the createObject tool documentation
-        with open("/Users/zach/code/trellis-mcp/src/trellis_mcp/tools/create_object.py", "r") as f:
+        # Get the project root directory
+        project_root = Path(__file__).parent.parent.parent
+        create_object_path = project_root / "src" / "trellis_mcp" / "tools" / "create_object.py"
+
+        with open(create_object_path, "r") as f:
             content = f.read()
 
         # Verify the function signature has correct type annotation (MCP Inspector compatible)
@@ -96,8 +106,11 @@ class TestMCPToolOptionalParentSimple:
 
     def test_update_object_tool_type_annotation_correct(self):
         """Test that updateObject tool has correct type annotations for optional values."""
-        # Read the updateObject tool
-        with open("/Users/zach/code/trellis-mcp/src/trellis_mcp/tools/update_object.py", "r") as f:
+        # Get the project root directory
+        project_root = Path(__file__).parent.parent.parent
+        update_object_path = project_root / "src" / "trellis_mcp" / "tools" / "update_object.py"
+
+        with open(update_object_path, "r") as f:
             content = f.read()
 
         # Verify the yamlPatch parameter has correct type annotation
@@ -105,8 +118,11 @@ class TestMCPToolOptionalParentSimple:
 
     def test_get_object_tool_return_type_annotation_correct(self):
         """Test that getObject tool has correct return type annotation."""
-        # Read the getObject tool
-        with open("/Users/zach/code/trellis-mcp/src/trellis_mcp/tools/get_object.py", "r") as f:
+        # Get the project root directory
+        project_root = Path(__file__).parent.parent.parent
+        get_object_path = project_root / "src" / "trellis_mcp" / "tools" / "get_object.py"
+
+        with open(get_object_path, "r") as f:
             content = f.read()
 
         # Verify the return type annotation handles None values
