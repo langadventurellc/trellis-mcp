@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     )
 
     # File Configuration
-    schema_version: str = Field(default="1.0", description="YAML schema version for object files")
+    schema_version: str = Field(default="1.1", description="YAML schema version for object files")
 
     file_encoding: str = Field(
         default="utf-8", description="Text encoding for reading/writing files"

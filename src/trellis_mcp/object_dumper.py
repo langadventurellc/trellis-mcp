@@ -48,7 +48,7 @@ def dump_object(model: TrellisObjectModel) -> str:
         worktree: null
         created: 2025-01-01T00:00:00.000000
         updated: 2025-01-01T00:00:00.000000
-        schema_version: '1.0'
+        schema_version: '1.1'
         ---
 
     """
@@ -92,7 +92,7 @@ def dump_object_with_body(model: TrellisObjectModel, body: str) -> str:
         worktree: null
         created: 2025-01-01T00:00:00.000000
         updated: 2025-01-01T00:00:00.000000
-        schema_version: '1.0'
+        schema_version: '1.1'
         ---
         This is the task description.
 

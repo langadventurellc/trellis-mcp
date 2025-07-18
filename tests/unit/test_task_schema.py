@@ -32,7 +32,7 @@ class TestTaskModelOptionalParent:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         assert task.parent is None
@@ -52,7 +52,7 @@ class TestTaskModelOptionalParent:
             "prerequisites": [],
             "created": "2025-01-01T00:00:00",
             "updated": "2025-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         task = TaskModel.model_validate(data)
@@ -73,7 +73,7 @@ class TestTaskModelOptionalParent:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         assert task.parent is None
@@ -93,7 +93,7 @@ class TestTaskModelOptionalParent:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         assert task.parent == "test-feature"
@@ -122,7 +122,7 @@ class TestTaskModelOptionalParent:
                 worktree=None,
                 created=datetime.now(),
                 updated=datetime.now(),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
             assert task.status == status
@@ -146,7 +146,7 @@ class TestTaskModelOptionalParent:
                     worktree=None,
                     created=datetime.now(),
                     updated=datetime.now(),
-                    schema_version="1.0",
+                    schema_version="1.1",
                 )
 
             assert "Invalid status" in str(exc_info.value) and "task" in str(exc_info.value)
@@ -164,7 +164,7 @@ class TestTaskModelOptionalParent:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         assert task.parent is None
@@ -184,7 +184,7 @@ class TestTaskModelOptionalParent:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         assert task.parent == "test-feature"
@@ -204,7 +204,7 @@ class TestTaskModelOptionalParent:
             worktree="/path/to/worktree",
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         assert task.parent is None
@@ -224,7 +224,7 @@ class TestTaskModelOptionalParent:
             worktree="/path/to/hierarchy/worktree",
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         assert task.parent == "test-feature"
@@ -320,7 +320,7 @@ class TestTaskModelSerialization:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Serialize to dict
@@ -344,7 +344,7 @@ class TestTaskModelSerialization:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Serialize to dict
@@ -367,7 +367,7 @@ class TestTaskModelSerialization:
             "prerequisites": [],
             "created": "2025-01-01T00:00:00",
             "updated": "2025-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         task = TaskModel.model_validate(data)
@@ -387,7 +387,7 @@ class TestTaskModelSerialization:
             "prerequisites": [],
             "created": "2025-01-01T00:00:00",
             "updated": "2025-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         task = TaskModel.model_validate(data)
@@ -407,7 +407,7 @@ class TestTaskModelSerialization:
             "prerequisites": [],
             "created": "2025-01-01T00:00:00",
             "updated": "2025-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         task = TaskModel.model_validate(data)
@@ -428,7 +428,7 @@ class TestTaskModelSerialization:
             worktree="/path/to/worktree",
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Serialize to dict
@@ -460,7 +460,7 @@ class TestTaskModelSerialization:
             worktree="/path/to/hierarchy/worktree",
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Serialize to dict
@@ -499,7 +499,7 @@ class TestTaskModelEdgeCases:
                 worktree=None,
                 created=datetime.now(),
                 updated=datetime.now(),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
             assert task.priority == priority
@@ -517,7 +517,7 @@ class TestTaskModelEdgeCases:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         assert task.prerequisites == []
@@ -543,7 +543,7 @@ class TestTaskModelEdgeCases:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         assert task.prerequisites == complex_prereqs
@@ -561,7 +561,7 @@ class TestTaskModelEdgeCases:
             worktree=None,  # Explicitly null
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         assert task.worktree is None
@@ -580,7 +580,7 @@ class TestTaskModelEdgeCases:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         assert task.kind == KindEnum.TASK
@@ -601,7 +601,7 @@ class TestTaskModelEdgeCases:
             worktree=None,
             created=created_time,
             updated=updated_time,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         assert task.created == created_time
@@ -620,10 +620,10 @@ class TestTaskModelEdgeCases:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
-        assert task.schema_version == "1.0"
+        assert task.schema_version == "1.1"
 
     def test_task_comprehensive_validation(self) -> None:
         """Test comprehensive validation with maximum fields."""
@@ -638,7 +638,7 @@ class TestTaskModelEdgeCases:
             worktree="/path/to/comprehensive/worktree",
             created=datetime(2025, 1, 1, 10, 0, 0),
             updated=datetime(2025, 1, 1, 15, 30, 0),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Verify all fields
@@ -652,4 +652,4 @@ class TestTaskModelEdgeCases:
         assert task.worktree == "/path/to/comprehensive/worktree"
         assert task.created == datetime(2025, 1, 1, 10, 0, 0)
         assert task.updated == datetime(2025, 1, 1, 15, 30, 0)
-        assert task.schema_version == "1.0"
+        assert task.schema_version == "1.1"

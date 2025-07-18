@@ -2,11 +2,11 @@
 kind: feature
 id: F-base-schema-modification
 title: Base Schema Modification
-status: in-progress
+status: done
 priority: normal
 prerequisites: []
 created: '2025-07-17T18:50:46.818054'
-updated: '2025-07-17T18:50:46.818054'
+updated: '2025-07-18T04:02:05.830901+00:00'
 schema_version: '1.0'
 parent: E-core-schema-validation
 ---

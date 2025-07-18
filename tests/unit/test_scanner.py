@@ -94,7 +94,7 @@ This is another test task.
                 worktree=None,
                 created=datetime(2025, 7, 13, 19, 12, 0),
                 updated=datetime(2025, 7, 13, 19, 12, 0),
-                schema_version="1.0",
+                schema_version="1.1",
             )
             mock_task2 = TaskModel(
                 kind=KindEnum.TASK,
@@ -106,7 +106,7 @@ This is another test task.
                 worktree=None,
                 created=datetime(2025, 7, 13, 19, 12, 0),
                 updated=datetime(2025, 7, 13, 19, 12, 0),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
             mock_parse.side_effect = [mock_task1, mock_task2]
@@ -143,7 +143,7 @@ This is another test task.
                 worktree=None,
                 created=datetime(2025, 7, 13, 19, 12, 0),
                 updated=datetime(2025, 7, 13, 19, 12, 0),
-                schema_version="1.0",
+                schema_version="1.1",
             )
             mock_parse.return_value = mock_task
 
@@ -176,7 +176,7 @@ This is another test task.
                 worktree=None,
                 created=datetime(2025, 7, 13, 19, 12, 0),
                 updated=datetime(2025, 7, 13, 19, 12, 0),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
             # First call succeeds, second call raises exception
@@ -217,7 +217,7 @@ This is another test task.
                 worktree=None,
                 created=datetime(2025, 7, 13, 19, 12, 0),
                 updated=datetime(2025, 7, 13, 19, 12, 0),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
             tasks = list(scan_tasks(tmp_path))
@@ -253,7 +253,7 @@ This is another test task.
                 worktree=None,
                 created=datetime(2025, 7, 13, 19, 12, 0),
                 updated=datetime(2025, 7, 13, 19, 12, 0),
-                schema_version="1.0",
+                schema_version="1.1",
             )
             mock_parse.return_value = mock_task
 
@@ -286,7 +286,7 @@ This is another test task.
                 worktree=None,
                 created=datetime(2025, 7, 13, 19, 12, 0),
                 updated=datetime(2025, 7, 13, 19, 12, 0),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
             # Mock parse_object to return a TaskModel for first call, non-TaskModel for second

@@ -44,7 +44,7 @@ title: Test Task 1
 priority: high
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 This is test task 1.
@@ -59,7 +59,7 @@ title: Test Task 2
 priority: normal
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 This is test task 2.
@@ -74,7 +74,7 @@ title: Test Task 3
 priority: low
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 This is test task 3.
@@ -99,7 +99,7 @@ title: Test Task 4
 priority: normal
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 This is test task 4.
@@ -122,7 +122,7 @@ title: Test Task 5
 priority: high
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 This is test task 5.
@@ -146,7 +146,7 @@ title: Test Task 6
 priority: normal
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 This is test task 6.
@@ -307,7 +307,7 @@ title: Good Task
 priority: normal
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 This is a good task.
@@ -555,7 +555,7 @@ title: Test Task
 priority: normal
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 Test task content.
@@ -617,7 +617,7 @@ title: Test Task {i}
 priority: normal
 created: 2025-07-13T19:12:00-05:00
 updated: 2025-07-13T19:12:00-05:00
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 Test task {i} content.

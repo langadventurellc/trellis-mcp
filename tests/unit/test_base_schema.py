@@ -33,7 +33,7 @@ class TestBaseSchemaModelParentValidation:
                 worktree=None,
                 created=datetime.now(),
                 updated=datetime.now(),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
         assert "Projects cannot have a parent" in str(exc_info.value)
@@ -51,7 +51,7 @@ class TestBaseSchemaModelParentValidation:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
         assert project.parent is None
 
@@ -69,7 +69,7 @@ class TestBaseSchemaModelParentValidation:
                 worktree=None,
                 created=datetime.now(),
                 updated=datetime.now(),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
         assert "Epics must have a parent project ID" in str(exc_info.value)
@@ -87,7 +87,7 @@ class TestBaseSchemaModelParentValidation:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
         assert epic.parent == "test-project"
 
@@ -105,7 +105,7 @@ class TestBaseSchemaModelParentValidation:
                 worktree=None,
                 created=datetime.now(),
                 updated=datetime.now(),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
         assert "Features must have a parent epic ID" in str(exc_info.value)
@@ -123,7 +123,7 @@ class TestBaseSchemaModelParentValidation:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
         assert feature.parent == "test-epic"
 
@@ -140,7 +140,7 @@ class TestBaseSchemaModelParentValidation:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
         assert task.parent is None
 
@@ -157,7 +157,7 @@ class TestBaseSchemaModelParentValidation:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
         assert task.parent == "test-feature"
 
@@ -174,7 +174,7 @@ class TestBaseSchemaModelParentValidation:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
         assert task.parent is None
 
@@ -192,7 +192,7 @@ class TestBaseSchemaModelParentValidation:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
         assert project.parent is None
 
@@ -210,7 +210,7 @@ class TestBaseSchemaModelParentValidation:
                 worktree=None,
                 created=datetime.now(),
                 updated=datetime.now(),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
         assert "Epics must have a parent project ID" in str(exc_info.value)
@@ -232,7 +232,7 @@ class TestBaseSchemaModelOptionalParentSerialization:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Serialize to dict
@@ -254,7 +254,7 @@ class TestBaseSchemaModelOptionalParentSerialization:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Serialize to dict
@@ -275,7 +275,7 @@ class TestBaseSchemaModelOptionalParentSerialization:
             "prerequisites": [],
             "created": "2025-01-01T00:00:00",
             "updated": "2025-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         task = BaseSchemaModel.model_validate(data)
@@ -293,7 +293,7 @@ class TestBaseSchemaModelOptionalParentSerialization:
             "prerequisites": [],
             "created": "2025-01-01T00:00:00",
             "updated": "2025-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         task = BaseSchemaModel.model_validate(data)
@@ -311,7 +311,7 @@ class TestBaseSchemaModelOptionalParentSerialization:
             "prerequisites": [],
             "created": "2025-01-01T00:00:00",
             "updated": "2025-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         task = BaseSchemaModel.model_validate(data)
@@ -330,7 +330,7 @@ class TestBaseSchemaModelOptionalParentSerialization:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Serialize to dict
@@ -363,7 +363,7 @@ class TestBaseSchemaModelEdgeCases:
                 worktree=None,
                 created=datetime.now(),
                 updated=datetime.now(),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
         # Should get kind validation error, not parent validation error
@@ -382,7 +382,7 @@ class TestBaseSchemaModelEdgeCases:
             "prerequisites": [],
             "created": "2025-01-01T00:00:00",
             "updated": "2025-01-01T00:00:00",
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         with pytest.raises(ValidationError) as exc_info:
@@ -405,7 +405,7 @@ class TestBaseSchemaModelEdgeCases:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
         assert project.status == StatusEnum.DRAFT
 
@@ -421,7 +421,7 @@ class TestBaseSchemaModelEdgeCases:
             worktree=None,
             created=datetime.now(),
             updated=datetime.now(),
-            schema_version="1.0",
+            schema_version="1.1",
         )
         assert task.status == StatusEnum.OPEN
 
@@ -440,7 +440,7 @@ class TestBaseSchemaModelEdgeCases:
                 worktree=None,
                 created=datetime.now(),
                 updated=datetime.now(),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
         assert "Invalid status" in str(exc_info.value) and "project" in str(exc_info.value)
@@ -458,7 +458,7 @@ class TestBaseSchemaModelEdgeCases:
                 worktree=None,
                 created=datetime.now(),
                 updated=datetime.now(),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
         assert "Invalid status" in str(exc_info.value) and "task" in str(exc_info.value)
@@ -509,7 +509,7 @@ class TestBaseSchemaModelEdgeCases:
                 worktree=None,
                 created=datetime.now(),
                 updated=datetime.now(),
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
             assert obj.kind == obj_data["kind"]

@@ -898,7 +898,7 @@ def validate_status_for_kind(status: StatusEnum, object_kind: KindEnum) -> bool:
             "title": "temp-title",
             "created": datetime.now(),
             "updated": datetime.now(),
-            "schema_version": "1.0",
+            "schema_version": "1.1",
         }
 
         # Add parent field for kinds that require it

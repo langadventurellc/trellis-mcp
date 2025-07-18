@@ -23,7 +23,7 @@ def test_is_reviewable_with_review_status():
         worktree=None,
         created=datetime.now(),
         updated=datetime.now(),
-        schema_version="1.0",
+        schema_version="1.1",
     )
 
     assert is_reviewable(task) is True
@@ -42,7 +42,7 @@ def test_is_reviewable_with_non_review_status():
         worktree=None,
         created=datetime.now(),
         updated=datetime.now(),
-        schema_version="1.0",
+        schema_version="1.1",
     )
 
     assert is_reviewable(task_open) is False
@@ -58,7 +58,7 @@ def test_is_reviewable_with_non_review_status():
         worktree=None,
         created=datetime.now(),
         updated=datetime.now(),
-        schema_version="1.0",
+        schema_version="1.1",
     )
 
     assert is_reviewable(task_in_progress) is False
@@ -74,7 +74,7 @@ def test_is_reviewable_with_non_review_status():
         worktree=None,
         created=datetime.now(),
         updated=datetime.now(),
-        schema_version="1.0",
+        schema_version="1.1",
     )
 
     assert is_reviewable(task_done) is False
@@ -92,7 +92,7 @@ def test_is_reviewable_with_feature():
         worktree=None,
         created=datetime.now(),
         updated=datetime.now(),
-        schema_version="1.0",
+        schema_version="1.1",
     )
 
     assert is_reviewable(feature) is False
@@ -122,7 +122,7 @@ def test_get_oldest_review_no_review_tasks(temp_dir):
         "priority": "normal",
         "created": "2025-01-01T12:00:00Z",
         "updated": "2025-01-01T12:00:00Z",
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "prerequisites": [],
     }
     write_markdown(tasks_open_dir / "T-test-task-open.md", task_yaml, "# Open Task")
@@ -147,7 +147,7 @@ def test_get_oldest_review_single_review_task(temp_dir):
         "priority": "normal",
         "created": "2025-01-01T12:00:00Z",
         "updated": "2025-01-01T13:00:00Z",
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "prerequisites": [],
     }
     write_markdown(tasks_open_dir / "T-test-task-review.md", task_yaml, "# Review Task")
@@ -178,7 +178,7 @@ def test_get_oldest_review_multiple_tasks_oldest_first(temp_dir):
         "priority": "normal",
         "created": "2025-01-01T12:00:00Z",
         "updated": "2025-01-01T12:00:00Z",  # Older timestamp
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "prerequisites": [],
     }
     write_markdown(tasks_open_dir / "T-older-task.md", older_task_yaml, "# Older Task")
@@ -193,7 +193,7 @@ def test_get_oldest_review_multiple_tasks_oldest_first(temp_dir):
         "priority": "normal",
         "created": "2025-01-01T12:00:00Z",
         "updated": "2025-01-01T14:00:00Z",  # Newer timestamp
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "prerequisites": [],
     }
     write_markdown(tasks_open_dir / "T-newer-task.md", newer_task_yaml, "# Newer Task")
@@ -224,7 +224,7 @@ def test_get_oldest_review_priority_tiebreaker(temp_dir):
         "priority": "low",
         "created": same_timestamp,
         "updated": same_timestamp,
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "prerequisites": [],
     }
     write_markdown(tasks_open_dir / "T-low-priority.md", low_task_yaml, "# Low Priority")
@@ -239,7 +239,7 @@ def test_get_oldest_review_priority_tiebreaker(temp_dir):
         "priority": "high",
         "created": same_timestamp,
         "updated": same_timestamp,
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "prerequisites": [],
     }
     write_markdown(tasks_open_dir / "T-high-priority.md", high_task_yaml, "# High Priority")
@@ -254,7 +254,7 @@ def test_get_oldest_review_priority_tiebreaker(temp_dir):
         "priority": "normal",
         "created": same_timestamp,
         "updated": same_timestamp,
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "prerequisites": [],
     }
     write_markdown(tasks_open_dir / "T-normal-priority.md", normal_task_yaml, "# Normal Priority")

@@ -26,7 +26,7 @@ def create_test_task(
         worktree=None,
         created=created,
         updated=created,
-        schema_version="1.0",
+        schema_version="1.1",
     )
 
 

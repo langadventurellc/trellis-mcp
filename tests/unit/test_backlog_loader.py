@@ -55,7 +55,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 # Sample Task
@@ -100,7 +100,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 First task description.
@@ -120,7 +120,7 @@ prerequisites: ["T-001-first-task"]
 worktree: /workspace/feature-branch
 created: 2025-01-01T01:00:00Z
 updated: 2025-01-01T02:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 Second task description.
@@ -194,7 +194,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 Create the login form component.
@@ -214,7 +214,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 Create the signup form component.
@@ -262,7 +262,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 Valid task description.
@@ -322,7 +322,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 Open task description.
@@ -343,7 +343,7 @@ prerequisites: []
 worktree: null
 created: 2025-01-01T00:00:00Z
 updated: 2025-01-01T00:00:00Z
-schema_version: "1.0"
+schema_version: "1.1"
 ---
 
 Done task description.

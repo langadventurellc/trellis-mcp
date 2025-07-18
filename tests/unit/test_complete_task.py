@@ -34,7 +34,7 @@ def create_test_task(
         worktree=None,
         created=base_time,
         updated=base_time,
-        schema_version="1.0",
+        schema_version="1.1",
         prerequisites=prerequisites or [],
     )
 
@@ -600,7 +600,7 @@ class TestCompleteTaskParentFeatureUpdate:
             worktree=None,
             created=base_time,
             updated=base_time,
-            schema_version="1.0",
+            schema_version="1.1",
             prerequisites=[],
         )
 
@@ -647,7 +647,7 @@ class TestCompleteTaskParentFeatureUpdate:
             worktree=None,
             created=base_time,
             updated=base_time,
-            schema_version="1.0",
+            schema_version="1.1",
             prerequisites=[],
         )
 
@@ -694,7 +694,7 @@ class TestCompleteTaskParentFeatureUpdate:
             worktree=None,
             created=base_time,
             updated=base_time,
-            schema_version="1.0",
+            schema_version="1.1",
             prerequisites=[],
         )
 
@@ -741,7 +741,7 @@ class TestCompleteTaskParentFeatureUpdate:
             worktree=None,
             created=base_time,
             updated=base_time,
-            schema_version="1.0",
+            schema_version="1.1",
             prerequisites=[],
         )
 

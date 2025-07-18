@@ -38,7 +38,7 @@ def test_complete_task_moves_file_to_done(tmp_path):
         "priority": "normal",
         "created": "2025-01-01T12:00:00Z",
         "updated": "2025-01-01T12:00:00Z",
-        "schema_version": "1.0",
+        "schema_version": "1.1",
     }
     write_markdown(project_file, project_yaml, "# Test Project")
 
@@ -54,7 +54,7 @@ def test_complete_task_moves_file_to_done(tmp_path):
         "priority": "normal",
         "created": "2025-01-01T12:00:00Z",
         "updated": "2025-01-01T12:00:00Z",
-        "schema_version": "1.0",
+        "schema_version": "1.1",
     }
     write_markdown(epic_file, epic_yaml, "# Test Epic")
 
@@ -69,7 +69,7 @@ def test_complete_task_moves_file_to_done(tmp_path):
         "priority": "normal",
         "created": "2025-01-01T12:00:00Z",
         "updated": "2025-01-01T12:00:00Z",
-        "schema_version": "1.0",
+        "schema_version": "1.1",
     }
     write_markdown(feature_file, feature_yaml, "# Test Feature")
 
@@ -85,7 +85,7 @@ def test_complete_task_moves_file_to_done(tmp_path):
         "worktree": "/some/path",
         "created": "2025-01-01T12:00:00Z",
         "updated": "2025-01-01T12:00:00Z",
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "prerequisites": [],
     }
     task_body = "# Test Task\n\nThis is a test task."

@@ -37,7 +37,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -80,7 +80,7 @@ class TestObjectRoundTrip:
             worktree="/path/to/worktree",
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -122,7 +122,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -164,7 +164,7 @@ class TestObjectRoundTrip:
             worktree="/path/to/epic/worktree",
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -206,7 +206,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -248,7 +248,7 @@ class TestObjectRoundTrip:
             worktree="/path/to/feature/worktree",
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -290,7 +290,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -332,7 +332,7 @@ class TestObjectRoundTrip:
             worktree="/path/to/task/worktree",
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -374,7 +374,7 @@ class TestObjectRoundTrip:
             worktree="/path/to/worktree",
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Perform 3 round-trips
@@ -419,7 +419,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -451,7 +451,7 @@ class TestObjectRoundTrip:
             worktree=None,  # Explicitly null
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -486,7 +486,7 @@ class TestObjectRoundTrip:
                 worktree=None,
                 created=now,
                 updated=now,
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
             # Round-trip
@@ -517,7 +517,7 @@ class TestObjectRoundTrip:
                 worktree=None,
                 created=now,
                 updated=now,
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
             # Round-trip
@@ -546,7 +546,7 @@ class TestObjectRoundTrip:
                 worktree=None,
                 created=now,
                 updated=now,
-                schema_version="1.0",
+                schema_version="1.1",
             )
 
             # Round-trip
@@ -580,7 +580,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Round-trip
@@ -616,7 +616,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=created_time,
             updated=updated_time,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Round-trip
@@ -647,7 +647,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -693,7 +693,7 @@ class TestObjectRoundTrip:
             worktree="/path/to/standalone/worktree",
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump to markdown
@@ -740,7 +740,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Create hierarchy task
@@ -755,7 +755,7 @@ class TestObjectRoundTrip:
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Dump both to markdown
@@ -797,7 +797,7 @@ priority: normal
 prerequisites: []
 created: '2025-01-15T14:30:45.123456'
 updated: '2025-01-15T15:45:30.654321'
-schema_version: '1.0'
+schema_version: '1.1'
 ---
 Task description here.
 """
@@ -828,7 +828,7 @@ priority: normal
 prerequisites: []
 created: '2025-01-15T14:30:45.123456'
 updated: '2025-01-15T15:45:30.654321'
-schema_version: '1.0'
+schema_version: '1.1'
 ---
 Task description here.
 """
@@ -861,7 +861,7 @@ Task description here.
             worktree=None,
             created=now,
             updated=now,
-            schema_version="1.0",
+            schema_version="1.1",
         )
 
         # Verify empty string was converted to None
@@ -897,7 +897,7 @@ priority: normal
 prerequisites: []
 created: '2025-01-15T14:30:45.123456'
 updated: '2025-01-15T15:45:30.654321'
-schema_version: '1.0'
+schema_version: '1.1'
 ---
 Task description here.
 """

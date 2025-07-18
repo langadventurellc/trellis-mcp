@@ -4,7 +4,7 @@ File-backed MCP server for hierarchical project management (Projects → Epics �
 
 ## Overview
 
-Trellis MCP implements the **"Trellis MCP v 1.0"** specification, providing a structured approach to project planning and task management. The server stores all state as Markdown files with YAML front-matter in a nested tree structure:
+Trellis MCP implements the **"Trellis MCP v 1.1"** specification, providing a structured approach to project planning and task management. The server stores all state as Markdown files with YAML front-matter in a nested tree structure:
 
 ```
 planning/projects/P-…/epics/E-…/features/F-…/tasks-open/T-….md

@@ -38,7 +38,7 @@ class BaseSchemaModel(TrellisBaseModel):
     worktree: str | None = Field(None, description="Optional worktree path for development")
     created: datetime = Field(..., description="Creation timestamp")
     updated: datetime = Field(..., description="Last update timestamp")
-    schema_version: Literal["1.0"] = Field("1.0", description="Schema version (must be 1.0)")
+    schema_version: Literal["1.1"] = Field("1.1", description="Schema version (must be 1.1)")
 
     @field_validator("status")
     @classmethod
