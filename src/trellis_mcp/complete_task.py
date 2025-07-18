@@ -99,7 +99,7 @@ def complete_task(
         )
 
     # Validate that all prerequisites are completed
-    if not is_unblocked(task, original_project_root_path):
+    if not is_unblocked(task, planning_root):
         raise PrerequisitesNotComplete(
             f"Task '{task_id}' cannot be completed because one or more "
             f"prerequisites are not yet done"

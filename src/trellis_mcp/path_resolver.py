@@ -233,7 +233,21 @@ def resolve_path_for_new_object(
 
     elif kind == "task":
         if parent_id is None:
-            raise ValueError("Parent is required for task objects")
+            # Standalone task: place in root tasks directory
+            task_dir = "tasks-done" if status == "done" else "tasks-open"
+
+            # Determine filename based on status
+            if status == "done":
+                # For completed tasks, prefix with timestamp
+                from datetime import datetime
+
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"{timestamp}-T-{clean_id}.md"
+            else:
+                # For open tasks, use simple format
+                filename = f"T-{clean_id}.md"
+
+            return path_resolution_root / task_dir / filename
         # Remove prefix if present to get clean parent ID
         parent_clean = parent_id.replace("F-", "") if parent_id.startswith("F-") else parent_id
         # Find the parent feature's path to determine the project and epic
