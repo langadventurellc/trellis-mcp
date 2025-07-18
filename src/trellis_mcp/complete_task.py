@@ -188,16 +188,24 @@ def _move_task_to_done(
 
     # Resolve destination path in tasks-done with timestamp prefix
     if task.parent is None:
-        raise ValueError(f"Task '{clean_task_id}' has no parent feature")
-
-    parent_clean = task.parent[2:] if task.parent.startswith("F-") else task.parent
-    destination_path = resolve_path_for_new_object(
-        kind="task",
-        obj_id=clean_task_id,
-        parent_id=parent_clean,
-        project_root=project_root,
-        status="done",
-    )
+        # Standalone task: place in root tasks-done directory
+        destination_path = resolve_path_for_new_object(
+            kind="task",
+            obj_id=clean_task_id,
+            parent_id=None,
+            project_root=project_root,
+            status="done",
+        )
+    else:
+        # Hierarchy-based task: place in feature's tasks-done directory
+        parent_clean = task.parent[2:] if task.parent.startswith("F-") else task.parent
+        destination_path = resolve_path_for_new_object(
+            kind="task",
+            obj_id=clean_task_id,
+            parent_id=parent_clean,
+            project_root=project_root,
+            status="done",
+        )
 
     # Ensure the destination directory exists
     destination_path.parent.mkdir(parents=True, exist_ok=True)

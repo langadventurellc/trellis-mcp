@@ -174,7 +174,7 @@ class TestMissingFieldFailures:
         assert "parent" in missing_fields
 
     def test_task_missing_parent(self):
-        """Test task validation fails with missing parent."""
+        """Test task validation passes with missing parent (standalone tasks allowed)."""
         data = {
             "kind": "task",
             "id": "T-test",
@@ -189,7 +189,7 @@ class TestMissingFieldFailures:
         }
 
         missing_fields = validate_required_fields_per_kind(data, KindEnum.TASK)
-        assert "parent" in missing_fields
+        assert "parent" not in missing_fields  # Parent is now optional for tasks
 
     def test_missing_kind_field(self):
         """Test validation fails when kind field is missing."""
@@ -600,24 +600,25 @@ class TestPydanticModelFailures:
         assert "Invalid status 'StatusEnum.OPEN' for project" in str(error)
 
     def test_task_model_without_parent(self):
-        """Test TaskModel validation fails with null parent."""
-        with pytest.raises(ValidationError) as exc_info:
-            TaskModel(
-                kind=KindEnum.TASK,
-                id="T-test",
-                parent=None,  # Should fail
-                status=StatusEnum.OPEN,
-                title="Test Task",
-                priority=Priority.NORMAL,
-                prerequisites=[],
-                worktree=None,
-                created=datetime(2023, 1, 1),
-                updated=datetime(2023, 1, 1),
-                schema_version="1.0",
-            )
+        """Test TaskModel validation passes with null parent (standalone tasks allowed)."""
+        # Should no longer raise ValidationError - standalone tasks are now allowed
+        task = TaskModel(
+            kind=KindEnum.TASK,
+            id="T-test",
+            parent=None,  # Now allowed for standalone tasks
+            status=StatusEnum.OPEN,
+            title="Test Task",
+            priority=Priority.NORMAL,
+            prerequisites=[],
+            worktree=None,
+            created=datetime(2023, 1, 1),
+            updated=datetime(2023, 1, 1),
+            schema_version="1.0",
+        )
 
-        error = exc_info.value
-        assert "Tasks must have a parent feature ID" in str(error)
+        # Verify the task was created successfully
+        assert task.parent is None
+        assert task.kind == KindEnum.TASK
 
     def test_task_model_with_invalid_status(self):
         """Test TaskModel validation fails with invalid status."""
