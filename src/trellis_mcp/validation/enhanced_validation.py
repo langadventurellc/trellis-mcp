@@ -17,7 +17,7 @@ from .context_utils import format_validation_error_with_context, generate_contex
 from .error_collector import ValidationErrorCollector
 from .parent_validation import validate_parent_exists_for_object
 from .security import validate_standalone_task_security
-from .task_utils import is_standalone_task
+from .task_utils import is_hierarchy_task, is_standalone_task
 
 
 def validate_object_data_with_collector(
@@ -254,3 +254,37 @@ def validate_object_data_enhanced(data: dict[str, Any], project_root: str | Path
             "standalone" if data.get("kind") == "task" and is_standalone_task(data) else "hierarchy"
         )
         raise collector.create_validation_error(task_type=task_type)
+
+
+def validate_task_with_enhanced_errors(data: dict[str, Any], project_root: str | Path) -> None:
+    """Enhanced validation for tasks using specific task type validation.
+
+    This function determines the task type and delegates to the appropriate
+    specialized validation function for better error handling and context.
+
+    Args:
+        data: The task data dictionary
+        project_root: The root directory of the project
+
+    Raises:
+        ValueError: If the data is not a task
+        StandaloneTaskValidationError: If standalone task validation fails
+        HierarchyTaskValidationError: If hierarchy task validation fails
+    """
+    from .task_utils import (
+        validate_hierarchy_task_with_enhanced_errors,
+        validate_standalone_task_with_enhanced_errors,
+    )
+
+    # Validate that this is a task
+    if data.get("kind") != "task":
+        raise ValueError("validate_task_with_enhanced_errors can only be used with tasks")
+
+    # Determine task type and delegate to appropriate validation
+    if is_standalone_task(data):
+        validate_standalone_task_with_enhanced_errors(data, project_root)
+    elif is_hierarchy_task(data):
+        validate_hierarchy_task_with_enhanced_errors(data, project_root)
+    else:
+        # Fallback for edge cases - use general enhanced validation
+        validate_object_data_enhanced(data, project_root)

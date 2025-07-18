@@ -9,6 +9,7 @@ from src.trellis_mcp.exceptions.validation_error import ValidationError, Validat
 from src.trellis_mcp.validation.enhanced_validation import (
     validate_object_data_enhanced,
     validate_object_data_with_collector,
+    validate_task_with_enhanced_errors,
 )
 from src.trellis_mcp.validation.error_collector import ErrorCategory, ErrorSeverity
 from src.trellis_mcp.validation.exceptions import TrellisValidationError
@@ -360,3 +361,244 @@ class TestEnhancedValidation:
             assert "error_code" in error
             assert "severity" in error
             assert "context" in error
+
+
+class TestTaskSpecificValidation:
+    """Test cases for task-specific validation functions."""
+
+    def test_validate_task_with_enhanced_errors_standalone_success(self):
+        """Test successful validation of a standalone task."""
+        data = {
+            "kind": "task",
+            "id": "T-test",
+            "title": "Test Task",
+            "status": "open",
+            "priority": "normal",
+            "schema_version": "1.1",
+            "created": "2025-01-01T00:00:00.000000",
+            "updated": "2025-01-01T00:00:00.000000",
+        }
+
+        # Should not raise any exception
+        validate_task_with_enhanced_errors(data, Path("/test"))
+
+    def test_validate_task_with_enhanced_errors_hierarchy_success(self):
+        """Test successful validation of a hierarchy task."""
+        data = {
+            "kind": "task",
+            "id": "T-test",
+            "title": "Test Task",
+            "status": "open",
+            "priority": "normal",
+            "parent": "F-test",
+            "schema_version": "1.0",
+            "created": "2025-01-01T00:00:00.000000",
+            "updated": "2025-01-01T00:00:00.000000",
+        }
+
+        # Should not raise any exception (with mocked parent validation)
+        with patch(
+            "src.trellis_mcp.validation.enhanced_validation.validate_parent_exists_for_object"
+        ):
+            validate_task_with_enhanced_errors(data, Path("/test"))
+
+    def test_validate_task_with_enhanced_errors_non_task_fails(self):
+        """Test that non-task objects raise ValueError."""
+        data = {
+            "kind": "project",
+            "id": "P-test",
+            "title": "Test Project",
+            "status": "open",
+            "priority": "normal",
+            "schema_version": "1.1",
+            "created": "2025-01-01T00:00:00.000000",
+            "updated": "2025-01-01T00:00:00.000000",
+        }
+
+        with pytest.raises(ValueError, match="can only be used with tasks"):
+            validate_task_with_enhanced_errors(data, Path("/test"))
+
+    def test_validate_task_with_enhanced_errors_delegates_to_standalone(self):
+        """Test that standalone tasks are delegated to standalone validation."""
+        from src.trellis_mcp.exceptions.standalone_task_validation_error import (
+            StandaloneTaskValidationError,
+        )
+
+        data = {
+            "kind": "task",
+            "id": "T-test",
+            "title": "Test Task",
+            "status": "invalid_status",  # This should cause validation error
+            "priority": "normal",
+            "schema_version": "1.1",
+            "created": "2025-01-01T00:00:00.000000",
+            "updated": "2025-01-01T00:00:00.000000",
+        }
+
+        with pytest.raises(StandaloneTaskValidationError) as exc_info:
+            validate_task_with_enhanced_errors(data, Path("/test"))
+
+        exception = exc_info.value
+        assert exception.object_id == "T-test"
+        assert exception.object_kind == "task"
+        assert len(exception.errors) > 0
+        assert len(exception.error_codes) > 0
+
+    def test_validate_task_with_enhanced_errors_delegates_to_hierarchy(self):
+        """Test that hierarchy tasks are delegated to hierarchy validation."""
+        from src.trellis_mcp.exceptions.hierarchy_task_validation_error import (
+            HierarchyTaskValidationError,
+        )
+
+        data = {
+            "kind": "task",
+            "id": "T-test",
+            "title": "Test Task",
+            "status": "invalid_status",  # This should cause validation error
+            "priority": "normal",
+            "parent": "F-test",
+            "schema_version": "1.0",
+            "created": "2025-01-01T00:00:00.000000",
+            "updated": "2025-01-01T00:00:00.000000",
+        }
+
+        with pytest.raises(HierarchyTaskValidationError) as exc_info:
+            validate_task_with_enhanced_errors(data, Path("/test"))
+
+        exception = exc_info.value
+        assert exception.object_id == "T-test"
+        assert exception.object_kind == "task"
+        assert exception.parent_id == "F-test"
+        assert len(exception.errors) > 0
+        assert len(exception.error_codes) > 0
+
+    def test_hierarchy_task_validation_context_aware_errors(self):
+        """Test that hierarchy task validation provides context-aware error messages."""
+        from src.trellis_mcp.exceptions.hierarchy_task_validation_error import (
+            HierarchyTaskValidationError,
+        )
+
+        data = {
+            "kind": "task",
+            "id": "T-test",
+            "title": "Test Task",
+            "status": "invalid_status",
+            "priority": "normal",
+            "parent": "F-test",
+            "schema_version": "1.0",
+            "created": "2025-01-01T00:00:00.000000",
+            "updated": "2025-01-01T00:00:00.000000",
+        }
+
+        with pytest.raises(HierarchyTaskValidationError) as exc_info:
+            validate_task_with_enhanced_errors(data, Path("/test"))
+
+        exception = exc_info.value
+
+        # Check that context contains hierarchy-specific information
+        assert "task_type" in exception.context
+        assert exception.context["task_type"] == "hierarchy"
+        assert "validation_context" in exception.context
+        assert exception.context["validation_context"] == "enhanced_hierarchy_task_validation"
+
+    def test_hierarchy_task_validation_error_aggregation(self):
+        """Test that hierarchy task validation properly aggregates multiple errors."""
+        from src.trellis_mcp.exceptions.hierarchy_task_validation_error import (
+            HierarchyTaskValidationError,
+        )
+
+        data = {
+            "kind": "task",
+            "id": "T-test",
+            # Missing title
+            "status": "invalid_status",
+            "priority": "invalid_priority",
+            "parent": "F-test",
+            "schema_version": "1.0",
+            "created": "2025-01-01T00:00:00.000000",
+            "updated": "2025-01-01T00:00:00.000000",
+        }
+
+        with pytest.raises(HierarchyTaskValidationError) as exc_info:
+            validate_task_with_enhanced_errors(data, Path("/test"))
+
+        exception = exc_info.value
+
+        # Should have multiple errors aggregated
+        assert len(exception.errors) >= 2
+        assert len(exception.error_codes) >= 2
+
+        # Check that errors are properly ordered/prioritized
+        error_messages = exception.errors
+        error_codes = [code.value for code in exception.error_codes]
+
+        # Should contain both missing field and invalid enum errors
+        assert any("missing" in msg.lower() for msg in error_messages) or any(
+            "invalid" in msg.lower() for msg in error_messages
+        )
+        assert "missing_required_field" in error_codes or "invalid_enum_value" in error_codes
+
+    def test_hierarchy_task_validation_with_parent_errors(self):
+        """Test hierarchy task validation with parent validation errors."""
+        from src.trellis_mcp.exceptions.hierarchy_task_validation_error import (
+            HierarchyTaskValidationError,
+        )
+
+        data = {
+            "kind": "task",
+            "id": "T-test",
+            "title": "Test Task",
+            "status": "open",
+            "priority": "normal",
+            "parent": "F-nonexistent",  # This parent doesn't exist
+            "schema_version": "1.0",
+            "created": "2025-01-01T00:00:00.000000",
+            "updated": "2025-01-01T00:00:00.000000",
+        }
+
+        with pytest.raises(HierarchyTaskValidationError) as exc_info:
+            validate_task_with_enhanced_errors(data, Path("/test"))
+
+        exception = exc_info.value
+
+        # Should have parent validation error
+        assert len(exception.errors) >= 1
+        assert any("does not exist" in msg for msg in exception.errors)
+
+        # Should have proper parent_id in the exception
+        assert exception.parent_id == "F-nonexistent"
+
+    def test_hierarchy_task_validation_performance(self):
+        """Test that hierarchy task validation doesn't significantly impact performance."""
+        import time
+
+        data = {
+            "kind": "task",
+            "id": "T-test",
+            "title": "Test Task",
+            "status": "open",
+            "priority": "normal",
+            "parent": "F-test",
+            "schema_version": "1.0",
+            "created": "2025-01-01T00:00:00.000000",
+            "updated": "2025-01-01T00:00:00.000000",
+        }
+
+        # Mock parent validation to avoid filesystem calls
+        with patch(
+            "src.trellis_mcp.validation.enhanced_validation.validate_parent_exists_for_object"
+        ):
+            start_time = time.time()
+
+            # Run validation multiple times
+            for _ in range(10):
+                try:
+                    validate_task_with_enhanced_errors(data, Path("/test"))
+                except Exception:
+                    pass  # Ignore validation errors, we're testing performance
+
+            end_time = time.time()
+            elapsed = end_time - start_time
+
+            # Should complete within reasonable time (adjust as needed)
+            assert elapsed < 1.0, f"Validation took too long: {elapsed:.2f}s"
