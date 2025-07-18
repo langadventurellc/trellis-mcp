@@ -329,9 +329,10 @@ class TestBadParentFailures:
             validate_parent_exists_for_object(None, KindEnum.FEATURE, tmp_path)
 
     def test_task_without_parent(self, tmp_path: Path):
-        """Test task validation fails when parent is null."""
-        with pytest.raises(ValueError, match="task objects must have a parent"):
-            validate_parent_exists_for_object(None, KindEnum.TASK, tmp_path)
+        """Test task validation succeeds when parent is null (standalone task)."""
+        # Standalone tasks (parent=None) should now be allowed
+        result = validate_parent_exists_for_object(None, KindEnum.TASK, tmp_path)
+        assert result is True
 
     def test_epic_with_nonexistent_parent(self, tmp_path: Path):
         """Test epic validation fails with non-existent parent project."""

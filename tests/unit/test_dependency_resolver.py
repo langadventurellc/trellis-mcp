@@ -146,8 +146,11 @@ class TestIsUnblocked:
         )
 
         mock_objects = {
-            "T-001": {"status": "done", "kind": "task"},  # Full IDs in storage
-            "T-002": {"status": "done", "kind": "task"},
+            "001": {
+                "status": "done",
+                "kind": "task",
+            },  # Cleaned IDs in storage (as per actual behavior)
+            "002": {"status": "done", "kind": "task"},
         }
 
         with patch("trellis_mcp.dependency_resolver.get_all_objects", return_value=mock_objects):

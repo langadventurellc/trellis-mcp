@@ -1383,15 +1383,15 @@ class TestResolvePathForNewObject:
             resolve_path_for_new_object("feature", "some-feature", None, project_root)
 
     def test_task_missing_parent_error(self, temp_dir):
-        """Test that task without parent raises ValueError."""
-        import pytest
-
+        """Test that task without parent creates standalone task path."""
         from trellis_mcp.path_resolver import resolve_path_for_new_object
 
         project_root = temp_dir / "planning"
 
-        with pytest.raises(ValueError, match="Parent is required for task objects"):
-            resolve_path_for_new_object("task", "some-task", None, project_root)
+        # Standalone tasks (parent=None) should now create valid paths
+        result_path = resolve_path_for_new_object("task", "some-task", None, project_root)
+        expected_path = project_root / "tasks-open" / "T-some-task.md"
+        assert result_path == expected_path
 
     def test_feature_nonexistent_parent_error(self, temp_dir):
         """Test that feature with nonexistent parent raises ValueError."""

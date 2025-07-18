@@ -563,6 +563,19 @@ def validate_acyclic_prerequisites(
         return [f"Error validating prerequisites: {str(e)}"]
 
 
+def is_standalone_task(object_kind: KindEnum, parent_id: str | None) -> bool:
+    """Check if an object is a standalone task (task with no parent).
+
+    Args:
+        object_kind: The kind of object being checked
+        parent_id: The parent ID (None for standalone)
+
+    Returns:
+        True if this is a standalone task, False otherwise
+    """
+    return object_kind == KindEnum.TASK and parent_id is None
+
+
 def validate_parent_exists(parent_id: str, parent_kind: KindEnum, project_root: str | Path) -> bool:
     """Validate that a parent object exists on the filesystem.
 
@@ -612,9 +625,13 @@ def validate_parent_exists_for_object(
             raise ValueError("Projects cannot have parent objects")
         return True
 
-    # All other objects must have parents
+    # All other objects must have parents except standalone tasks
     if parent_id is None:
-        raise ValueError(f"{object_kind.value} objects must have a parent")
+        # Allow standalone tasks (tasks with no parent)
+        if is_standalone_task(object_kind, parent_id):
+            return True  # Standalone task validation passes
+        else:
+            raise ValueError(f"{object_kind.value} objects must have a parent")
 
     # Clean parent ID using robust prefix removal
     clean_parent_id = clean_prerequisite_id(parent_id)
