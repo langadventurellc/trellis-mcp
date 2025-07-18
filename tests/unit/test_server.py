@@ -1039,22 +1039,26 @@ class TestCreateObject:
 
     @pytest.mark.asyncio
     async def test_create_object_missing_parent_for_task(self, temp_dir):
-        """Test error handling when task is missing parent."""
+        """Test that tasks without parent create standalone tasks."""
         project_root = temp_dir / "planning"
 
         settings = Settings(planning_root=project_root)
         server = create_server(settings)
 
         async with Client(server) as client:
-            with pytest.raises(Exception):  # Should raise ValueError
-                await client.call_tool(
-                    "createObject",
-                    {
-                        "kind": "task",
-                        "title": "Test Task",
-                        "projectRoot": str(project_root),
-                    },
-                )
+            # Should succeed and create a standalone task
+            result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "task",
+                    "title": "Test Task",
+                    "projectRoot": str(project_root),
+                },
+            )
+
+            assert result.data is not None
+            assert result.data["id"].startswith("T-")
+            assert result.data["status"] == "open"
 
     @pytest.mark.asyncio
     async def test_create_object_invalid_parent_reference(self, temp_dir):
