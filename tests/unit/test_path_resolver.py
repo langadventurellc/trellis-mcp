@@ -8,7 +8,15 @@ from pathlib import Path
 
 import pytest
 
-from trellis_mcp.path_resolver import children_of, id_to_path, path_to_id, resolve_project_roots
+from trellis_mcp.path_resolver import (
+    children_of,
+    construct_standalone_task_path,
+    ensure_standalone_task_directory,
+    get_standalone_task_filename,
+    id_to_path,
+    path_to_id,
+    resolve_project_roots,
+)
 
 
 class TestIdToPath:
@@ -2120,3 +2128,300 @@ class TestChildrenOf:
         scanning_root2, path_resolution_root2 = resolve_project_roots(str(tmp_path2))
         assert isinstance(scanning_root2, Path)
         assert isinstance(path_resolution_root2, Path)
+
+
+class TestStandaloneTaskHelpers:
+    """Test cases for standalone task path construction helper functions."""
+
+    def test_construct_standalone_task_path_open_status(self, temp_dir):
+        """Test constructing standalone task path for open status."""
+        project_root = temp_dir / "planning"
+
+        result = construct_standalone_task_path("implement-auth", "open", project_root)
+        expected = project_root / "tasks-open" / "T-implement-auth.md"
+
+        assert result == expected
+
+    def test_construct_standalone_task_path_done_status(self, temp_dir):
+        """Test constructing standalone task path for done status."""
+        project_root = temp_dir / "planning"
+
+        result = construct_standalone_task_path("implement-auth", "done", project_root)
+
+        # Should be in tasks-done directory with timestamp prefix
+        assert result.parent == project_root / "tasks-done"
+        assert result.name.endswith("-T-implement-auth.md")
+        assert result.name.startswith("2025")  # Should start with current year
+
+    def test_construct_standalone_task_path_none_status(self, temp_dir):
+        """Test constructing standalone task path with None status (defaults to open)."""
+        project_root = temp_dir / "planning"
+
+        result = construct_standalone_task_path("implement-auth", None, project_root)
+        expected = project_root / "tasks-open" / "T-implement-auth.md"
+
+        assert result == expected
+
+    def test_construct_standalone_task_path_with_prefix(self, temp_dir):
+        """Test constructing standalone task path when ID has T- prefix."""
+        project_root = temp_dir / "planning"
+
+        result = construct_standalone_task_path("T-implement-auth", "open", project_root)
+        expected = project_root / "tasks-open" / "T-implement-auth.md"
+
+        assert result == expected
+
+    def test_construct_standalone_task_path_project_root_contains_planning(self, temp_dir):
+        """Test constructing standalone task path when project root contains planning directory."""
+        project_root = temp_dir
+        planning_dir = project_root / "planning"
+        planning_dir.mkdir(parents=True)
+
+        result = construct_standalone_task_path("implement-auth", "open", project_root)
+        expected = planning_dir / "tasks-open" / "T-implement-auth.md"
+
+        assert result == expected
+
+    def test_construct_standalone_task_path_empty_id(self, temp_dir):
+        """Test constructing standalone task path with empty ID raises ValueError."""
+        project_root = temp_dir / "planning"
+
+        with pytest.raises(ValueError, match="Task ID cannot be empty"):
+            construct_standalone_task_path("", "open", project_root)
+
+    def test_construct_standalone_task_path_whitespace_id(self, temp_dir):
+        """Test constructing standalone task path with whitespace-only ID raises ValueError."""
+        project_root = temp_dir / "planning"
+
+        with pytest.raises(ValueError, match="Task ID cannot be empty"):
+            construct_standalone_task_path("   ", "open", project_root)
+
+    def test_construct_standalone_task_path_invalid_characters(self, temp_dir):
+        """Test constructing standalone task path with invalid characters raises ValueError."""
+        project_root = temp_dir / "planning"
+
+        # Test path traversal attack
+        with pytest.raises(ValueError, match="Invalid task parameters"):
+            construct_standalone_task_path("../../../etc/passwd", "open", project_root)
+
+    def test_get_standalone_task_filename_open_status(self):
+        """Test generating filename for open task."""
+        result = get_standalone_task_filename("implement-auth", "open")
+        assert result == "T-implement-auth.md"
+
+    def test_get_standalone_task_filename_done_status(self):
+        """Test generating filename for done task."""
+        result = get_standalone_task_filename("implement-auth", "done")
+
+        # Should have timestamp prefix
+        assert result.endswith("-T-implement-auth.md")
+        assert result.startswith("2025")  # Should start with current year
+        assert len(result) > len("T-implement-auth.md")  # Should be longer due to timestamp
+
+    def test_get_standalone_task_filename_none_status(self):
+        """Test generating filename with None status (defaults to open)."""
+        result = get_standalone_task_filename("implement-auth", None)
+        assert result == "T-implement-auth.md"
+
+    def test_get_standalone_task_filename_with_prefix(self):
+        """Test generating filename when ID has T- prefix."""
+        result = get_standalone_task_filename("T-implement-auth", "open")
+        assert result == "T-implement-auth.md"
+
+    def test_get_standalone_task_filename_timestamp_format(self):
+        """Test that done task filename has correct timestamp format."""
+        result = get_standalone_task_filename("test-task", "done")
+
+        # Extract timestamp part
+        timestamp_part = result.split("-T-")[0]
+
+        # Should be in format YYYYMMDD_HHMMSS
+        assert len(timestamp_part) == 15  # YYYYMMDD_HHMMSS
+        assert timestamp_part[8] == "_"  # Underscore separator
+        assert timestamp_part[:8].isdigit()  # Date part should be numeric
+        assert timestamp_part[9:].isdigit()  # Time part should be numeric
+
+    def test_get_standalone_task_filename_edge_cases(self):
+        """Test generating filename with edge case task IDs."""
+        # Test with hyphenated ID
+        result = get_standalone_task_filename("multi-word-task", "open")
+        assert result == "T-multi-word-task.md"
+
+        # Test with numbers
+        result = get_standalone_task_filename("task-123", "open")
+        assert result == "T-task-123.md"
+
+        # Test with mixed case
+        result = get_standalone_task_filename("TestTask", "open")
+        assert result == "T-TestTask.md"
+
+    def test_ensure_standalone_task_directory_open_status(self, temp_dir):
+        """Test ensuring standalone task directory for open status."""
+        project_root = temp_dir / "planning"
+
+        result = ensure_standalone_task_directory(project_root, "open")
+        expected = project_root / "tasks-open"
+
+        assert result == expected
+        assert result.exists()
+        assert result.is_dir()
+
+    def test_ensure_standalone_task_directory_done_status(self, temp_dir):
+        """Test ensuring standalone task directory for done status."""
+        project_root = temp_dir / "planning"
+
+        result = ensure_standalone_task_directory(project_root, "done")
+        expected = project_root / "tasks-done"
+
+        assert result == expected
+        assert result.exists()
+        assert result.is_dir()
+
+    def test_ensure_standalone_task_directory_none_status(self, temp_dir):
+        """Test ensuring standalone task directory with None status (defaults to open)."""
+        project_root = temp_dir / "planning"
+
+        result = ensure_standalone_task_directory(project_root, None)
+        expected = project_root / "tasks-open"
+
+        assert result == expected
+        assert result.exists()
+        assert result.is_dir()
+
+    def test_ensure_standalone_task_directory_project_root_contains_planning(self, temp_dir):
+        """Test ensuring standalone task directory when project root contains planning directory."""
+        project_root = temp_dir
+        planning_dir = project_root / "planning"
+        planning_dir.mkdir(parents=True)
+
+        result = ensure_standalone_task_directory(project_root, "open")
+        expected = planning_dir / "tasks-open"
+
+        assert result == expected
+        assert result.exists()
+        assert result.is_dir()
+
+    def test_ensure_standalone_task_directory_already_exists(self, temp_dir):
+        """Test ensuring standalone task directory when it already exists."""
+        project_root = temp_dir / "planning"
+        tasks_dir = project_root / "tasks-open"
+        tasks_dir.mkdir(parents=True)
+
+        # Should not raise error if directory already exists
+        result = ensure_standalone_task_directory(project_root, "open")
+
+        assert result == tasks_dir
+        assert result.exists()
+        assert result.is_dir()
+
+    def test_ensure_standalone_task_directory_both_statuses(self, temp_dir):
+        """Test ensuring both open and done task directories."""
+        project_root = temp_dir / "planning"
+
+        # Create both directories
+        open_dir = ensure_standalone_task_directory(project_root, "open")
+        done_dir = ensure_standalone_task_directory(project_root, "done")
+
+        # Both should exist
+        assert open_dir.exists()
+        assert done_dir.exists()
+        assert open_dir.is_dir()
+        assert done_dir.is_dir()
+
+        # Should be siblings
+        assert open_dir.parent == done_dir.parent
+
+    def test_standalone_task_helpers_integration(self, temp_dir):
+        """Test integration of all standalone task helper functions."""
+        project_root = temp_dir / "planning"
+
+        # Test the complete workflow
+        task_id = "integration-test"
+        status = "open"
+
+        # 1. Ensure directory exists
+        task_dir = ensure_standalone_task_directory(project_root, status)
+        assert task_dir.exists()
+
+        # 2. Generate filename
+        filename = get_standalone_task_filename(task_id, status)
+        assert filename == "T-integration-test.md"
+
+        # 3. Construct full path
+        full_path = construct_standalone_task_path(task_id, status, project_root)
+        expected_path = task_dir / filename
+
+        assert full_path == expected_path
+
+        # 4. Verify path components
+        assert full_path.parent == project_root / "tasks-open"
+        assert full_path.name == "T-integration-test.md"
+
+    def test_standalone_task_helpers_with_done_status_integration(self, temp_dir):
+        """Test integration of all standalone task helper functions with done status."""
+        project_root = temp_dir / "planning"
+
+        # Test the complete workflow for done tasks
+        task_id = "completed-task"
+        status = "done"
+
+        # 1. Ensure directory exists
+        task_dir = ensure_standalone_task_directory(project_root, status)
+        assert task_dir.exists()
+
+        # 2. Generate filename
+        filename = get_standalone_task_filename(task_id, status)
+        assert filename.endswith("-T-completed-task.md")
+        assert filename.startswith("2025")  # Should have timestamp
+
+        # 3. Construct full path
+        full_path = construct_standalone_task_path(task_id, status, project_root)
+        expected_path = task_dir / filename
+
+        assert full_path == expected_path
+
+        # 4. Verify path components
+        assert full_path.parent == project_root / "tasks-done"
+        assert full_path.name.endswith("-T-completed-task.md")
+
+    def test_standalone_task_helpers_security_validation(self, temp_dir):
+        """Test that standalone task helpers apply security validation."""
+        project_root = temp_dir / "planning"
+
+        # Test path traversal attack
+        with pytest.raises(ValueError, match="Invalid task parameters"):
+            construct_standalone_task_path("../../../etc/passwd", "open", project_root)
+
+        # Test absolute path attack
+        with pytest.raises(ValueError, match="Invalid task parameters"):
+            construct_standalone_task_path("/etc/passwd", "open", project_root)
+
+        # Test null byte attack
+        with pytest.raises(ValueError, match="Invalid task parameters"):
+            construct_standalone_task_path("task\x00", "open", project_root)
+
+    def test_standalone_task_helpers_consistency_with_existing_functions(self, temp_dir):
+        """Test that standalone task helpers produce paths consistent with existing functions."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+        task_id = "consistency-test"
+
+        # Test open status consistency
+        helper_path = construct_standalone_task_path(task_id, "open", project_root)
+        existing_path = resolve_path_for_new_object("task", task_id, None, project_root, "open")
+
+        assert helper_path == existing_path
+
+        # Test done status consistency (note: timestamps will differ, so just check structure)
+        helper_path_done = construct_standalone_task_path(task_id, "done", project_root)
+        existing_path_done = resolve_path_for_new_object(
+            "task", task_id, None, project_root, "done"
+        )
+
+        # Should have same parent directory
+        assert helper_path_done.parent == existing_path_done.parent
+
+        # Both should end with same suffix
+        assert helper_path_done.name.endswith("-T-consistency-test.md")
+        assert existing_path_done.name.endswith("-T-consistency-test.md")

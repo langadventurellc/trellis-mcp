@@ -614,3 +614,153 @@ def _add_tasks_from_feature(feature_dir: Path, descendant_paths: list[Path]) -> 
         for task_file in tasks_done_dir.iterdir():
             if task_file.is_file() and task_file.name.endswith(".md") and "-T-" in task_file.name:
                 descendant_paths.append(task_file)
+
+
+def construct_standalone_task_path(
+    obj_id: str, status: str | None, project_root: str | Path
+) -> Path:
+    """Construct the filesystem path for a standalone task.
+
+    Creates the complete filesystem path for a standalone task based on its ID and status.
+    This is a dedicated helper function for standalone task path construction that follows
+    the existing patterns in resolve_path_for_new_object().
+
+    Args:
+        obj_id: The task ID (without T- prefix, e.g., 'implement-auth')
+        status: The task status ('open', 'done', None defaults to 'open')
+        project_root: Root directory of the project (can be project root or planning root)
+
+    Returns:
+        Path object pointing to the standalone task file:
+        - For open tasks: planning/tasks-open/T-{obj_id}.md
+        - For done tasks: planning/tasks-done/{timestamp}-T-{obj_id}.md
+
+    Raises:
+        ValueError: If obj_id is empty or contains invalid characters
+        ValueError: If validation fails (input validation or security checks)
+
+    Example:
+        >>> construct_standalone_task_path("implement-auth", "open", "./planning")
+        Path('planning/tasks-open/T-implement-auth.md')
+        >>> construct_standalone_task_path("implement-auth", "done", "./planning")
+        Path('planning/tasks-done/20250718_143000-T-implement-auth.md')
+
+    Note:
+        This function applies the same validation and security checks as the main
+        path resolution functions to ensure consistent behavior and security.
+    """
+    # Validate inputs
+    if not obj_id or not obj_id.strip():
+        raise ValueError("Task ID cannot be empty")
+
+    # Validate input parameters to prevent path traversal attacks
+    from .validation.field_validation import validate_standalone_task_path_parameters
+    from .validation.security import validate_standalone_task_path_security
+
+    validation_errors = validate_standalone_task_path_parameters(obj_id, status)
+    if validation_errors:
+        raise ValueError(f"Invalid task parameters: {validation_errors[0]}")
+
+    # Enhanced security validation for standalone task paths
+    security_errors = validate_standalone_task_path_security(obj_id, str(project_root))
+    if security_errors:
+        raise ValueError(f"Security validation failed: {security_errors[0]}")
+
+    # Clean the ID (remove any existing prefix if present)
+    clean_id = obj_id.strip()
+    if clean_id.startswith("T-"):
+        clean_id = clean_id[2:]
+
+    # Get the correct path resolution root
+    _, path_resolution_root = resolve_project_roots(project_root)
+
+    # Determine task directory and filename based on status
+    task_dir = "tasks-done" if status == "done" else "tasks-open"
+    filename = get_standalone_task_filename(clean_id, status)
+
+    # Return the complete path
+    return path_resolution_root / task_dir / filename
+
+
+def get_standalone_task_filename(obj_id: str, status: str | None) -> str:
+    """Generate the filename for a standalone task based on its ID and status.
+
+    Creates the appropriate filename for a standalone task file following the
+    existing naming conventions used in the codebase.
+
+    Args:
+        obj_id: The task ID (without T- prefix, e.g., 'implement-auth')
+        status: The task status ('open', 'done', None defaults to 'open')
+
+    Returns:
+        String filename for the task:
+        - For open tasks: T-{obj_id}.md
+        - For done tasks: {timestamp}-T-{obj_id}.md
+
+    Example:
+        >>> get_standalone_task_filename("implement-auth", "open")
+        'T-implement-auth.md'
+        >>> get_standalone_task_filename("implement-auth", "done")
+        '20250718_143000-T-implement-auth.md'
+
+    Note:
+        This function encapsulates the filename generation logic that was previously
+        embedded in resolve_path_for_new_object() to make it reusable and testable.
+    """
+    # Clean the ID (remove any existing prefix if present)
+    clean_id = obj_id.strip()
+    if clean_id.startswith("T-"):
+        clean_id = clean_id[2:]
+
+    # Generate filename based on status
+    if status == "done":
+        # For completed tasks, prefix with timestamp for chronological ordering
+        from datetime import datetime
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        return f"{timestamp}-T-{clean_id}.md"
+    else:
+        # For open tasks, use simple format for easy identification
+        return f"T-{clean_id}.md"
+
+
+def ensure_standalone_task_directory(project_root: str | Path, status: str | None) -> Path:
+    """Ensure the standalone task directory exists and return its path.
+
+    Creates the appropriate directory for standalone tasks if it doesn't exist.
+    Uses the existing fs_utils.ensure_parent_dirs() for safe directory creation.
+
+    Args:
+        project_root: Root directory of the project (can be project root or planning root)
+        status: The task status ('open', 'done', None defaults to 'open')
+
+    Returns:
+        Path object pointing to the standalone task directory:
+        - For open tasks: planning/tasks-open/
+        - For done tasks: planning/tasks-done/
+
+    Raises:
+        OSError: If directory creation fails due to permissions or other issues
+
+    Example:
+        >>> ensure_standalone_task_directory("./planning", "open")
+        Path('planning/tasks-open')
+        >>> ensure_standalone_task_directory("./planning", "done")
+        Path('planning/tasks-done')
+
+    Note:
+        This function uses the existing fs_utils.ensure_parent_dirs() utility
+        to maintain consistency with the rest of the codebase.
+    """
+    # Get the correct path resolution root
+    _, path_resolution_root = resolve_project_roots(project_root)
+
+    # Determine task directory based on status
+    task_dir_name = "tasks-done" if status == "done" else "tasks-open"
+    task_dir = path_resolution_root / task_dir_name
+
+    # Use existing utility to ensure directory exists
+    from .fs_utils import ensure_parent_dirs
+
+    ensure_parent_dirs(task_dir / "dummy.md")  # Create the directory structure
+    return task_dir
