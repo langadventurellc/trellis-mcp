@@ -2,11 +2,11 @@
 kind: epic
 id: E-core-schema-validation
 title: Core Schema & Validation
-status: in-progress
+status: done
 priority: normal
 prerequisites: []
 created: '2025-07-17T18:47:40.500529'
-updated: '2025-07-17T18:47:40.500529'
+updated: '2025-07-18T13:32:09.113760'
 schema_version: '1.0'
 parent: P-standalone-task-system
 ---

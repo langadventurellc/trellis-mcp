@@ -11,6 +11,7 @@ from fastmcp import FastMCP
 
 from ..exceptions.cascade_error import CascadeError
 from ..exceptions.protected_object_error import ProtectedObjectError
+from ..exceptions.validation_error import ValidationError, ValidationErrorCode
 from ..fs_utils import recursive_delete
 from ..graph_utils import DependencyGraph
 from ..io_utils import read_markdown, write_markdown
@@ -111,17 +112,33 @@ def create_update_object_tool(settings: Settings):
         """
         # Basic parameter validation
         if not kind or not kind.strip():
-            raise ValueError("Kind cannot be empty")
+            raise ValidationError(
+                errors=["Kind cannot be empty"],
+                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
+                context={"field": "kind"},
+            )
 
         if not id or not id.strip():
-            raise ValueError("Object ID cannot be empty")
+            raise ValidationError(
+                errors=["Object ID cannot be empty"],
+                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
+                context={"field": "id"},
+            )
 
         if not projectRoot or not projectRoot.strip():
-            raise ValueError("Project root cannot be empty")
+            raise ValidationError(
+                errors=["Project root cannot be empty"],
+                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
+                context={"field": "projectRoot"},
+            )
 
         # At least one patch parameter must be provided
         if not yamlPatch and not bodyPatch:
-            raise ValueError("At least one of yamlPatch or bodyPatch must be provided")
+            raise ValidationError(
+                errors=["At least one of yamlPatch or bodyPatch must be provided"],
+                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
+                context={"field": "yamlPatch or bodyPatch"},
+            )
 
         # Resolve project roots to get planning directory
         _, planning_root = resolve_project_roots(projectRoot)
@@ -137,7 +154,13 @@ def create_update_object_tool(settings: Settings):
         except FileNotFoundError:
             raise
         except ValueError as e:
-            raise ValueError(f"Invalid kind or ID: {e}")
+            raise ValidationError(
+                errors=[f"Invalid kind or ID: {e}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"validation_type": "id_resolution", "kind": kind},
+                object_id=clean_id,
+                object_kind=kind,
+            )
 
         try:
             existing_yaml, existing_body = read_markdown(file_path)
@@ -164,33 +187,78 @@ def create_update_object_tool(settings: Settings):
         try:
             front_matter_errors = validate_front_matter(updated_yaml, kind)
             if front_matter_errors:
-                raise TrellisValidationError(front_matter_errors)
-        except TrellisValidationError:
+                raise ValidationError(
+                    errors=front_matter_errors,
+                    error_codes=[ValidationErrorCode.INVALID_FIELD] * len(front_matter_errors),
+                    context={"validation_type": "front_matter", "kind": kind},
+                    object_id=clean_id,
+                    object_kind=kind,
+                )
+        except ValidationError:
             raise
         except Exception as e:
-            raise TrellisValidationError([f"Front-matter validation failed: {str(e)}"])
+            raise ValidationError(
+                errors=[f"Front-matter validation failed: {str(e)}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"validation_type": "front_matter", "kind": kind},
+                object_id=clean_id,
+                object_kind=kind,
+            )
 
         # Comprehensive object validation (includes parent existence check)
         try:
             validate_object_data(updated_yaml, planning_root)
-        except TrellisValidationError:
-            raise
+        except TrellisValidationError as e:
+            # Convert legacy validation error to enhanced format
+            raise ValidationError(
+                errors=e.errors,
+                error_codes=[ValidationErrorCode.INVALID_FIELD] * len(e.errors),
+                context={"validation_type": "object_data", "kind": kind},
+                object_id=clean_id,
+                object_kind=kind,
+            )
         except Exception as e:
-            raise TrellisValidationError([f"Object validation failed: {str(e)}"])
+            raise ValidationError(
+                errors=[f"Object validation failed: {str(e)}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"validation_type": "object_data", "kind": kind},
+                object_id=clean_id,
+                object_kind=kind,
+            )
 
         # Validate status transitions if status was changed
         new_status = updated_yaml.get("status")
         if original_status and new_status and original_status != new_status:
             # Special validation: Tasks cannot be set to 'done' via updateObject
             if kind == "task" and new_status == "done":
-                raise TrellisValidationError(
-                    ["updateObject cannot set a Task to 'done'; use completeTask instead."]
+                raise ValidationError(
+                    errors=["updateObject cannot set a Task to 'done'; use completeTask instead."],
+                    error_codes=[ValidationErrorCode.INVALID_STATUS_TRANSITION],
+                    context={
+                        "validation_type": "status_transition",
+                        "kind": kind,
+                        "original_status": original_status,
+                        "new_status": new_status,
+                    },
+                    object_id=clean_id,
+                    object_kind=kind,
                 )
 
             try:
                 enforce_status_transition(original_status, new_status, kind)
             except ValueError as e:
-                raise TrellisValidationError([f"Status transition validation failed: {str(e)}"])
+                raise ValidationError(
+                    errors=[f"Status transition validation failed: {str(e)}"],
+                    error_codes=[ValidationErrorCode.INVALID_STATUS_TRANSITION],
+                    context={
+                        "validation_type": "status_transition",
+                        "kind": kind,
+                        "original_status": original_status,
+                        "new_status": new_status,
+                    },
+                    object_id=clean_id,
+                    object_kind=kind,
+                )
 
         # Handle cascade deletion when status is set to 'deleted'
         if new_status == "deleted":
@@ -254,11 +322,23 @@ def create_update_object_tool(settings: Settings):
                 }
 
             except (CascadeError, ProtectedObjectError) as e:
-                # Wrap cascade-specific errors in TrellisValidationError
-                raise TrellisValidationError([str(e)])
+                # Wrap cascade-specific errors in ValidationError
+                raise ValidationError(
+                    errors=[str(e)],
+                    error_codes=[ValidationErrorCode.INVALID_STATUS_TRANSITION],
+                    context={"validation_type": "cascade_deletion", "kind": kind},
+                    object_id=clean_id,
+                    object_kind=kind,
+                )
             except Exception as e:
-                # Wrap other errors in TrellisValidationError
-                raise TrellisValidationError([f"Cascade deletion failed: {str(e)}"])
+                # Wrap other errors in ValidationError
+                raise ValidationError(
+                    errors=[f"Cascade deletion failed: {str(e)}"],
+                    error_codes=[ValidationErrorCode.INVALID_STATUS_TRANSITION],
+                    context={"validation_type": "cascade_deletion", "kind": kind},
+                    object_id=clean_id,
+                    object_kind=kind,
+                )
 
         # Write the updated file atomically
         try:
@@ -280,10 +360,17 @@ def create_update_object_tool(settings: Settings):
                     write_markdown(file_path, existing_yaml, existing_body)
                 except OSError:
                     pass  # Restoration failed, but we still need to report the cycle
-                raise TrellisValidationError(
-                    ["Updating this object would introduce circular dependencies in prerequisites"]
+                raise ValidationError(
+                    errors=[
+                        "Updating this object would introduce circular dependencies "
+                        "in prerequisites"
+                    ],
+                    error_codes=[ValidationErrorCode.CIRCULAR_DEPENDENCY],
+                    context={"validation_type": "dependency_graph", "kind": kind},
+                    object_id=clean_id,
+                    object_kind=kind,
                 )
-        except TrellisValidationError:
+        except ValidationError:
             raise
         except Exception as e:
             # If cycle check fails for other reasons, restore the original file
@@ -291,7 +378,13 @@ def create_update_object_tool(settings: Settings):
                 write_markdown(file_path, existing_yaml, existing_body)
             except OSError:
                 pass
-            raise TrellisValidationError([f"Failed to validate prerequisites: {str(e)}"])
+            raise ValidationError(
+                errors=[f"Failed to validate prerequisites: {str(e)}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"validation_type": "dependency_graph", "kind": kind},
+                object_id=clean_id,
+                object_kind=kind,
+            )
 
         # Build change summary
         changes = {}

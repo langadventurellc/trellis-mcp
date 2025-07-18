@@ -6,10 +6,10 @@ oldest updated timestamp with priority as tiebreaker.
 
 from fastmcp import FastMCP
 
+from ..exceptions.validation_error import ValidationError, ValidationErrorCode
 from ..path_resolver import id_to_path, resolve_project_roots
 from ..query import get_oldest_review
 from ..settings import Settings
-from ..validation import TrellisValidationError
 
 
 def create_get_next_reviewable_task_tool(settings: Settings):
@@ -63,7 +63,11 @@ def create_get_next_reviewable_task_tool(settings: Settings):
         """
         # Basic parameter validation
         if not projectRoot or not projectRoot.strip():
-            raise ValueError("Project root cannot be empty")
+            raise ValidationError(
+                errors=["Project root cannot be empty"],
+                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
+                context={"field": "projectRoot"},
+            )
 
         # Resolve project roots to get planning directory
         _, planning_root = resolve_project_roots(projectRoot)
@@ -72,7 +76,12 @@ def create_get_next_reviewable_task_tool(settings: Settings):
         try:
             reviewable_task = get_oldest_review(planning_root)
         except Exception as e:
-            raise TrellisValidationError([f"Failed to query reviewable tasks: {str(e)}"])
+            raise ValidationError(
+                errors=[f"Failed to query reviewable tasks: {str(e)}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"validation_type": "query_reviewable_tasks"},
+                object_kind="task",
+            )
 
         # Handle case where no reviewable tasks exist
         if reviewable_task is None:
@@ -82,7 +91,13 @@ def create_get_next_reviewable_task_tool(settings: Settings):
         try:
             task_file_path = id_to_path(planning_root, "task", reviewable_task.id)
         except Exception as e:
-            raise TrellisValidationError([f"Failed to resolve task file path: {str(e)}"])
+            raise ValidationError(
+                errors=[f"Failed to resolve task file path: {str(e)}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"validation_type": "path_resolution"},
+                object_id=reviewable_task.id,
+                object_kind="task",
+            )
 
         # Build task dictionary in the format expected by the API
         task_dict = {

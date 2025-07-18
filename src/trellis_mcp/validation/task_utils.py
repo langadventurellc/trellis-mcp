@@ -147,3 +147,122 @@ def is_hierarchy_task_guard(obj: Any) -> TypeGuard[dict[str, Any]]:
     # Check if parent field exists and is not None/empty
     parent = obj.get("parent")
     return parent is not None and parent != ""
+
+
+def validate_standalone_task_with_enhanced_errors(
+    task_data: dict[str, Any], project_root: str | Any
+) -> None:
+    """Enhanced validation for standalone tasks with improved error handling.
+
+    This function provides enhanced validation specifically for standalone tasks,
+    using ValidationErrorCollector for better error aggregation and prioritization.
+    It integrates with the existing validation system while providing specialized
+    error handling for standalone task scenarios.
+
+    Args:
+        task_data: The standalone task data dictionary
+        project_root: The root directory of the project
+
+    Raises:
+        ValueError: If the task_data is not a standalone task
+        StandaloneTaskValidationError: If validation fails with context-aware errors
+    """
+    from pathlib import Path
+
+    from ..exceptions.standalone_task_validation_error import StandaloneTaskValidationError
+    from .enhanced_validation import validate_object_data_with_collector
+
+    # Validate that this is actually a standalone task
+    if not is_standalone_task_guard(task_data):
+        raise ValueError(
+            "validate_standalone_task_with_enhanced_errors can only be used with standalone tasks"
+        )
+
+    # Convert project_root to Path if it's a string
+    if isinstance(project_root, str):
+        project_root = Path(project_root)
+
+    # Use enhanced validation with collector
+    collector = validate_object_data_with_collector(task_data, project_root)
+
+    if collector.has_errors():
+        # Get prioritized errors for standalone task context
+        prioritized_errors = collector.get_prioritized_errors()
+
+        # Extract messages and codes
+        messages = [msg for msg, _, _ in prioritized_errors]
+        error_codes = [code for _, code, _ in prioritized_errors]
+
+        # Get additional context for standalone task errors
+        context = collector.get_summary()
+        context["task_type"] = "standalone"
+        context["validation_context"] = "enhanced_standalone_task_validation"
+
+        # Create standalone task-specific error
+        raise StandaloneTaskValidationError(
+            errors=messages,
+            error_codes=error_codes,
+            context=context,
+            object_id=task_data.get("id"),
+            object_kind="task",
+        )
+
+
+def validate_hierarchy_task_with_enhanced_errors(
+    task_data: dict[str, Any], project_root: str | Any
+) -> None:
+    """Enhanced validation for hierarchy tasks with improved error handling.
+
+    This function provides enhanced validation specifically for hierarchy tasks,
+    using ValidationErrorCollector for better error aggregation and prioritization.
+    It integrates with the existing validation system while providing specialized
+    error handling for hierarchy task scenarios.
+
+    Args:
+        task_data: The hierarchy task data dictionary
+        project_root: The root directory of the project
+
+    Raises:
+        ValueError: If the task_data is not a hierarchy task
+        HierarchyTaskValidationError: If validation fails with context-aware errors
+    """
+    from pathlib import Path
+
+    from ..exceptions.hierarchy_task_validation_error import HierarchyTaskValidationError
+    from .enhanced_validation import validate_object_data_with_collector
+
+    # Validate that this is actually a hierarchy task
+    if not is_hierarchy_task_guard(task_data):
+        raise ValueError(
+            "validate_hierarchy_task_with_enhanced_errors can only be used with hierarchy tasks"
+        )
+
+    # Convert project_root to Path if it's a string
+    if isinstance(project_root, str):
+        project_root = Path(project_root)
+
+    # Use enhanced validation with collector
+    collector = validate_object_data_with_collector(task_data, project_root)
+
+    if collector.has_errors():
+        # Get prioritized errors for hierarchy task context
+        prioritized_errors = collector.get_prioritized_errors()
+
+        # Extract messages and codes
+        messages = [msg for msg, _, _ in prioritized_errors]
+        error_codes = [code for _, code, _ in prioritized_errors]
+
+        # Get additional context for hierarchy task errors
+        context = collector.get_summary()
+        context["task_type"] = "hierarchy"
+        context["validation_context"] = "enhanced_hierarchy_task_validation"
+
+        # Create hierarchy task-specific error
+        raise HierarchyTaskValidationError(
+            errors=messages,
+            error_codes=error_codes,
+            context=context,
+            object_id=task_data.get("id"),
+            object_kind="task",
+            parent_id=task_data.get("parent"),
+        )

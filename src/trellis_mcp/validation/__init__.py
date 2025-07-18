@@ -19,7 +19,7 @@ from .context_utils import (
 )
 
 # Core validation
-from .core import validate_object_data
+from .core import validate_object_data, validate_standalone_task_data
 
 # Cycle detection
 from .cycle_detection import (
@@ -27,6 +27,9 @@ from .cycle_detection import (
     check_prereq_cycles_in_memory,
     validate_acyclic_prerequisites,
 )
+
+# Error collection and aggregation
+from .error_collector import ErrorCategory, ErrorSeverity, ValidationErrorCollector
 
 # Exception classes
 from .exceptions import CircularDependencyError, TrellisValidationError
@@ -65,6 +68,7 @@ from .task_utils import (
     is_hierarchy_task_guard,
     is_standalone_task,
     is_standalone_task_guard,
+    validate_standalone_task_with_enhanced_errors,
 )
 
 # Export all public APIs
@@ -72,6 +76,10 @@ __all__ = [
     # Exception classes
     "CircularDependencyError",
     "TrellisValidationError",
+    # Error collection and aggregation
+    "ErrorCategory",
+    "ErrorSeverity",
+    "ValidationErrorCollector",
     # Cache and performance utilities
     "DependencyGraphCache",
     "PerformanceBenchmark",
@@ -93,6 +101,7 @@ __all__ = [
     "is_standalone_task",
     "is_hierarchy_task_guard",
     "is_standalone_task_guard",
+    "validate_standalone_task_with_enhanced_errors",
     # Parent validation
     "validate_parent_exists",
     "validate_parent_exists_for_object",
@@ -110,6 +119,7 @@ __all__ = [
     "get_task_type_context",
     # Core validation
     "validate_object_data",
+    "validate_standalone_task_data",
     # Status transitions
     "enforce_status_transition",
 ]

@@ -6,6 +6,7 @@ reading YAML front-matter and body content from the corresponding markdown file.
 
 from fastmcp import FastMCP
 
+from ..exceptions.validation_error import ValidationError, ValidationErrorCode
 from ..io_utils import read_markdown
 from ..path_resolver import id_to_path, resolve_project_roots
 from ..settings import Settings
@@ -56,13 +57,25 @@ def create_get_object_tool(settings: Settings):
         """
         # Basic parameter validation
         if not kind or not kind.strip():
-            raise ValueError("Kind cannot be empty")
+            raise ValidationError(
+                errors=["Kind cannot be empty"],
+                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
+                context={"field": "kind"},
+            )
 
         if not id or not id.strip():
-            raise ValueError("Object ID cannot be empty")
+            raise ValidationError(
+                errors=["Object ID cannot be empty"],
+                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
+                context={"field": "id"},
+            )
 
         if not projectRoot or not projectRoot.strip():
-            raise ValueError("Project root cannot be empty")
+            raise ValidationError(
+                errors=["Project root cannot be empty"],
+                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
+                context={"field": "projectRoot"},
+            )
 
         # Resolve project roots to get planning directory
         _, planning_root = resolve_project_roots(projectRoot)
@@ -78,7 +91,13 @@ def create_get_object_tool(settings: Settings):
         except FileNotFoundError:
             raise
         except ValueError as e:
-            raise ValueError(f"Invalid kind or ID: {e}")
+            raise ValidationError(
+                errors=[f"Invalid kind or ID: {e}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"validation_type": "id_resolution", "kind": kind},
+                object_id=clean_id,
+                object_kind=kind,
+            )
 
         # Read the markdown file
         try:

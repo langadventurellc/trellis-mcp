@@ -7,6 +7,7 @@ the entire project hierarchy.
 
 from fastmcp import FastMCP
 
+from ..exceptions.validation_error import ValidationError, ValidationErrorCode
 from ..filters import apply_filters, filter_by_scope
 from ..models.filter_params import FilterParams
 from ..models.task_sort_key import task_sort_key
@@ -70,7 +71,11 @@ def create_list_backlog_tool(settings: Settings):
         """
         # Basic parameter validation
         if not projectRoot or not projectRoot.strip():
-            raise ValueError("Project root cannot be empty")
+            raise ValidationError(
+                errors=["Project root cannot be empty"],
+                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
+                context={"field": "projectRoot"},
+            )
 
         # Resolve project roots using centralized utility
         scanning_root, path_resolution_root = resolve_project_roots(projectRoot)

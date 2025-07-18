@@ -9,6 +9,7 @@ from datetime import datetime
 
 from fastmcp import FastMCP
 
+from ..exceptions.validation_error import ValidationError, ValidationErrorCode
 from ..fs_utils import ensure_parent_dirs
 from ..graph_utils import DependencyGraph
 from ..id_utils import generate_id
@@ -79,10 +80,18 @@ def create_create_object_tool(settings: Settings):
         """
         # Basic parameter validation
         if not title or not title.strip():
-            raise ValueError("Title cannot be empty")
+            raise ValidationError(
+                errors=["Title cannot be empty"],
+                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
+                context={"field": "title"},
+            )
 
         if not projectRoot or not projectRoot.strip():
-            raise ValueError("Project root cannot be empty")
+            raise ValidationError(
+                errors=["Project root cannot be empty"],
+                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
+                context={"field": "projectRoot"},
+            )
 
         # Resolve project roots to get planning directory
         _, planning_root = resolve_project_roots(projectRoot)
@@ -127,27 +136,64 @@ def create_create_object_tool(settings: Settings):
         try:
             front_matter_errors = validate_front_matter(front_matter, kind)
             if front_matter_errors:
-                raise TrellisValidationError(front_matter_errors)
-        except TrellisValidationError:
+                raise ValidationError(
+                    errors=front_matter_errors,
+                    error_codes=[ValidationErrorCode.INVALID_FIELD] * len(front_matter_errors),
+                    context={"validation_type": "front_matter", "kind": kind},
+                    object_id=front_matter.get("id"),
+                    object_kind=kind,
+                )
+        except ValidationError:
             raise
         except Exception as e:
-            raise TrellisValidationError([f"Front-matter validation failed: {str(e)}"])
+            raise ValidationError(
+                errors=[f"Front-matter validation failed: {str(e)}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"validation_type": "front_matter", "kind": kind},
+                object_id=front_matter.get("id"),
+                object_kind=kind,
+            )
 
         # Comprehensive object validation (includes parent existence check)
         try:
             validate_object_data(front_matter, planning_root)
-        except TrellisValidationError:
-            raise
+        except TrellisValidationError as e:
+            # Convert legacy validation error to enhanced format
+            raise ValidationError(
+                errors=e.errors,
+                error_codes=[ValidationErrorCode.INVALID_FIELD] * len(e.errors),
+                context={"validation_type": "object_data", "kind": kind},
+                object_id=front_matter.get("id"),
+                object_kind=kind,
+            )
         except Exception as e:
-            raise TrellisValidationError([f"Object validation failed: {str(e)}"])
+            raise ValidationError(
+                errors=[f"Object validation failed: {str(e)}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"validation_type": "object_data", "kind": kind},
+                object_id=front_matter.get("id"),
+                object_kind=kind,
+            )
 
         # Determine file path using centralized path logic
         try:
             file_path = resolve_path_for_new_object(kind, id, parent, planning_root, status)
         except ValueError as e:
-            raise ValueError(str(e))
+            raise ValidationError(
+                errors=[str(e)],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"validation_type": "path_resolution", "kind": kind},
+                object_id=front_matter.get("id"),
+                object_kind=kind,
+            )
         except FileNotFoundError as e:
-            raise ValueError(str(e))
+            raise ValidationError(
+                errors=[str(e)],
+                error_codes=[ValidationErrorCode.PARENT_NOT_EXIST],
+                context={"validation_type": "path_resolution", "kind": kind},
+                object_id=front_matter.get("id"),
+                object_kind=kind,
+            )
 
         # Check if file already exists
         if file_path.exists():
@@ -182,10 +228,17 @@ def create_create_object_tool(settings: Settings):
                     file_path.unlink()
                 except OSError:
                     pass  # File removal failed, but we still need to report the cycle
-                raise TrellisValidationError(
-                    ["Creating this object would introduce circular dependencies in prerequisites"]
+                raise ValidationError(
+                    errors=[
+                        "Creating this object would introduce circular dependencies "
+                        "in prerequisites"
+                    ],
+                    error_codes=[ValidationErrorCode.CIRCULAR_DEPENDENCY],
+                    context={"validation_type": "dependency_graph", "kind": kind},
+                    object_id=front_matter.get("id"),
+                    object_kind=kind,
                 )
-        except TrellisValidationError:
+        except ValidationError:
             raise
         except Exception as e:
             # If cycle check fails for other reasons, remove the created file
@@ -193,7 +246,13 @@ def create_create_object_tool(settings: Settings):
                 file_path.unlink()
             except OSError:
                 pass
-            raise TrellisValidationError([f"Failed to validate prerequisites: {str(e)}"])
+            raise ValidationError(
+                errors=[f"Failed to validate prerequisites: {str(e)}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"validation_type": "dependency_graph", "kind": kind},
+                object_id=front_matter.get("id"),
+                object_kind=kind,
+            )
 
         # Return success information
         return {

@@ -8,9 +8,9 @@ from fastmcp import FastMCP
 
 from ..claim_next_task import claim_next_task
 from ..exceptions.no_available_task import NoAvailableTask
+from ..exceptions.validation_error import ValidationError, ValidationErrorCode
 from ..path_resolver import id_to_path, resolve_project_roots
 from ..settings import Settings
-from ..validation import TrellisValidationError
 
 
 def create_claim_next_task_tool(settings: Settings):
@@ -51,15 +51,29 @@ def create_claim_next_task_tool(settings: Settings):
         """
         # Basic parameter validation
         if not projectRoot or not projectRoot.strip():
-            raise ValueError("Project root cannot be empty")
+            raise ValidationError(
+                errors=["Project root cannot be empty"],
+                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
+                context={"field": "projectRoot"},
+            )
 
         # Call the core claim_next_task function
         try:
             claimed_task = claim_next_task(projectRoot, worktree)
         except NoAvailableTask as e:
-            raise TrellisValidationError([str(e)])
+            raise ValidationError(
+                errors=[str(e)],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"validation_type": "task_availability", "kind": "task"},
+                object_kind="task",
+            )
         except Exception as e:
-            raise TrellisValidationError([f"Failed to claim task: {str(e)}"])
+            raise ValidationError(
+                errors=[f"Failed to claim task: {str(e)}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"validation_type": "task_claiming", "kind": "task"},
+                object_kind="task",
+            )
 
         # Convert TaskModel to the expected dictionary format
         _, planning_root = resolve_project_roots(projectRoot)

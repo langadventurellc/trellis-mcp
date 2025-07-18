@@ -8,9 +8,9 @@ from fastmcp import FastMCP
 
 from ..complete_task import complete_task
 from ..exceptions.invalid_status_for_completion import InvalidStatusForCompletion
+from ..exceptions.validation_error import ValidationError, ValidationErrorCode
 from ..path_resolver import id_to_path, resolve_project_roots
 from ..settings import Settings
-from ..validation import TrellisValidationError
 
 
 def create_complete_task_tool(settings: Settings):
@@ -58,20 +58,46 @@ def create_complete_task_tool(settings: Settings):
         """
         # Basic parameter validation
         if not projectRoot or not projectRoot.strip():
-            raise ValueError("Project root cannot be empty")
+            raise ValidationError(
+                errors=["Project root cannot be empty"],
+                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
+                context={"field": "projectRoot"},
+            )
 
         if not taskId or not taskId.strip():
-            raise ValueError("Task ID cannot be empty")
+            raise ValidationError(
+                errors=["Task ID cannot be empty"],
+                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
+                context={"field": "taskId"},
+            )
 
         # Call the core complete_task function
         try:
             validated_task = complete_task(projectRoot, taskId, summary, filesChanged)
         except InvalidStatusForCompletion as e:
-            raise TrellisValidationError([str(e)])
+            raise ValidationError(
+                errors=[str(e)],
+                error_codes=[ValidationErrorCode.INVALID_STATUS_TRANSITION],
+                context={"validation_type": "completion_status", "kind": "task"},
+                object_id=taskId,
+                object_kind="task",
+            )
         except FileNotFoundError as e:
-            raise TrellisValidationError([f"Task not found: {str(e)}"])
+            raise ValidationError(
+                errors=[f"Task not found: {str(e)}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"validation_type": "task_lookup", "kind": "task"},
+                object_id=taskId,
+                object_kind="task",
+            )
         except Exception as e:
-            raise TrellisValidationError([f"Failed to validate task for completion: {str(e)}"])
+            raise ValidationError(
+                errors=[f"Failed to validate task for completion: {str(e)}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"validation_type": "completion_validation", "kind": "task"},
+                object_id=taskId,
+                object_kind="task",
+            )
 
         # Resolve the task file path for response
         _, planning_root = resolve_project_roots(projectRoot)
