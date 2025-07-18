@@ -1,14 +1,15 @@
 ---
 kind: task
 id: T-enhance-cycle-detection-error
+parent: F-enhanced-error-handling-1
+status: done
 title: Enhance cycle detection error messages
-status: open
 priority: high
 prerequisites: []
 created: '2025-07-18T17:33:23.587431'
-updated: '2025-07-18T17:33:23.587431'
+updated: '2025-07-18T18:04:26.233217'
 schema_version: '1.1'
-parent: F-enhanced-error-handling-1
+worktree: null
 ---
 ### Implementation Requirements
 Enhance `CircularDependencyError` in cycle detection to provide clear context about which task systems are involved in dependency cycles, making errors more actionable for users.
@@ -44,3 +45,6 @@ Enhance `CircularDependencyError` in cycle detection to provide clear context ab
 
 ### Log
 
+
+**2025-07-18T23:11:48.831023Z** - Enhanced CircularDependencyError to provide clear context about task systems involved in dependency cycles. Added object type detection to show "standalone" vs "hierarchical" tasks and object kinds (project, epic, feature) in cycle paths. Error messages now display: "T-task1 (standalone) → F-feature1 (hierarchical) → T-task2 (standalone)" format with enhanced arrows. Maintains full backward compatibility with existing error handling. Added comprehensive test coverage for mixed task types and objects. All existing functionality preserved while providing more actionable error context for users.
+- filesChanged: ["src/trellis_mcp/validation/exceptions.py", "src/trellis_mcp/validation/cycle_detection.py", "tests/unit/test_validation.py", "tests/unit/test_validation_failures.py"]
