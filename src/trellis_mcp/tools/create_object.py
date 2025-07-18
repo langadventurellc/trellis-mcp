@@ -34,6 +34,7 @@ def create_create_object_tool(settings: Settings):
     mcp = FastMCP()
 
     @mcp.tool
+    # MCP Inspector can't handle nulls, so we use empty strings/lists for optional fields
     def createObject(
         kind: str,
         title: str,
@@ -56,7 +57,7 @@ def create_create_object_tool(settings: Settings):
             title: Human-readable title for the object
             projectRoot: Root directory for the planning structure
             id: Optional custom ID (auto-generated if not provided)
-            parent: Parent object ID (required for epics, features, tasks)
+            parent: Parent object ID (required for epics, features, tasks; empty for standalone)
             status: Object status (defaults based on kind)
             priority: Priority level ('high', 'normal', 'low' - defaults to 'normal')
             prerequisites: List of prerequisite object IDs (defaults to empty list)
