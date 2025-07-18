@@ -1,15 +1,16 @@
 ---
 kind: task
 id: T-enhance-generic-type-support-for
+parent: F-type-system-enhancement
+status: done
 title: Enhance generic type support for optional parent relationships
-status: open
 priority: normal
 prerequisites:
 - T-update-data-classes-and-pydantic
 created: '2025-07-18T08:10:54.441962'
-updated: '2025-07-18T08:10:54.441962'
+updated: '2025-07-18T09:09:40.947501'
 schema_version: '1.1'
-parent: F-type-system-enhancement
+worktree: null
 ---
 Ensure generic type parameters work correctly with optional parent relationships and type discrimination.
 
@@ -41,3 +42,6 @@ Ensure generic type parameters work correctly with optional parent relationships
 
 ### Log
 
+
+**2025-07-18T14:18:15.267455Z** - Enhanced generic type support for optional parent relationships in Trellis MCP task objects. Implemented comprehensive generic type definitions using TypeVar and Literal types, added type discrimination functions, generic factory functions, and template functions for handling both standalone and hierarchy tasks. All functionality includes proper type bounds, maintains backward compatibility with existing type guards, and provides enhanced type safety for generic usage patterns.
+- filesChanged: ["src/trellis_mcp/types.py", "tests/unit/test_generic_types.py"]
