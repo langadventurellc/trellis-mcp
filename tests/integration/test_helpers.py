@@ -1,6 +1,7 @@
 """Shared test utilities and fixtures for integration tests."""
 
 from pathlib import Path
+from typing import Any
 
 from fastmcp import Client, FastMCP
 
@@ -297,7 +298,7 @@ def assert_task_structure(task_data: dict):
 
 
 def assert_priority_ordering(tasks: list):
-    """Assert that tasks are ordered by priority (high → normal → low).
+    """Assert that tasks are ordered by priority (high → medium → low).
 
     Args:
         tasks: List of task dictionaries
@@ -370,3 +371,319 @@ def build_task_path(
         / task_dir
         / f"{task_id}.md"
     )
+
+
+def build_standalone_task_path(
+    temp_dir: Path,
+    task_id: str,
+    status: str = "open",
+) -> Path:
+    """Build expected standalone task file path based on status.
+
+    Args:
+        temp_dir: Temporary directory path
+        task_id: Task ID (with prefix)
+        status: Task status (determines subdirectory)
+
+    Returns:
+        Path: Expected standalone task file path
+    """
+    # Determine task subdirectory based on status
+    task_dir = "tasks-done" if status == "done" else "tasks-open"
+
+    return temp_dir / "planning" / task_dir / f"{task_id}.md"
+
+
+async def create_standalone_task(
+    client: Client,
+    planning_root: str,
+    title: str,
+    priority: str = "normal",
+    description: str = "",
+) -> dict[str, str]:
+    """Create a standalone task (no parent).
+
+    Args:
+        client: FastMCP client instance
+        planning_root: Root path for planning files
+        title: Task title
+        priority: Task priority (high, normal, low)
+        description: Task description
+
+    Returns:
+        dict: Task creation result data
+    """
+    task_params = {
+        "kind": "task",
+        "title": title,
+        "projectRoot": planning_root,
+        "priority": priority,
+    }
+
+    if description:
+        task_params["description"] = description
+
+    task_result = await client.call_tool("createObject", task_params)
+    return task_result.data
+
+
+async def create_mixed_task_environment(
+    client: Client,
+    planning_root: str,
+    project_title: str = "Mixed Task Test Project",
+) -> dict[str, Any]:
+    """Create a mixed environment with both standalone and hierarchical tasks.
+
+    Args:
+        client: FastMCP client instance
+        planning_root: Root path for planning files
+        project_title: Title for the project
+
+    Returns:
+        dict: Contains all created IDs and task information
+    """
+    # Create hierarchy
+    hierarchy = await create_test_hierarchy(client, planning_root, project_title)
+
+    # Create hierarchical tasks with different priorities
+    hierarchy_tasks = []
+    for i, priority in enumerate(["high", "normal", "low"]):
+        task_result = await create_task_with_priority(
+            client,
+            planning_root,
+            hierarchy["feature_id"],
+            f"Hierarchy Task {priority.capitalize()}",
+            priority,
+        )
+        hierarchy_tasks.append(
+            {
+                "id": task_result["id"],
+                "title": f"Hierarchy Task {priority.capitalize()}",
+                "priority": priority,
+                "type": "hierarchy",
+                "parent": hierarchy["feature_id"],
+            }
+        )
+
+    # Create standalone tasks with different priorities
+    standalone_tasks = []
+    for i, priority in enumerate(["high", "normal", "low"]):
+        task_result = await create_standalone_task(
+            client,
+            planning_root,
+            f"Standalone Task {priority.capitalize()}",
+            priority,
+            f"Standalone task with {priority} priority for testing",
+        )
+        standalone_tasks.append(
+            {
+                "id": task_result["id"],
+                "title": f"Standalone Task {priority.capitalize()}",
+                "priority": priority,
+                "type": "standalone",
+                "parent": None,
+            }
+        )
+
+    return {
+        "hierarchy": hierarchy,
+        "hierarchy_tasks": hierarchy_tasks,
+        "standalone_tasks": standalone_tasks,
+        "all_tasks": hierarchy_tasks + standalone_tasks,
+    }
+
+
+async def create_large_mixed_task_environment(
+    client: Client,
+    planning_root: str,
+    num_projects: int = 2,
+    num_epics_per_project: int = 2,
+    num_features_per_epic: int = 2,
+    num_hierarchy_tasks_per_feature: int = 3,
+    num_standalone_tasks: int = 10,
+) -> dict[str, Any]:
+    """Create a large mixed environment for performance testing.
+
+    Args:
+        client: FastMCP client instance
+        planning_root: Root path for planning files
+        num_projects: Number of projects to create
+        num_epics_per_project: Number of epics per project
+        num_features_per_epic: Number of features per epic
+        num_hierarchy_tasks_per_feature: Number of hierarchy tasks per feature
+        num_standalone_tasks: Number of standalone tasks
+
+    Returns:
+        dict: Contains all created objects and statistics
+    """
+    created_objects = {
+        "projects": [],
+        "epics": [],
+        "features": [],
+        "hierarchy_tasks": [],
+        "standalone_tasks": [],
+    }
+
+    # Create projects and hierarchy
+    for i in range(num_projects):
+        project_result = await client.call_tool(
+            "createObject",
+            {
+                "kind": "project",
+                "title": f"Performance Test Project {i + 1}",
+                "projectRoot": planning_root,
+            },
+        )
+        project_id = project_result.data["id"]
+        created_objects["projects"].append(project_id)
+
+        # Create epics
+        for j in range(num_epics_per_project):
+            epic_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "epic",
+                    "title": f"Performance Test Epic {i + 1}-{j + 1}",
+                    "projectRoot": planning_root,
+                    "parent": project_id,
+                },
+            )
+            epic_id = epic_result.data["id"]
+            created_objects["epics"].append(epic_id)
+
+            # Create features
+            for k in range(num_features_per_epic):
+                feature_result = await client.call_tool(
+                    "createObject",
+                    {
+                        "kind": "feature",
+                        "title": f"Performance Test Feature {i + 1}-{j + 1}-{k + 1}",
+                        "projectRoot": planning_root,
+                        "parent": epic_id,
+                    },
+                )
+                feature_id = feature_result.data["id"]
+                created_objects["features"].append(feature_id)
+
+                # Create hierarchy tasks
+                for task_idx in range(num_hierarchy_tasks_per_feature):
+                    priority = ["high", "normal", "low"][task_idx % 3]
+                    task_result = await create_task_with_priority(
+                        client,
+                        planning_root,
+                        feature_id,
+                        f"Hierarchy Task {i + 1}-{j + 1}-{k + 1}-{task_idx + 1}",
+                        priority,
+                    )
+                    created_objects["hierarchy_tasks"].append(
+                        {
+                            "id": task_result["id"],
+                            "type": "hierarchy",
+                            "priority": priority,
+                            "parent": feature_id,
+                        }
+                    )
+
+    # Create standalone tasks
+    for i in range(num_standalone_tasks):
+        priority = ["high", "normal", "low"][i % 3]
+        task_result = await create_standalone_task(
+            client,
+            planning_root,
+            f"Standalone Task {i + 1}",
+            priority,
+            f"Standalone task {i + 1} for performance testing",
+        )
+        created_objects["standalone_tasks"].append(
+            {
+                "id": task_result["id"],
+                "type": "standalone",
+                "priority": priority,
+                "parent": None,
+            }
+        )
+
+    # Calculate statistics
+    stats = {
+        "total_projects": len(created_objects["projects"]),
+        "total_epics": len(created_objects["epics"]),
+        "total_features": len(created_objects["features"]),
+        "total_hierarchy_tasks": len(created_objects["hierarchy_tasks"]),
+        "total_standalone_tasks": len(created_objects["standalone_tasks"]),
+        "total_tasks": len(created_objects["hierarchy_tasks"])
+        + len(created_objects["standalone_tasks"]),
+    }
+
+    return {
+        "objects": created_objects,
+        "stats": stats,
+    }
+
+
+def assert_mixed_task_consistency(
+    all_tasks: list,
+    expected_hierarchy_count: int,
+    expected_standalone_count: int,
+):
+    """Assert that mixed task results have correct counts and structure.
+
+    Args:
+        all_tasks: List of task dictionaries from listBacklog
+        expected_hierarchy_count: Expected number of hierarchy tasks
+        expected_standalone_count: Expected number of standalone tasks
+    """
+    # Count task types
+    hierarchy_count = 0
+    standalone_count = 0
+
+    for task in all_tasks:
+        if task["parent"]:  # Has parent = hierarchy task
+            hierarchy_count += 1
+        else:  # No parent = standalone task
+            standalone_count += 1
+
+    assert (
+        hierarchy_count == expected_hierarchy_count
+    ), f"Expected {expected_hierarchy_count} hierarchy tasks, got {hierarchy_count}"
+    assert (
+        standalone_count == expected_standalone_count
+    ), f"Expected {expected_standalone_count} standalone tasks, got {standalone_count}"
+
+    # Verify total count
+    total_expected = expected_hierarchy_count + expected_standalone_count
+    assert (
+        len(all_tasks) == total_expected
+    ), f"Expected {total_expected} total tasks, got {len(all_tasks)}"
+
+    # Verify all tasks have required structure
+    for task in all_tasks:
+        assert_task_structure(task)
+
+
+def assert_task_type(task_data: dict, expected_type: str):
+    """Assert that a task is of the expected type (standalone or hierarchy).
+
+    Args:
+        task_data: Task data dictionary
+        expected_type: Expected type ("standalone" or "hierarchy")
+    """
+    if expected_type == "standalone":
+        assert not task_data[
+            "parent"
+        ], f"Expected standalone task, but task has parent: {task_data['parent']}"
+    elif expected_type == "hierarchy":
+        assert task_data["parent"], "Expected hierarchy task, but task has no parent"
+    else:
+        raise ValueError(f"Invalid expected_type: {expected_type}")
+
+
+def get_task_type(task_data: dict) -> str:
+    """Get the type of a task (standalone or hierarchy).
+
+    Args:
+        task_data: Task data dictionary
+
+    Returns:
+        str: "standalone" or "hierarchy"
+    """
+    return "standalone" if not task_data["parent"] else "hierarchy"

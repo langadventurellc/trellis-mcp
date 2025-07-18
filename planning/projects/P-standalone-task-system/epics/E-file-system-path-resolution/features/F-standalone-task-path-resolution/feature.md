@@ -2,11 +2,11 @@
 kind: feature
 id: F-standalone-task-path-resolution
 title: Standalone Task Path Resolution
-status: in-progress
+status: done
 priority: normal
 prerequisites: []
 created: '2025-07-18T13:48:35.834458'
-updated: '2025-07-18T13:48:35.834458'
+updated: '2025-07-18T15:58:01.020317'
 schema_version: '1.1'
 parent: E-file-system-path-resolution
 ---
