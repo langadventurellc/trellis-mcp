@@ -40,7 +40,7 @@ def create_create_object_tool(settings: Settings):
         title: str,
         projectRoot: str,
         id: str = "",
-        parent: str = "",
+        parent: str | None = None,
         status: str = "",
         priority: str = "",
         prerequisites: list[str] = [],
@@ -57,7 +57,7 @@ def create_create_object_tool(settings: Settings):
             title: Human-readable title for the object
             projectRoot: Root directory for the planning structure
             id: Optional custom ID (auto-generated if not provided)
-            parent: Parent object ID (required for epics, features, tasks; empty for standalone)
+            parent: Parent object ID (required for epics, features, tasks; None for standalone)
             status: Object status (defaults based on kind)
             priority: Priority level ('high', 'normal', 'low' - defaults to 'normal')
             prerequisites: List of prerequisite object IDs (defaults to empty list)
@@ -116,7 +116,7 @@ def create_create_object_tool(settings: Settings):
         }
 
         # Add parent if provided
-        if parent and parent.strip():
+        if parent is not None:
             front_matter["parent"] = parent
 
         # Validate front-matter using validation utilities
@@ -139,11 +139,7 @@ def create_create_object_tool(settings: Settings):
 
         # Determine file path using centralized path logic
         try:
-            # Convert empty parent string to None for standalone tasks
-            parent_for_path = parent if parent and parent.strip() else None
-            file_path = resolve_path_for_new_object(
-                kind, id, parent_for_path, planning_root, status
-            )
+            file_path = resolve_path_for_new_object(kind, id, parent, planning_root, status)
         except ValueError as e:
             raise ValueError(str(e))
         except FileNotFoundError as e:
