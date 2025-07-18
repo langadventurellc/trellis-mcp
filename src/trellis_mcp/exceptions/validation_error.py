@@ -35,6 +35,10 @@ class ValidationErrorCode(Enum):
     SCHEMA_VERSION_MISMATCH = "schema_version_mismatch"
     INVALID_SCHEMA_VERSION = "invalid_schema_version"
 
+    # Cross-system validation errors
+    CROSS_SYSTEM_REFERENCE_CONFLICT = "cross_system_reference_conflict"
+    CROSS_SYSTEM_PREREQUISITE_INVALID = "cross_system_prerequisite_invalid"
+
 
 class ValidationError(Exception):
     """Base validation exception with structured error handling.
@@ -210,4 +214,147 @@ class ValidationError(Exception):
             context=context,
             object_id=object_id,
             task_type=task_type,
+        )
+
+    @classmethod
+    def create_cross_system_error(
+        cls,
+        source_task_type: str,
+        target_task_type: str,
+        source_task_id: str,
+        target_task_id: str,
+        conflict_type: str = "reference",
+        context: Optional[Dict[str, Any]] = None,
+    ) -> "ValidationError":
+        """Create a cross-system validation error with enhanced context.
+
+        Args:
+            source_task_type: Type of source task ("standalone" or "hierarchy")
+            target_task_type: Type of target task ("standalone" or "hierarchy")
+            source_task_id: ID of the source task
+            target_task_id: ID of the target task
+            conflict_type: Type of conflict ("reference" or "prerequisite")
+            context: Additional context information
+
+        Returns:
+            Cross-system validation error with enhanced context
+        """
+        if conflict_type == "reference":
+            error_code = cls._get_cross_system_error_code(source_task_type, target_task_type)
+            error_msg = cls._format_cross_system_reference_error(
+                source_task_type, target_task_type, source_task_id, target_task_id
+            )
+        elif conflict_type == "prerequisite":
+            error_code = ValidationErrorCode.CROSS_SYSTEM_PREREQUISITE_INVALID
+            error_msg = cls._format_cross_system_prerequisite_error(
+                source_task_type, target_task_type, source_task_id, target_task_id
+            )
+        else:
+            error_code = ValidationErrorCode.CROSS_SYSTEM_REFERENCE_CONFLICT
+            error_msg = (
+                f"Cross-system conflict between {source_task_type} task '{source_task_id}' "
+                f"and {target_task_type} task '{target_task_id}'"
+            )
+
+        # Enhance context with cross-system information
+        enhanced_context = context.copy() if context else {}
+        enhanced_context.update(
+            {
+                "source_task_type": source_task_type,
+                "target_task_type": target_task_type,
+                "source_task_id": source_task_id,
+                "target_task_id": target_task_id,
+                "conflict_type": conflict_type,
+                "cross_system_context": True,
+            }
+        )
+
+        return cls(
+            errors=[error_msg],
+            error_codes=[error_code],
+            context=enhanced_context,
+            object_id=source_task_id,
+            task_type=source_task_type,
+        )
+
+    @classmethod
+    def _get_cross_system_error_code(
+        cls, source_type: str, target_type: str
+    ) -> ValidationErrorCode:
+        """Get appropriate error code for cross-system validation.
+
+        Args:
+            source_type: Type of source task
+            target_type: Type of target task
+
+        Returns:
+            Appropriate ValidationErrorCode for the cross-system scenario
+        """
+        return ValidationErrorCode.CROSS_SYSTEM_REFERENCE_CONFLICT
+
+    @classmethod
+    def _format_cross_system_reference_error(
+        cls, source_type: str, target_type: str, source_id: str, target_id: str
+    ) -> str:
+        """Format cross-system reference error message.
+
+        Args:
+            source_type: Type of source task ("standalone" or "hierarchy")
+            target_type: Type of target task ("standalone" or "hierarchy")
+            source_id: ID of the source task
+            target_id: ID of the target task
+
+        Returns:
+            Formatted error message for cross-system reference conflict
+        """
+        # Clean task IDs for display (remove prefixes for clarity)
+        clean_source_id = (
+            source_id.replace("T-", "").replace("F-", "").replace("E-", "").replace("P-", "")
+        )
+        clean_target_id = (
+            target_id.replace("T-", "").replace("F-", "").replace("E-", "").replace("P-", "")
+        )
+
+        if source_type == "standalone" and target_type == "hierarchy":
+            return (
+                f"Cannot reference hierarchical task '{clean_target_id}' from "
+                f"standalone task '{clean_source_id}'"
+            )
+        elif source_type == "hierarchy" and target_type == "standalone":
+            return (
+                f"Cannot reference standalone task '{clean_target_id}' from "
+                f"hierarchical task '{clean_source_id}'"
+            )
+        else:
+            return (
+                f"Cross-system reference conflict between {source_type} task "
+                f"'{clean_source_id}' and {target_type} task '{clean_target_id}'"
+            )
+
+    @classmethod
+    def _format_cross_system_prerequisite_error(
+        cls, source_type: str, target_type: str, source_id: str, target_id: str
+    ) -> str:
+        """Format cross-system prerequisite error message.
+
+        Args:
+            source_type: Type of source task
+            target_type: Type of target task
+            source_id: ID of the source task
+            target_id: ID of the target task
+
+        Returns:
+            Formatted error message for cross-system prerequisite conflict
+        """
+        # Clean task IDs for display
+        clean_source_id = (
+            source_id.replace("T-", "").replace("F-", "").replace("E-", "").replace("P-", "")
+        )
+        clean_target_id = (
+            target_id.replace("T-", "").replace("F-", "").replace("E-", "").replace("P-", "")
+        )
+
+        return (
+            f"Prerequisite validation failed: {source_type} task '{clean_source_id}' "
+            f"requires {target_type} task '{clean_target_id}' which does not exist"
         )
