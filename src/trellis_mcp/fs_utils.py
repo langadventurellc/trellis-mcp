@@ -134,7 +134,20 @@ def find_object_path(kind: str, obj_id: str, project_root: Path) -> Path | None:
         return None
 
     elif kind == "task":
-        # Scan all projects, epics, and features to find this task
+        # First check for standalone tasks at the root level
+        # Check tasks-open first (prefer open tasks)
+        open_task = project_root / "tasks-open" / f"T-{clean_id}.md"
+        if open_task.exists():
+            return open_task
+
+        # Check tasks-done (files have timestamp prefixes)
+        done_dir = project_root / "tasks-done"
+        if done_dir.exists():
+            for done_file in done_dir.iterdir():
+                if done_file.is_file() and done_file.name.endswith(f"-T-{clean_id}.md"):
+                    return done_file
+
+        # Then scan all projects, epics, and features to find hierarchical tasks
         projects_dir = project_root / "projects"
         if not projects_dir.exists():
             return None

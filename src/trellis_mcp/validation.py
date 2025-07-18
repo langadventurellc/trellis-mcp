@@ -569,17 +569,71 @@ def validate_acyclic_prerequisites(
         return [f"Error validating prerequisites: {str(e)}"]
 
 
-def is_standalone_task(object_kind: KindEnum, parent_id: str | None) -> bool:
+def is_standalone_task(
+    object_kind_or_task_data: KindEnum | dict[str, Any] | None, parent_id: str | None = None
+) -> bool:
     """Check if an object is a standalone task (task with no parent).
 
+    This function supports two call patterns:
+    1. is_standalone_task(object_kind, parent_id) - Original signature
+    2. is_standalone_task(task_data) - New signature for task data structures
+
     Args:
-        object_kind: The kind of object being checked
-        parent_id: The parent ID (None for standalone)
+        object_kind_or_task_data: Either a KindEnum or a task data dictionary
+        parent_id: The parent ID (None for standalone) - only used with KindEnum
 
     Returns:
         True if this is a standalone task, False otherwise
     """
-    return object_kind == KindEnum.TASK and parent_id is None
+    # Handle None case
+    if object_kind_or_task_data is None:
+        return False
+
+    # Handle the new signature: is_standalone_task(task_data)
+    if isinstance(object_kind_or_task_data, dict):
+        task_data = object_kind_or_task_data
+
+        if not task_data:
+            return False
+
+        # Check if this is a task object
+        if task_data.get("kind") != "task":
+            return False
+
+        # Check if parent field is None or missing (both indicate standalone)
+        parent = task_data.get("parent")
+        return parent is None or parent == ""
+
+    # Handle the original signature: is_standalone_task(object_kind, parent_id)
+    else:
+        object_kind = object_kind_or_task_data
+        return object_kind == KindEnum.TASK and parent_id is None
+
+
+def is_hierarchy_task(task_data: dict[str, Any] | None) -> bool:
+    """Check if task data represents a hierarchy task (has parent field).
+
+    Args:
+        task_data: Dictionary containing task data structure
+
+    Returns:
+        True if the task data represents a hierarchy task, False otherwise
+
+    Note:
+        This function examines the task data structure to determine if it's
+        a hierarchy task. A hierarchy task has a non-empty parent field.
+        Handles edge cases like None/empty data gracefully.
+    """
+    if not task_data:
+        return False
+
+    # Check if this is a task object
+    if task_data.get("kind") != "task":
+        return False
+
+    # Check if parent field exists and is not None/empty
+    parent = task_data.get("parent")
+    return parent is not None and parent != ""
 
 
 def validate_parent_exists(parent_id: str, parent_kind: KindEnum, project_root: str | Path) -> bool:
@@ -937,12 +991,242 @@ def validate_status_for_kind(status: StatusEnum, object_kind: KindEnum) -> bool:
         raise e
 
 
+def validate_standalone_task_security(data: dict[str, Any]) -> list[str]:
+    """Validate security constraints for standalone tasks.
+
+    This function implements security validation to ensure standalone tasks don't
+    introduce privilege escalation opportunities or allow validation bypass through
+    parent field manipulation.
+
+    Args:
+        data: The object data dictionary
+
+    Returns:
+        List of security validation errors (empty if valid)
+    """
+    errors = []
+
+    # Only validate if this is a task object
+    if data.get("kind") != "task":
+        return errors
+
+    # Get parent field value
+    parent = data.get("parent")
+
+    # Security check: Ensure parent field consistency
+    # If parent is None or empty string, this should be a standalone task
+    if parent is None or parent == "":
+        # Valid standalone task - no additional security checks needed
+        return errors
+
+    # Security check: Prevent privilege escalation through parent field manipulation
+    # If parent is present, ensure it's not attempting to bypass validation
+    if isinstance(parent, str):
+        # Check for suspicious parent values that might indicate bypass attempts
+        suspicious_patterns = [
+            "..",  # Path traversal attempts
+            "/",  # Absolute path attempts (only at start)
+            "\\",  # Windows path attempts
+            "null",  # String representation of null
+            "none",  # String representation of none
+            "undefined",  # JavaScript-style undefined
+            "{}",  # Empty object representation
+            "[]",  # Empty array representation
+            "false",  # Boolean false as string
+            "true",  # Boolean true as string
+        ]
+
+        # Check for suspicious patterns (case-insensitive)
+        parent_lower = parent.lower().strip()
+        for pattern in suspicious_patterns:
+            if pattern == "/" and parent_lower.startswith("/"):
+                # Only flag absolute paths (starting with /)
+                errors.append(
+                    f"Security validation failed: parent field contains "
+                    f"suspicious pattern '{pattern}'"
+                )
+                break
+            elif pattern in ["..", "\\"]:
+                # Check for path traversal and backslash patterns as substrings
+                if pattern in parent_lower:
+                    errors.append(
+                        f"Security validation failed: parent field contains "
+                        f"suspicious pattern '{pattern}'"
+                    )
+                    break
+            elif pattern != "/" and pattern == parent_lower:
+                # Only flag exact matches for other patterns to avoid false positives
+                errors.append(
+                    f"Security validation failed: parent field contains "
+                    f"suspicious pattern '{pattern}'"
+                )
+                break
+
+        # Check for specific whitespace characters that might indicate bypass attempts
+        if parent in [" ", "\t", "\n", "\r"]:
+            errors.append(
+                f"Security validation failed: parent field contains "
+                f"suspicious pattern '{repr(parent)}'"
+            )
+        elif parent.strip() == "":
+            errors.append("Security validation failed: parent field contains only whitespace")
+
+        # Check for numeric-only parent values that might indicate bypass attempts
+        if parent.strip() in ["0", "1"]:
+            errors.append(
+                f"Security validation failed: parent field contains "
+                f"suspicious pattern '{parent.strip()}'"
+            )
+
+        # Check for excessively long parent values (potential buffer overflow attempt)
+        if len(parent) > 255:
+            errors.append(
+                "Security validation failed: parent field exceeds maximum length "
+                "(255 characters)"
+            )
+
+        # Check for control characters that might indicate injection attempts
+        if any(ord(c) < 32 for c in parent if c not in ["\t", "\n", "\r"]):
+            errors.append("Security validation failed: parent field contains control characters")
+
+    # Security check: Ensure no privilege escalation through field manipulation
+    # Tasks should not have certain privileged fields that could indicate bypass attempts
+    privileged_fields = [
+        "system_admin",
+        "root_access",
+        "privileged",
+        "admin",
+        "superuser",
+        "elevated",
+        "bypass_validation",
+        "skip_checks",
+        "ignore_constraints",
+    ]
+
+    for field in privileged_fields:
+        if field in data:
+            errors.append(f"Security validation failed: privileged field '{field}' is not allowed")
+
+    return errors
+
+
+def get_task_type_context(data: dict[str, Any]) -> str:
+    """Get task type context for error messages.
+
+    Args:
+        data: The object data dictionary
+
+    Returns:
+        String describing the task type context, empty string if not a task
+    """
+    if data.get("kind") != "task":
+        return ""
+
+    if is_standalone_task(data):
+        return "standalone task"
+    elif is_hierarchy_task(data):
+        return "hierarchy task"
+    else:
+        return "task"
+
+
+def format_validation_error_with_context(error_message: str, data: dict[str, Any]) -> str:
+    """Format validation error message with task type context.
+
+    Args:
+        error_message: The base error message
+        data: The object data dictionary
+
+    Returns:
+        Enhanced error message with context
+    """
+    task_context = get_task_type_context(data)
+
+    if not task_context:
+        return error_message
+
+    # Add context to specific error patterns
+    if "Invalid status" in error_message and "for task" in error_message:
+        return error_message.replace("for task", f"for {task_context}")
+    elif "does not exist" in error_message and "task" in data.get("kind", ""):
+        return f"{error_message} ({task_context} validation)"
+    elif "must have a parent" in error_message and task_context == "standalone task":
+        return f"{error_message} (Note: standalone tasks don't require parent)"
+
+    return error_message
+
+
+def generate_contextual_error_message(error_type: str, data: dict[str, Any], **kwargs) -> str:
+    """Generate contextual error messages based on task type.
+
+    Args:
+        error_type: Type of error (e.g., 'invalid_status', 'missing_parent')
+        data: The object data dictionary
+        **kwargs: Additional context for error message
+
+    Returns:
+        Contextual error message string
+    """
+    task_context = get_task_type_context(data)
+    object_kind = data.get("kind", "object")
+
+    if error_type == "invalid_status":
+        status = kwargs.get("status", "unknown")
+        if task_context:
+            return f"Invalid status '{status}' for {task_context}"
+        else:
+            return f"Invalid status '{status}' for {object_kind}"
+
+    elif error_type == "missing_parent":
+        if task_context == "standalone task":
+            return (
+                f"Missing required fields for {task_context}: parent "
+                "(Note: standalone tasks don't require parent)"
+            )
+        elif task_context == "hierarchy task":
+            return f"Missing required fields for {task_context}: parent"
+        else:
+            return f"{object_kind} objects must have a parent"
+
+    elif error_type == "parent_not_exist":
+        parent_kind = kwargs.get("parent_kind", "parent")
+        parent_id = kwargs.get("parent_id", "unknown")
+        if task_context:
+            return (
+                f"Parent {parent_kind} with ID '{parent_id}' does not exist "
+                f"({task_context} validation)"
+            )
+        else:
+            return f"Parent {parent_kind} with ID '{parent_id}' does not exist"
+
+    elif error_type == "missing_fields":
+        fields = kwargs.get("fields", [])
+        if task_context == "standalone task":
+            return f"Missing required fields for {task_context}: {', '.join(fields)}"
+        elif task_context == "hierarchy task":
+            return f"Missing required fields for {task_context}: {', '.join(fields)}"
+        else:
+            return f"Missing required fields: {', '.join(fields)}"
+
+    elif error_type == "invalid_enum":
+        field = kwargs.get("field", "field")
+        value = kwargs.get("value", "unknown")
+        valid_values = kwargs.get("valid_values", [])
+        if task_context:
+            return f"Invalid {field} '{value}' for {task_context}. Must be one of: {valid_values}"
+        else:
+            return f"Invalid {field} '{value}' for {object_kind}. Must be one of: {valid_values}"
+
+    # Default fallback
+    return f"Validation error for {task_context or object_kind}"
+
+
 def validate_object_data(data: dict[str, Any], project_root: str | Path) -> None:
     """Comprehensive validation of object data.
 
     This function now uses Pydantic schema model validation for field validation,
     enum validation, and status validation, while maintaining filesystem-based
-    parent existence validation.
+    parent existence validation and security validation for standalone tasks.
 
     Args:
         data: The object data dictionary
@@ -966,6 +1250,11 @@ def validate_object_data(data: dict[str, Any], project_root: str | Path) -> None
     except ValueError:
         errors.append(f"Invalid kind '{kind_value}'")
         raise TrellisValidationError(errors)
+
+    # Security validation for standalone tasks
+    if object_kind == KindEnum.TASK:
+        security_errors = validate_standalone_task_security(data)
+        errors.extend(security_errors)
 
     # Use Pydantic model validation for required fields, enum validation, and status validation
     try:
@@ -1002,20 +1291,30 @@ def validate_object_data(data: dict[str, Any], project_root: str | Path) -> None
                 # Handle None values for required enum fields as missing fields
                 missing_fields.append(str(field))
             elif error_type == "enum" and input_value is not None:
-                # Handle enum validation errors
+                # Handle enum validation errors with contextual messages
                 if "kind" in str(field):
                     valid_kinds = [k.value for k in KindEnum]
                     errors.append(f"Invalid kind '{input_value}'. Must be one of: {valid_kinds}")
                 elif "status" in str(field):
                     valid_statuses = [s.value for s in StatusEnum]
-                    errors.append(
-                        f"Invalid status '{input_value}'. Must be one of: {valid_statuses}"
+                    contextual_msg = generate_contextual_error_message(
+                        "invalid_enum",
+                        data,
+                        field="status",
+                        value=input_value,
+                        valid_values=valid_statuses,
                     )
+                    errors.append(contextual_msg)
                 elif "priority" in str(field):
                     valid_priorities = [str(p) for p in Priority]
-                    errors.append(
-                        f"Invalid priority '{input_value}'. Must be one of: {valid_priorities}"
+                    contextual_msg = generate_contextual_error_message(
+                        "invalid_enum",
+                        data,
+                        field="priority",
+                        value=input_value,
+                        valid_values=valid_priorities,
                     )
+                    errors.append(contextual_msg)
             elif error_type == "value_error":
                 # Handle custom validator errors (like status-for-kind validation)
                 clean_msg = msg
@@ -1029,7 +1328,10 @@ def validate_object_data(data: dict[str, Any], project_root: str | Path) -> None
                     # Remove "Value error, " prefix
                     if clean_msg.startswith("Value error, "):
                         clean_msg = clean_msg[13:]
-                errors.append(clean_msg)
+
+                # Apply contextual formatting to status validation errors
+                contextual_msg = format_validation_error_with_context(clean_msg, data)
+                errors.append(contextual_msg)
             else:
                 # Handle other validation errors
                 if field:
@@ -1039,7 +1341,10 @@ def validate_object_data(data: dict[str, Any], project_root: str | Path) -> None
 
         # Add missing fields error if any fields are missing
         if missing_fields:
-            errors.append(f"Missing required fields: {', '.join(missing_fields)}")
+            contextual_msg = generate_contextual_error_message(
+                "missing_fields", data, fields=missing_fields
+            )
+            errors.append(contextual_msg)
 
     except ValueError as e:
         # Handle invalid kind from get_model_class_for_kind
@@ -1047,11 +1352,18 @@ def validate_object_data(data: dict[str, Any], project_root: str | Path) -> None
         errors.append(str(e))
 
     # Validate parent existence (still requires filesystem access)
+    # Skip parent validation for standalone tasks - they don't need parent references
     if "parent" in data:
-        try:
-            validate_parent_exists_for_object(data["parent"], object_kind, project_root)
-        except ValueError as e:
-            errors.append(str(e))
+        # Early return: skip parent validation for standalone tasks
+        if object_kind == KindEnum.TASK and is_standalone_task(data):
+            pass  # Standalone tasks don't require parent validation
+        else:
+            try:
+                validate_parent_exists_for_object(data["parent"], object_kind, project_root)
+            except ValueError as e:
+                # Apply contextual formatting to parent validation errors
+                contextual_msg = format_validation_error_with_context(str(e), data)
+                errors.append(contextual_msg)
 
     # Raise exception if any errors were found
     if errors:

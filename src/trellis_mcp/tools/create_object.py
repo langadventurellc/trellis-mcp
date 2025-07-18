@@ -138,7 +138,11 @@ def create_create_object_tool(settings: Settings):
 
         # Determine file path using centralized path logic
         try:
-            file_path = resolve_path_for_new_object(kind, id, parent, planning_root, status)
+            # Convert empty parent string to None for standalone tasks
+            parent_for_path = parent if parent and parent.strip() else None
+            file_path = resolve_path_for_new_object(
+                kind, id, parent_for_path, planning_root, status
+            )
         except ValueError as e:
             raise ValueError(str(e))
         except FileNotFoundError as e:
