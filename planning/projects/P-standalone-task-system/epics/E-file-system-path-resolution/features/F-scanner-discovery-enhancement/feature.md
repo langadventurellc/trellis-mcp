@@ -2,12 +2,12 @@
 kind: feature
 id: F-scanner-discovery-enhancement
 title: Scanner Discovery Enhancement
-status: in-progress
+status: done
 priority: normal
 prerequisites:
 - F-standalone-task-path-resolution
 created: '2025-07-18T13:48:47.335119'
-updated: '2025-07-18T13:48:47.335119'
+updated: '2025-07-18T16:07:25.748965'
 schema_version: '1.1'
 parent: E-file-system-path-resolution
 ---
@@ -59,3 +59,25 @@ Enhance the scanner functionality to discover standalone tasks alongside hierarc
 
 ### Log
 
+#### 2025-07-18 - Feature Analysis Complete
+Upon analysis of the current codebase, the scanner discovery enhancement functionality has been found to be **already implemented** in `src/trellis_mcp/scanner.py`.
+
+**Current Implementation Status:**
+- ✅ `scan_tasks()` function already discovers both hierarchy-based and standalone tasks
+- ✅ Scans `planning/projects/P-*/epics/E-*/features/F-*/tasks-*` for hierarchy tasks
+- ✅ Scans `planning/tasks-{open|done}/` for standalone tasks  
+- ✅ Uses iterator-based processing for memory efficiency
+- ✅ Includes robust error handling for missing directories
+- ✅ Implements security validation with path traversal protection
+- ✅ Maintains consistent task metadata across both discovery methods
+- ✅ Preserves existing scanner interface and behavior
+
+**Key Implementation Details:**
+- The scanner function handles both task types in a single operation
+- Performance is optimized with lazy loading and iterator patterns
+- Error handling gracefully skips unparseable files
+- Security checks validate paths are within project root
+- Comprehensive test coverage exists in `test_scanner.py`
+
+**Conclusion:**
+The feature requirements have been fully satisfied by the existing implementation. No additional development work is required. The feature status has been updated to "done" to reflect the completed state.
