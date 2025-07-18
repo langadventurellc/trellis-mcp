@@ -264,3 +264,236 @@ def test_get_oldest_review_priority_tiebreaker(temp_dir):
     assert result is not None
     assert result.id == "high-priority-task"
     assert result.priority == Priority.HIGH
+
+
+def test_get_oldest_review_standalone_task_only(temp_dir):
+    """Test get_oldest_review returns standalone task when only standalone tasks exist."""
+    planning_dir = temp_dir / "planning"
+    tasks_open_dir = planning_dir / "tasks-open"
+    tasks_open_dir.mkdir(parents=True)
+
+    # Create standalone task in review status
+    standalone_task_yaml = {
+        "kind": "task",
+        "id": "standalone-review-task",
+        "status": "review",
+        "title": "Standalone review task",
+        "priority": "normal",
+        "created": "2025-01-01T12:00:00Z",
+        "updated": "2025-01-01T13:00:00Z",
+        "schema_version": "1.1",
+        "prerequisites": [],
+    }
+    write_markdown(
+        tasks_open_dir / "T-standalone-review-task.md",
+        standalone_task_yaml,
+        "# Standalone Review Task",
+    )
+
+    result = get_oldest_review(planning_dir)
+
+    assert result is not None
+    assert result.id == "standalone-review-task"
+    assert result.status == StatusEnum.REVIEW
+    assert result.title == "Standalone review task"
+    assert result.priority == Priority.NORMAL
+
+
+def test_get_oldest_review_mixed_standalone_and_hierarchical(temp_dir):
+    """Test get_oldest_review works with both standalone and hierarchical tasks."""
+    planning_dir = temp_dir / "planning"
+
+    # Create hierarchical task structure
+    feature_dir = planning_dir / "projects" / "P-test" / "epics" / "E-test" / "features" / "F-test"
+    tasks_open_dir = feature_dir / "tasks-open"
+    tasks_open_dir.mkdir(parents=True)
+
+    # Create hierarchical task in review status
+    hierarchy_task_yaml = {
+        "kind": "task",
+        "id": "hierarchy-review-task",
+        "parent": "F-test",
+        "status": "review",
+        "title": "Hierarchy review task",
+        "priority": "normal",
+        "created": "2025-01-01T12:00:00Z",
+        "updated": "2025-01-01T14:00:00Z",  # Newer timestamp
+        "schema_version": "1.1",
+        "prerequisites": [],
+    }
+    write_markdown(
+        tasks_open_dir / "T-hierarchy-review-task.md",
+        hierarchy_task_yaml,
+        "# Hierarchy Review Task",
+    )
+
+    # Create standalone task structure
+    standalone_tasks_dir = planning_dir / "tasks-open"
+    standalone_tasks_dir.mkdir(parents=True)
+
+    # Create standalone task in review status with older timestamp
+    standalone_task_yaml = {
+        "kind": "task",
+        "id": "standalone-review-task",
+        "status": "review",
+        "title": "Standalone review task",
+        "priority": "normal",
+        "created": "2025-01-01T12:00:00Z",
+        "updated": "2025-01-01T13:00:00Z",  # Older timestamp
+        "schema_version": "1.1",
+        "prerequisites": [],
+    }
+    write_markdown(
+        standalone_tasks_dir / "T-standalone-review-task.md",
+        standalone_task_yaml,
+        "# Standalone Review Task",
+    )
+
+    result = get_oldest_review(planning_dir)
+
+    # Should return the standalone task because it has the older timestamp
+    assert result is not None
+    assert result.id == "standalone-review-task"
+    assert result.status == StatusEnum.REVIEW
+    assert result.title == "Standalone review task"
+
+
+def test_get_oldest_review_standalone_priority_tiebreaker(temp_dir):
+    """Test get_oldest_review uses priority tiebreaker for standalone tasks."""
+    planning_dir = temp_dir / "planning"
+    tasks_open_dir = planning_dir / "tasks-open"
+    tasks_open_dir.mkdir(parents=True)
+
+    same_timestamp = "2025-01-01T12:00:00Z"
+
+    # Create low priority standalone task
+    low_task_yaml = {
+        "kind": "task",
+        "id": "low-priority-standalone",
+        "status": "review",
+        "title": "Low priority standalone task",
+        "priority": "low",
+        "created": same_timestamp,
+        "updated": same_timestamp,
+        "schema_version": "1.1",
+        "prerequisites": [],
+    }
+    write_markdown(
+        tasks_open_dir / "T-low-priority-standalone.md", low_task_yaml, "# Low Priority Standalone"
+    )
+
+    # Create high priority standalone task (should be selected)
+    high_task_yaml = {
+        "kind": "task",
+        "id": "high-priority-standalone",
+        "status": "review",
+        "title": "High priority standalone task",
+        "priority": "high",
+        "created": same_timestamp,
+        "updated": same_timestamp,
+        "schema_version": "1.1",
+        "prerequisites": [],
+    }
+    write_markdown(
+        tasks_open_dir / "T-high-priority-standalone.md",
+        high_task_yaml,
+        "# High Priority Standalone",
+    )
+
+    result = get_oldest_review(planning_dir)
+
+    assert result is not None
+    assert result.id == "high-priority-standalone"
+    assert result.priority == Priority.HIGH
+
+
+def test_get_oldest_review_mixed_priority_tiebreaker(temp_dir):
+    """Test get_oldest_review priority tiebreaker works across both task types."""
+    planning_dir = temp_dir / "planning"
+
+    # Create hierarchical task structure
+    feature_dir = planning_dir / "projects" / "P-test" / "epics" / "E-test" / "features" / "F-test"
+    tasks_open_dir = feature_dir / "tasks-open"
+    tasks_open_dir.mkdir(parents=True)
+
+    # Create standalone task structure
+    standalone_tasks_dir = planning_dir / "tasks-open"
+    standalone_tasks_dir.mkdir(parents=True)
+
+    same_timestamp = "2025-01-01T12:00:00Z"
+
+    # Create hierarchical task with normal priority
+    hierarchy_task_yaml = {
+        "kind": "task",
+        "id": "hierarchy-normal-task",
+        "parent": "F-test",
+        "status": "review",
+        "title": "Hierarchy normal priority task",
+        "priority": "normal",
+        "created": same_timestamp,
+        "updated": same_timestamp,
+        "schema_version": "1.1",
+        "prerequisites": [],
+    }
+    write_markdown(
+        tasks_open_dir / "T-hierarchy-normal-task.md",
+        hierarchy_task_yaml,
+        "# Hierarchy Normal Task",
+    )
+
+    # Create standalone task with high priority (should be selected)
+    standalone_task_yaml = {
+        "kind": "task",
+        "id": "standalone-high-task",
+        "status": "review",
+        "title": "Standalone high priority task",
+        "priority": "high",
+        "created": same_timestamp,
+        "updated": same_timestamp,
+        "schema_version": "1.1",
+        "prerequisites": [],
+    }
+    write_markdown(
+        standalone_tasks_dir / "T-standalone-high-task.md",
+        standalone_task_yaml,
+        "# Standalone High Task",
+    )
+
+    result = get_oldest_review(planning_dir)
+
+    # Should return the standalone task because it has higher priority
+    assert result is not None
+    assert result.id == "standalone-high-task"
+    assert result.priority == Priority.HIGH
+
+
+def test_get_oldest_review_no_standalone_tasks(temp_dir):
+    """Test get_oldest_review still works when no standalone tasks exist."""
+    planning_dir = temp_dir / "planning"
+    feature_dir = planning_dir / "projects" / "P-test" / "epics" / "E-test" / "features" / "F-test"
+    tasks_open_dir = feature_dir / "tasks-open"
+    tasks_open_dir.mkdir(parents=True)
+
+    # Create only hierarchical task in review status
+    hierarchy_task_yaml = {
+        "kind": "task",
+        "id": "hierarchy-only-task",
+        "parent": "F-test",
+        "status": "review",
+        "title": "Hierarchy only task",
+        "priority": "normal",
+        "created": "2025-01-01T12:00:00Z",
+        "updated": "2025-01-01T13:00:00Z",
+        "schema_version": "1.1",
+        "prerequisites": [],
+    }
+    write_markdown(
+        tasks_open_dir / "T-hierarchy-only-task.md", hierarchy_task_yaml, "# Hierarchy Only Task"
+    )
+
+    result = get_oldest_review(planning_dir)
+
+    assert result is not None
+    assert result.id == "hierarchy-only-task"
+    assert result.status == StatusEnum.REVIEW
+    assert result.title == "Hierarchy only task"

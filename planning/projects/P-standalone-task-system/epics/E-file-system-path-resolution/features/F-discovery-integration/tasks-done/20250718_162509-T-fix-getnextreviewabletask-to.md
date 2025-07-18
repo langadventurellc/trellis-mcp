@@ -1,14 +1,15 @@
 ---
 kind: task
 id: T-fix-getnextreviewabletask-to
+parent: F-discovery-integration
+status: done
 title: Fix getNextReviewableTask to include standalone tasks
-status: open
 priority: high
 prerequisites: []
 created: '2025-07-18T16:13:42.972770'
-updated: '2025-07-18T16:13:42.972770'
+updated: '2025-07-18T16:15:01.734624'
 schema_version: '1.1'
-parent: F-discovery-integration
+worktree: null
 ---
 ### Purpose
 Fix the `getNextReviewableTask` MCP operation to include standalone tasks in review status, ensuring complete task discovery across both storage patterns.
@@ -57,3 +58,25 @@ The `get_oldest_review()` function in `src/trellis_mcp/query.py` only searches h
 
 ### Log
 
+**Implementation Summary:**
+
+Successfully fixed the `getNextReviewableTask` MCP operation to include standalone tasks in review status. The solution replaced the manual hierarchical-only scanning in `get_oldest_review()` with the existing `scan_tasks()` utility function, which already handles both hierarchical and standalone tasks correctly.
+
+**Key Changes:**
+- Modified `get_oldest_review()` in `src/trellis_mcp/query.py` to use `scan_tasks()` instead of manual hierarchical scanning
+- Added proper handling for the project root parameter to work with the existing `scan_tasks()` function
+- Removed unused import (`parse_object`) and fixed code formatting
+- Added comprehensive unit tests covering all scenarios: standalone-only, hierarchical-only, and mixed environments
+- Verified priority ordering and timestamp logic works correctly across both task types
+
+**Testing Results:**
+- All 12 unit tests pass, including 5 new tests specifically for standalone task discovery
+- Integration tests pass, confirming the fix works end-to-end with mixed task environments
+- Performance remains acceptable with iterator-based scanning from `scan_tasks()`
+- Security validation continues to work correctly for both task types
+
+The implementation maintains backward compatibility while extending functionality to include standalone tasks in the review discovery workflow. The solution is robust, well-tested, and follows the existing codebase patterns.
+
+
+**2025-07-18T21:25:09.760239Z** - Successfully fixed the `getNextReviewableTask` MCP operation to include standalone tasks in review status. The solution replaced the manual hierarchical-only scanning in `get_oldest_review()` with the existing `scan_tasks()` utility function, which already handles both hierarchical and standalone tasks correctly. Added comprehensive unit tests covering all scenarios and verified the fix works end-to-end with mixed task environments. All quality checks pass and the implementation maintains backward compatibility.
+- filesChanged: ["src/trellis_mcp/query.py", "tests/unit/test_query.py"]
