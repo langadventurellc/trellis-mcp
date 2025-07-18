@@ -28,8 +28,7 @@ from .validation import (
     validate_status_for_kind,
 )
 
-__version__ = "0.1.0"
-__author__ = "Lang Adventure LLC"
+__author__ = "LangAdventure LLC"
 __description__ = "File-backed MCP server for project management"
 
 __all__ = [

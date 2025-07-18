@@ -2,14 +2,14 @@
   "mcpServers": {
     "task-trellis": {
       "type": "stdio",
-      "command": "uvx",
+      "command": "uv",
       "args": [
-        "--no-cache",
-        "--refresh",
+        "run",
         "task-trellis-mcp",
         "serve"
       ],
-      "env": {}
+      "env": {},
+      "cwd": "/Users/zach/code/trellis-mcp"
     }
   }
 }

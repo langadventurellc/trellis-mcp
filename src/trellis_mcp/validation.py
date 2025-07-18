@@ -240,13 +240,19 @@ def get_all_objects(project_root: str | Path, include_mtimes: bool = False):
         "projects/P-*/epics/E-*/features/F-*/feature.md",  # Features
         "projects/P-*/epics/E-*/features/F-*/tasks-open/T-*.md",  # Open tasks
         "projects/P-*/epics/E-*/features/F-*/tasks-done/*-T-*.md",  # Done tasks
+        "tasks-open/T-*.md",  # Standalone open tasks
+        "tasks-done/*-T-*.md",  # Standalone done tasks
     ]
 
     for pattern in patterns:
         for file_path in project_root_path.glob(pattern):
             try:
                 obj = parse_object(file_path)
-                objects[obj.id] = obj.model_dump()
+                # Store objects using clean IDs (without prefixes) for consistent lookup
+                from .id_utils import clean_prerequisite_id
+
+                clean_id = clean_prerequisite_id(obj.id)
+                objects[clean_id] = obj.model_dump()
 
                 # Record file modification time for caching
                 if include_mtimes and file_mtimes is not None:
