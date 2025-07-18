@@ -230,6 +230,13 @@ def validate_object_data_with_collector(
                     context={"parent_id": data["parent"], "parent_validation": True},
                 )
 
+    # Validate prerequisite existence across both hierarchical and standalone task systems
+    # Only validate prerequisites for tasks (other object types don't use prerequisites in practice)
+    if "prerequisites" in data and data["prerequisites"] and object_kind == KindEnum.TASK:
+        from .field_validation import validate_prerequisite_existence
+
+        validate_prerequisite_existence(data["prerequisites"], str(project_root), collector)
+
     return collector
 
 
