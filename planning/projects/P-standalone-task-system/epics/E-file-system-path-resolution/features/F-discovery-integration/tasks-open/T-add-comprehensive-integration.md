@@ -1,14 +1,14 @@
 ---
 kind: task
 id: T-add-comprehensive-integration
+parent: F-discovery-integration
+status: in-progress
 title: Add comprehensive integration tests for mixed task environments
-status: open
 priority: normal
 prerequisites: []
 created: '2025-07-18T16:14:16.133102'
-updated: '2025-07-18T16:14:16.133102'
+updated: '2025-07-18T16:54:36.342344'
 schema_version: '1.1'
-parent: F-discovery-integration
 ---
 ### Purpose
 Add comprehensive integration tests to ensure all MCP operations work correctly with mixed task environments (both standalone and hierarchical tasks), validating the complete discovery integration.
