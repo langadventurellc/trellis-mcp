@@ -13,7 +13,7 @@ from .exceptions.invalid_status_for_completion import InvalidStatusForCompletion
 from .exceptions.prerequisites_not_complete import PrerequisitesNotComplete
 from .io_utils import read_markdown, write_markdown
 from .object_parser import parse_object
-from .path_resolver import id_to_path, resolve_path_for_new_object
+from .path_resolver import id_to_path, resolve_path_for_new_object, resolve_project_roots
 from .schema.status_enum import StatusEnum
 from .schema.task import TaskModel
 
@@ -63,8 +63,9 @@ def complete_task(
         >>> task.status
         <StatusEnum.DONE: 'done'>
     """
-    # Convert to Path if string
-    project_root_path = Path(project_root)
+    # Resolve project roots to get the proper planning directory
+    original_project_root_path = Path(project_root)
+    project_root_path, planning_root = resolve_project_roots(project_root)
 
     # Clean the task ID (remove prefix if present)
     clean_task_id = task_id.strip()
@@ -74,9 +75,9 @@ def complete_task(
     if clean_task_id.startswith("T-"):
         clean_task_id = clean_task_id[2:]
 
-    # Resolve the task file path
+    # Resolve the task file path using the planning root
     try:
-        task_file_path = id_to_path(project_root_path, "task", clean_task_id)
+        task_file_path = id_to_path(planning_root, "task", clean_task_id)
     except FileNotFoundError:
         raise FileNotFoundError(f"Task with ID '{task_id}' not found")
     except ValueError as e:
@@ -98,7 +99,7 @@ def complete_task(
         )
 
     # Validate that all prerequisites are completed
-    if not is_unblocked(task, project_root_path):
+    if not is_unblocked(task, original_project_root_path):
         raise PrerequisitesNotComplete(
             f"Task '{task_id}' cannot be completed because one or more "
             f"prerequisites are not yet done"
@@ -109,11 +110,13 @@ def complete_task(
         _append_log_entry(task_file_path, summary, files_changed or [])
 
     # Now actually complete the task by moving to tasks-done and updating status
-    completed_task = _move_task_to_done(project_root_path, task, task_file_path, clean_task_id)
+    completed_task = _move_task_to_done(
+        original_project_root_path, task, task_file_path, clean_task_id
+    )
 
     # Check if parent feature should be updated to done status
     if task.parent:
-        _check_and_update_parent_feature_status(project_root_path, task.parent)
+        _check_and_update_parent_feature_status(original_project_root_path, task.parent)
 
     return completed_task
 
@@ -186,6 +189,9 @@ def _move_task_to_done(
     yaml_dict["status"] = "done"
     yaml_dict["worktree"] = None
 
+    # Get planning root for path resolution
+    _, planning_root = resolve_project_roots(project_root)
+
     # Resolve destination path in tasks-done with timestamp prefix
     if task.parent is None:
         # Standalone task: place in root tasks-done directory
@@ -193,7 +199,7 @@ def _move_task_to_done(
             kind="task",
             obj_id=clean_task_id,
             parent_id=None,
-            project_root=project_root,
+            project_root=planning_root,
             status="done",
         )
     else:
@@ -203,7 +209,7 @@ def _move_task_to_done(
             kind="task",
             obj_id=clean_task_id,
             parent_id=parent_clean,
-            project_root=project_root,
+            project_root=planning_root,
             status="done",
         )
 
@@ -257,8 +263,9 @@ def _get_all_feature_tasks(project_root: Path, feature_id: str) -> list[TaskMode
         clean_feature_id = clean_feature_id[2:]
 
     # Find the feature path to get its directory
+    _, planning_root = resolve_project_roots(project_root)
     try:
-        feature_path = id_to_path(project_root, "feature", clean_feature_id)
+        feature_path = id_to_path(planning_root, "feature", clean_feature_id)
     except FileNotFoundError:
         raise FileNotFoundError(f"Feature with ID '{feature_id}' not found")
 
@@ -315,7 +322,8 @@ def _update_feature_status(project_root: Path, feature_id: str, new_status: str)
         clean_feature_id = clean_feature_id[2:]
 
     # Find and load the feature
-    feature_path = id_to_path(project_root, "feature", clean_feature_id)
+    _, planning_root = resolve_project_roots(project_root)
+    feature_path = id_to_path(planning_root, "feature", clean_feature_id)
     yaml_dict, body = read_markdown(feature_path)
 
     # Update status and timestamp
@@ -347,7 +355,8 @@ def _check_and_update_parent_feature_status(project_root: Path, parent_feature_i
 
     try:
         # Load the parent feature to check its current status
-        feature_path = id_to_path(project_root, "feature", clean_feature_id)
+        _, planning_root = resolve_project_roots(project_root)
+        feature_path = id_to_path(planning_root, "feature", clean_feature_id)
         feature = parse_object(feature_path)
 
         # Only update if feature is currently in-progress
