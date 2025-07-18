@@ -475,6 +475,130 @@ class TestValidateObjectData:
         assert "Invalid priority" in error_text
         assert "does not exist" in error_text
 
+    def test_validate_object_data_standalone_task_valid(self, tmp_path: Path):
+        """Test standalone task (no parent) validates successfully."""
+        data = {
+            "kind": "task",
+            "id": "T-standalone",
+            "status": "open",
+            "title": "Standalone Task",
+            "created": "2023-01-01T00:00:00",
+            "updated": "2023-01-01T00:00:00",
+            "schema_version": "1.1",
+        }
+
+        # Should not raise any exception - standalone tasks don't need parent validation
+        validate_object_data(data, tmp_path / "planning")
+
+    def test_validate_object_data_standalone_task_with_parent_field_none(self, tmp_path: Path):
+        """Test standalone task with parent field set to None validates successfully."""
+        data = {
+            "kind": "task",
+            "id": "T-standalone",
+            "parent": None,
+            "status": "open",
+            "title": "Standalone Task",
+            "created": "2023-01-01T00:00:00",
+            "updated": "2023-01-01T00:00:00",
+            "schema_version": "1.1",
+        }
+
+        # Should not raise any exception - standalone tasks don't need parent validation
+        validate_object_data(data, tmp_path / "planning")
+
+    def test_validate_object_data_standalone_task_with_parent_field_empty(self, tmp_path: Path):
+        """Test standalone task with parent field set to empty string validates successfully."""
+        data = {
+            "kind": "task",
+            "id": "T-standalone",
+            "parent": "",
+            "status": "open",
+            "title": "Standalone Task",
+            "created": "2023-01-01T00:00:00",
+            "updated": "2023-01-01T00:00:00",
+            "schema_version": "1.1",
+        }
+
+        # Should not raise any exception - standalone tasks don't need parent validation
+        validate_object_data(data, tmp_path / "planning")
+
+    def test_validate_object_data_hierarchy_task_with_existing_parent(self, tmp_path: Path):
+        """Test hierarchy task with existing parent validates successfully."""
+        # Create full hierarchy structure
+        project_dir = tmp_path / "planning" / "projects" / "P-test-project"
+        project_dir.mkdir(parents=True)
+        project_file = project_dir / "project.md"
+        project_file.write_text("---\nkind: project\npriority: normal\n---\n")
+
+        epic_dir = project_dir / "epics" / "E-test-epic"
+        epic_dir.mkdir(parents=True)
+        epic_file = epic_dir / "epic.md"
+        epic_file.write_text("---\nkind: epic\npriority: normal\n---\n")
+
+        feature_dir = epic_dir / "features" / "F-test-feature"
+        feature_dir.mkdir(parents=True)
+        feature_file = feature_dir / "feature.md"
+        feature_file.write_text("---\nkind: feature\npriority: normal\n---\n")
+
+        data = {
+            "kind": "task",
+            "id": "T-hierarchy",
+            "parent": "F-test-feature",
+            "status": "open",
+            "title": "Hierarchy Task",
+            "created": "2023-01-01T00:00:00",
+            "updated": "2023-01-01T00:00:00",
+            "schema_version": "1.1",
+        }
+
+        # Should not raise any exception - hierarchy tasks with valid parent should pass
+        validate_object_data(data, tmp_path / "planning")
+
+    def test_validate_object_data_hierarchy_task_with_nonexistent_parent(self, tmp_path: Path):
+        """Test hierarchy task with non-existent parent fails validation."""
+        data = {
+            "kind": "task",
+            "id": "T-hierarchy",
+            "parent": "F-nonexistent",
+            "status": "open",
+            "title": "Hierarchy Task",
+            "created": "2023-01-01T00:00:00",
+            "updated": "2023-01-01T00:00:00",
+            "schema_version": "1.1",
+        }
+
+        with pytest.raises(TrellisValidationError) as exc_info:
+            validate_object_data(data, tmp_path / "planning")
+
+        error = exc_info.value
+        assert len(error.errors) == 1
+        assert "Parent feature with ID" in error.errors[0]
+        assert "does not exist" in error.errors[0]
+
+    def test_validate_object_data_conditional_validation_preserves_other_objects(
+        self, tmp_path: Path
+    ):
+        """Test conditional validation doesn't affect non-task objects."""
+        # Test that epic still requires parent validation
+        data = {
+            "kind": "epic",
+            "id": "E-test",
+            "parent": "P-nonexistent",
+            "status": "draft",
+            "title": "Test Epic",
+            "created": "2023-01-01T00:00:00",
+            "updated": "2023-01-01T00:00:00",
+            "schema_version": "1.1",
+        }
+
+        with pytest.raises(TrellisValidationError) as exc_info:
+            validate_object_data(data, tmp_path / "planning")
+
+        error = exc_info.value
+        assert len(error.errors) == 1
+        assert "Parent project with ID" in error.errors[0]
+        assert "does not exist" in error.errors[0]
+
 
 class TestCircularDependencyError:
     """Test the CircularDependencyError exception class."""

@@ -1101,11 +1101,16 @@ def validate_object_data(data: dict[str, Any], project_root: str | Path) -> None
         errors.append(str(e))
 
     # Validate parent existence (still requires filesystem access)
+    # Skip parent validation for standalone tasks - they don't need parent references
     if "parent" in data:
-        try:
-            validate_parent_exists_for_object(data["parent"], object_kind, project_root)
-        except ValueError as e:
-            errors.append(str(e))
+        # Early return: skip parent validation for standalone tasks
+        if object_kind == KindEnum.TASK and is_standalone_task(data):
+            pass  # Standalone tasks don't require parent validation
+        else:
+            try:
+                validate_parent_exists_for_object(data["parent"], object_kind, project_root)
+            except ValueError as e:
+                errors.append(str(e))
 
     # Raise exception if any errors were found
     if errors:
