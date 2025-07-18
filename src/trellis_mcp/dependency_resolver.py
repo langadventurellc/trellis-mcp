@@ -7,7 +7,6 @@ by checking the completion status of all its prerequisites.
 from pathlib import Path
 from typing import Any, cast
 
-from .id_utils import clean_prerequisite_id
 from .schema.task import TaskModel
 from .validation import get_all_objects
 
@@ -38,16 +37,16 @@ def is_unblocked(task: TaskModel, project_root: str | Path = ".") -> bool:
 
     # Check each prerequisite
     for prereq_id in task.prerequisites:
-        # Clean the prerequisite ID (remove T- prefix if present)
-        cleaned_id = clean_prerequisite_id(prereq_id)
+        # Use the prerequisite ID as-is since objects are stored with full IDs
+        # (The clean_prerequisite_id function was causing lookups to fail)
 
         # Check if prerequisite exists
-        if cleaned_id not in all_objects:
+        if prereq_id not in all_objects:
             # Missing prerequisite means task is blocked
             return False
 
         # Check prerequisite status
-        prereq_status = all_objects[cleaned_id].get("status", "")
+        prereq_status = all_objects[prereq_id].get("status", "")
         if prereq_status != "done":
             # Incomplete prerequisite means task is blocked
             return False

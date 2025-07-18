@@ -128,8 +128,8 @@ class TestIsUnblocked:
         with patch("trellis_mcp.dependency_resolver.get_all_objects", return_value=mock_objects):
             assert is_unblocked(task) is False
 
-    def test_prerequisite_with_t_prefix_is_cleaned(self):
-        """Prerequisites with T- prefix should be cleaned and checked properly."""
+    def test_prerequisite_with_full_id_is_found(self):
+        """Prerequisites with full IDs should be found and checked properly."""
         now = datetime.now()
         task = TaskModel(
             kind=KindEnum.TASK,
@@ -146,15 +146,12 @@ class TestIsUnblocked:
         )
 
         mock_objects = {
-            "001": {"status": "done", "kind": "task"},  # Cleaned IDs in storage
-            "002": {"status": "done", "kind": "task"},
+            "T-001": {"status": "done", "kind": "task"},  # Full IDs in storage
+            "T-002": {"status": "done", "kind": "task"},
         }
 
         with patch("trellis_mcp.dependency_resolver.get_all_objects", return_value=mock_objects):
-            with patch("trellis_mcp.dependency_resolver.clean_prerequisite_id") as mock_clean:
-                # Mock the cleaning function to remove T- prefix
-                mock_clean.side_effect = lambda x: x[2:] if x.startswith("T-") else x
-                assert is_unblocked(task) is True
+            assert is_unblocked(task) is True
 
     def test_prerequisite_without_status_is_blocked(self):
         """Prerequisite without status field should block the task."""
