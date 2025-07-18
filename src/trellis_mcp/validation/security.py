@@ -14,6 +14,9 @@ def validate_standalone_task_security(data: dict[str, Any]) -> list[str]:
     introduce privilege escalation opportunities or allow validation bypass through
     parent field manipulation.
 
+    Note: Security validation is only performed for schema version 1.1 as schema 1.0
+    does not support standalone tasks.
+
     Args:
         data: The object data dictionary
 
@@ -24,6 +27,11 @@ def validate_standalone_task_security(data: dict[str, Any]) -> list[str]:
 
     # Only validate if this is a task object
     if data.get("kind") != "task":
+        return errors
+
+    # Skip security validation for schema 1.0 - standalone tasks not supported
+    schema_version = data.get("schema_version", "1.1")
+    if schema_version == "1.0":
         return errors
 
     # Get parent field value

@@ -661,7 +661,7 @@ class TestPydanticModelFailures:
             ProjectModel.model_validate(data)
 
         error = exc_info.value
-        assert "Input should be '1.1'" in str(error)
+        assert "Input should be '1.0' or '1.1'" in str(error)
 
     def test_model_with_extra_fields(self):
         """Test model validation fails with extra fields (due to extra='forbid')."""
@@ -775,3 +775,92 @@ Invalid YAML
 
         with pytest.raises(FileNotFoundError, match="File not found"):
             parse_object(missing_file)
+
+
+class TestSchemaVersionCompatibility:
+    """Test compatibility between schema versions 1.0 and 1.1."""
+
+    def test_schema_10_task_with_parent_validates(self):
+        """Test that schema 1.0 tasks with parent validate correctly."""
+        data = {
+            "kind": "task",
+            "id": "T-test",
+            "parent": "F-parent",
+            "status": "open",
+            "title": "Test Task",
+            "priority": "normal",
+            "prerequisites": [],
+            "worktree": None,
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        # Should not raise ValidationError
+        model = TaskModel.model_validate(data)
+        assert model.schema_version == "1.0"
+        assert model.parent == "F-parent"
+
+    def test_schema_10_task_without_parent_fails(self):
+        """Test that schema 1.0 tasks without parent fail validation."""
+        data = {
+            "kind": "task",
+            "id": "T-test",
+            "parent": None,
+            "status": "open",
+            "title": "Test Task",
+            "priority": "normal",
+            "prerequisites": [],
+            "worktree": None,
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.0",
+        }
+
+        with pytest.raises(ValidationError) as exc_info:
+            TaskModel.model_validate(data)
+
+        error = exc_info.value
+        assert "Tasks must have a parent in schema version 1.0" in str(error)
+
+    def test_schema_11_task_without_parent_validates(self):
+        """Test that schema 1.1 tasks without parent validate correctly."""
+        data = {
+            "kind": "task",
+            "id": "T-test",
+            "parent": None,
+            "status": "open",
+            "title": "Test Task",
+            "priority": "normal",
+            "prerequisites": [],
+            "worktree": None,
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.1",
+        }
+
+        # Should not raise ValidationError
+        model = TaskModel.model_validate(data)
+        assert model.schema_version == "1.1"
+        assert model.parent is None
+
+    def test_schema_11_task_with_parent_validates(self):
+        """Test that schema 1.1 tasks with parent validate correctly."""
+        data = {
+            "kind": "task",
+            "id": "T-test",
+            "parent": "F-parent",
+            "status": "open",
+            "title": "Test Task",
+            "priority": "normal",
+            "prerequisites": [],
+            "worktree": None,
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.1",
+        }
+
+        # Should not raise ValidationError
+        model = TaskModel.model_validate(data)
+        assert model.schema_version == "1.1"
+        assert model.parent == "F-parent"

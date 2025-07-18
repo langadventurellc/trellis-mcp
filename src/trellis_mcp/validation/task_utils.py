@@ -18,6 +18,9 @@ def is_standalone_task(
     1. is_standalone_task(object_kind, parent_id) - Original signature
     2. is_standalone_task(task_data) - New signature for task data structures
 
+    Note: Standalone tasks are only supported in schema version 1.1.
+    Schema version 1.0 tasks must have a parent (hierarchy tasks only).
+
     Args:
         object_kind_or_task_data: Either a KindEnum or a task data dictionary
         parent_id: The parent ID (None for standalone) - only used with KindEnum
@@ -38,6 +41,11 @@ def is_standalone_task(
 
         # Check if this is a task object
         if task_data.get("kind") != "task":
+            return False
+
+        # Check schema version - standalone tasks only supported in 1.1
+        schema_version = task_data.get("schema_version", "1.1")
+        if schema_version == "1.0":
             return False
 
         # Check if parent field is None or missing (both indicate standalone)
@@ -82,6 +90,8 @@ def is_standalone_task_guard(obj: Any) -> TypeGuard[dict[str, Any]]:
     A standalone task is a task object with no parent (parent is None or empty).
     This function provides proper type narrowing for static type checkers.
 
+    Note: Standalone tasks are only supported in schema version 1.1.
+
     Args:
         obj: The object to check
 
@@ -98,6 +108,11 @@ def is_standalone_task_guard(obj: Any) -> TypeGuard[dict[str, Any]]:
 
     # Check if this is a task object
     if obj.get("kind") != "task":
+        return False
+
+    # Check schema version - standalone tasks only supported in 1.1
+    schema_version = obj.get("schema_version", "1.1")
+    if schema_version == "1.0":
         return False
 
     # Check if parent field is None or empty (both indicate standalone)
