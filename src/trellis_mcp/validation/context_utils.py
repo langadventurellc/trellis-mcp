@@ -58,6 +58,9 @@ def format_validation_error_with_context(error_message: str, data: dict[str, Any
 def generate_contextual_error_message(error_type: str, data: dict[str, Any], **kwargs) -> str:
     """Generate contextual error messages based on task type.
 
+    This function provides backward compatibility while integrating with
+    the new template system. New code should use the template system directly.
+
     Args:
         error_type: Type of error (e.g., 'invalid_status', 'missing_parent')
         data: The object data dictionary
@@ -66,6 +69,57 @@ def generate_contextual_error_message(error_type: str, data: dict[str, Any], **k
     Returns:
         Contextual error message string
     """
+    # Try to use template system first
+    try:
+        from .message_templates import generate_template_message
+
+        # Map error types to template keys
+        template_mapping = {
+            "invalid_status": (
+                "status.invalid_with_options" if "valid_values" in kwargs else "status.invalid"
+            ),
+            "missing_parent": (
+                "parent.missing_with_note"
+                if get_task_type_context(data) == "standalone task"
+                else "parent.missing"
+            ),
+            "parent_not_exist": (
+                "parent.not_found_with_context"
+                if get_task_type_context(data)
+                else "parent.not_found"
+            ),
+            "missing_fields": "fields.missing_with_context",
+            "invalid_enum": "fields.invalid_enum",
+        }
+
+        template_key = template_mapping.get(error_type)
+        if template_key:
+            # Prepare parameters for template
+            params = kwargs.copy()
+
+            # Handle special parameter mappings
+            if error_type == "invalid_status":
+                params["value"] = kwargs.get("status", "unknown")
+            elif error_type == "missing_parent":
+                if get_task_type_context(data) == "standalone task":
+                    params["note"] = "standalone tasks don't require parent"
+            elif error_type == "parent_not_exist":
+                params["parent_kind"] = kwargs.get("parent_kind", "parent")
+                params["parent_id"] = kwargs.get("parent_id", "unknown")
+            elif error_type == "missing_fields":
+                params["fields"] = kwargs.get("fields", [])
+            elif error_type == "invalid_enum":
+                params["field"] = kwargs.get("field", "field")
+                params["value"] = kwargs.get("value", "unknown")
+                params["valid_values"] = kwargs.get("valid_values", [])
+
+            return generate_template_message(template_key, data, **params)
+
+    except (ImportError, KeyError):
+        # Fall back to original implementation if template system fails
+        pass
+
+    # Original implementation as fallback
     task_context = get_task_type_context(data)
     object_kind = data.get("kind", "object")
 

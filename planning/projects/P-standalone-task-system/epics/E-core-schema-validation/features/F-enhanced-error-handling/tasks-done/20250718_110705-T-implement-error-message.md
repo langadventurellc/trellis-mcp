@@ -1,15 +1,16 @@
 ---
 kind: task
 id: T-implement-error-message
+parent: F-enhanced-error-handling
+status: done
 title: Implement error message templates system
-status: open
 priority: high
 prerequisites:
 - T-create-custom-exception-classes
 created: '2025-07-18T10:25:42.277617'
-updated: '2025-07-18T10:25:42.277617'
+updated: '2025-07-18T10:55:28.958934'
 schema_version: '1.1'
-parent: F-enhanced-error-handling
+worktree: null
 ---
 Create a system for error message templates with placeholder substitution to ensure consistent, user-friendly error messages.
 
@@ -31,3 +32,6 @@ Create a system for error message templates with placeholder substitution to ens
 
 ### Log
 
+
+**2025-07-18T16:07:05.806930Z** - Implemented comprehensive error message template system with centralized templates, parameter substitution, context awareness, and backward compatibility. Created 40+ message templates covering all validation scenarios including status, parent, security, hierarchy, and field validation. Integrated with existing validation functions while maintaining full backward compatibility.
+- filesChanged: ["src/trellis_mcp/validation/message_templates/__init__.py", "src/trellis_mcp/validation/message_templates/core.py", "src/trellis_mcp/validation/message_templates/registry.py", "src/trellis_mcp/validation/message_templates/templates.py", "src/trellis_mcp/validation/message_templates/formatters.py", "src/trellis_mcp/validation/message_templates/engine.py", "src/trellis_mcp/validation/context_utils.py", "src/trellis_mcp/validation/security.py", "tests/unit/test_message_templates.py"]
