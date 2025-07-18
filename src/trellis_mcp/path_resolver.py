@@ -354,7 +354,8 @@ def path_to_id(file_path: Path) -> tuple[str, str]:
     """Convert a filesystem path to object kind and ID.
 
     This function performs the reverse mapping of id_to_path(), taking a filesystem
-    path and returning the object kind and ID.
+    path and returning the object kind and ID. Supports both hierarchy-based and
+    standalone task structures.
 
     Args:
         file_path: Path to the object file
@@ -364,7 +365,8 @@ def path_to_id(file_path: Path) -> tuple[str, str]:
                          and obj_id is the clean ID without prefix
 
     Raises:
-        ValueError: If the path doesn't match expected Trellis MCP structure
+        ValueError: If the path doesn't match expected Trellis MCP structure or contains
+                   invalid characters in task ID
         FileNotFoundError: If the file doesn't exist
 
     Example:
@@ -374,6 +376,12 @@ def path_to_id(file_path: Path) -> tuple[str, str]:
         >>> path = Path("planning/projects/P-user-auth/epics/E-auth/features/F-login/tasks-open/T-implement-jwt.md")  # noqa: E501
         >>> path_to_id(path)
         ('task', 'implement-jwt')
+        >>> path = Path("planning/tasks-open/T-standalone-task.md")  # noqa: E501
+        >>> path_to_id(path)
+        ('task', 'standalone-task')
+        >>> path = Path("planning/tasks-done/20250718_143000-T-completed-task.md")  # noqa: E501
+        >>> path_to_id(path)
+        ('task', 'completed-task')
     """
     # Validate input
     if not file_path.exists():
@@ -422,17 +430,29 @@ def path_to_id(file_path: Path) -> tuple[str, str]:
 
     elif filename.startswith("T-") and filename.endswith(".md"):
         # Task in tasks-open: .../tasks-open/T-{id}.md
+        # Works for both standalone and hierarchy-based tasks
         kind = "task"
         task_id = filename[2:-3]  # Remove T- prefix and .md suffix
+
+        # Validate task ID format for security
+        if not task_id or ".." in task_id or "/" in task_id or "\\" in task_id:
+            raise ValueError(f"Invalid task ID format: {task_id}")
+
         return kind, task_id
 
     elif filename.endswith(".md") and "-T-" in filename:
         # Task in tasks-done: .../tasks-done/{timestamp}-T-{id}.md
+        # Works for both standalone and hierarchy-based tasks
         kind = "task"
         # Find the T- prefix and extract ID
         t_index = filename.rfind("-T-")
         if t_index != -1:
             task_id = filename[t_index + 3 : -3]  # Remove -T- prefix and .md suffix
+
+            # Validate task ID format for security
+            if not task_id or ".." in task_id or "/" in task_id or "\\" in task_id:
+                raise ValueError(f"Invalid task ID format: {task_id}")
+
             return kind, task_id
         raise ValueError(f"Could not parse task ID from filename: {filename}")
 

@@ -1,15 +1,16 @@
 ---
 kind: task
 id: T-update-path-to-id-for-standalone
+parent: F-standalone-task-path-resolution
+status: done
 title: Update path_to_id for standalone task paths
-status: open
 priority: normal
 prerequisites:
 - T-update-id-to-path-for-standalone
 created: '2025-07-18T13:52:46.739437'
-updated: '2025-07-18T13:52:46.739437'
+updated: '2025-07-18T14:45:56.355164'
 schema_version: '1.1'
-parent: F-standalone-task-path-resolution
+worktree: null
 ---
 ### Implementation Requirements
 Modify the `path_to_id` function to correctly parse standalone task paths from the `planning/tasks/` directory structure.
@@ -50,3 +51,6 @@ Modify the `path_to_id` function to correctly parse standalone task paths from t
 
 ### Log
 
+
+**2025-07-18T19:50:22.020528Z** - Updated path_to_id function to correctly handle standalone task paths by adding security validation for task IDs and comprehensive documentation. The function now recognizes both standalone tasks (planning/tasks-open/T-{id}.md and planning/tasks-done/{timestamp}-T-{id}.md) and hierarchy-based tasks, validating task IDs to prevent path traversal attacks. All existing tests continue to pass.
+- filesChanged: ["src/trellis_mcp/path_resolver.py"]
