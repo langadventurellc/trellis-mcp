@@ -15,6 +15,9 @@ def filter_by_scope(root: Path, scope_id: str) -> Iterator[TaskModel]:
     Hierarchical filtering: project scope includes all child tasks,
     epic scope includes tasks in child features, feature scope includes direct tasks.
 
+    Standalone task filtering: project scope includes all standalone tasks,
+    epic/feature scope filtering for standalone tasks requires metadata linkage.
+
     Args:
         root: Path to the project root containing planning/ directory
         scope_id: ID of the scope to filter by (project/epic/feature ID)
@@ -30,73 +33,98 @@ def filter_by_scope(root: Path, scope_id: str) -> Iterator[TaskModel]:
         return
 
     projects_dir = planning_dir / "projects"
-    if not projects_dir.exists() or not projects_dir.is_dir():
-        return
+    # Note: projects_dir might not exist if there are only standalone tasks
 
-    # Traverse the directory structure: projects -> epics -> features -> tasks
-    for project_dir in projects_dir.iterdir():
-        if not project_dir.is_dir() or not project_dir.name.startswith("P-"):
-            continue
-
-        project_id = project_dir.name  # Keep the P- prefix for comparison
-
-        epics_dir = project_dir / "epics"
-        if not epics_dir.exists() or not epics_dir.is_dir():
-            continue
-
-        for epic_dir in epics_dir.iterdir():
-            if not epic_dir.is_dir() or not epic_dir.name.startswith("E-"):
+    # Traverse the hierarchical structure: projects -> epics -> features -> tasks
+    if projects_dir.exists() and projects_dir.is_dir():
+        for project_dir in projects_dir.iterdir():
+            if not project_dir.is_dir() or not project_dir.name.startswith("P-"):
                 continue
 
-            epic_id = epic_dir.name  # Keep the E- prefix for comparison
+            project_id = project_dir.name  # Keep the P- prefix for comparison
 
-            features_dir = epic_dir / "features"
-            if not features_dir.exists() or not features_dir.is_dir():
+            epics_dir = project_dir / "epics"
+            if not epics_dir.exists() or not epics_dir.is_dir():
                 continue
 
-            for feature_dir in features_dir.iterdir():
-                if not feature_dir.is_dir() or not feature_dir.name.startswith("F-"):
+            for epic_dir in epics_dir.iterdir():
+                if not epic_dir.is_dir() or not epic_dir.name.startswith("E-"):
                     continue
 
-                feature_id = feature_dir.name  # Keep the F- prefix for comparison
+                epic_id = epic_dir.name  # Keep the E- prefix for comparison
 
-                # Check both tasks-open and tasks-done directories
-                for task_dir_name in ["tasks-open", "tasks-done"]:
-                    task_dir = feature_dir / task_dir_name
-                    if not task_dir.exists() or not task_dir.is_dir():
+                features_dir = epic_dir / "features"
+                if not features_dir.exists() or not features_dir.is_dir():
+                    continue
+
+                for feature_dir in features_dir.iterdir():
+                    if not feature_dir.is_dir() or not feature_dir.name.startswith("F-"):
                         continue
 
-                    for task_file in task_dir.iterdir():
-                        if not task_file.is_file() or not task_file.name.endswith(".md"):
+                    feature_id = feature_dir.name  # Keep the F- prefix for comparison
+
+                    # Check both tasks-open and tasks-done directories
+                    for task_dir_name in ["tasks-open", "tasks-done"]:
+                        task_dir = feature_dir / task_dir_name
+                        if not task_dir.exists() or not task_dir.is_dir():
                             continue
 
-                        # Security check: ensure file is within project root
-                        if not task_file.resolve().is_relative_to(project_root):
-                            continue
-
-                        try:
-                            # Load and parse task YAML front-matter
-                            yaml_dict, _ = load_markdown(task_file)
-                        except Exception:
-                            # Skip files that can't be parsed
-                            continue
-
-                        # Apply scope filtering
-                        task_parent = yaml_dict.get("parent", "")
-                        if (
-                            scope_id == project_id
-                            or scope_id == epic_id
-                            or scope_id == feature_id
-                            or scope_id == task_parent
-                        ):
-                            # Parse into TaskModel and yield
-                            try:
-                                task_obj = parse_object(task_file)
-                                if isinstance(task_obj, TaskModel):
-                                    yield task_obj
-                            except Exception:
-                                # Skip unparseable tasks gracefully
+                        for task_file in task_dir.iterdir():
+                            if not task_file.is_file() or not task_file.name.endswith(".md"):
                                 continue
+
+                            # Security check: ensure file is within project root
+                            if not task_file.resolve().is_relative_to(project_root):
+                                continue
+
+                            try:
+                                # Load and parse task YAML front-matter
+                                yaml_dict, _ = load_markdown(task_file)
+                            except Exception:
+                                # Skip files that can't be parsed
+                                continue
+
+                            # Apply scope filtering
+                            task_parent = yaml_dict.get("parent", "")
+                            if (
+                                scope_id == project_id
+                                or scope_id == epic_id
+                                or scope_id == feature_id
+                                or scope_id == task_parent
+                            ):
+                                # Parse into TaskModel and yield
+                                try:
+                                    task_obj = parse_object(task_file)
+                                    if isinstance(task_obj, TaskModel):
+                                        yield task_obj
+                                except Exception:
+                                    # Skip unparseable tasks gracefully
+                                    continue
+
+    # Also scan standalone tasks at the root level
+    # Project scope includes all standalone tasks (global project scope)
+    if scope_id.startswith("P-"):
+        for task_dir_name in ["tasks-open", "tasks-done"]:
+            task_dir = planning_dir / task_dir_name
+            if not task_dir.exists() or not task_dir.is_dir():
+                continue
+
+            for task_file in task_dir.iterdir():
+                if not task_file.is_file() or not task_file.name.endswith(".md"):
+                    continue
+
+                # Security check: ensure file is within project root
+                if not task_file.resolve().is_relative_to(project_root):
+                    continue
+
+                try:
+                    # Parse into TaskModel and yield
+                    task_obj = parse_object(task_file)
+                    if isinstance(task_obj, TaskModel):
+                        yield task_obj
+                except Exception:
+                    # Skip unparseable tasks gracefully
+                    continue
 
 
 def apply_filters(tasks: Iterator[TaskModel], filter_params: FilterParams) -> Iterator[TaskModel]:

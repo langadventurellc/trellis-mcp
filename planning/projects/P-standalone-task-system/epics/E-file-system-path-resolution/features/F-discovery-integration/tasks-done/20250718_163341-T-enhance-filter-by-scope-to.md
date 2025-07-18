@@ -1,14 +1,15 @@
 ---
 kind: task
 id: T-enhance-filter-by-scope-to
+parent: F-discovery-integration
+status: done
 title: Enhance filter_by_scope to support standalone tasks
-status: open
 priority: high
 prerequisites: []
 created: '2025-07-18T16:13:54.757929'
-updated: '2025-07-18T16:13:54.757929'
+updated: '2025-07-18T16:28:25.067072'
 schema_version: '1.1'
-parent: F-discovery-integration
+worktree: null
 ---
 ### Purpose
 Enhance the `filter_by_scope()` function to properly handle standalone tasks when scope filtering is applied, ensuring comprehensive task filtering across both storage patterns.
@@ -63,3 +64,6 @@ The `filter_by_scope()` function in `src/trellis_mcp/filters.py` only searches h
 
 ### Log
 
+
+**2025-07-18T21:33:41.970780Z** - Enhanced the filter_by_scope() function to support standalone tasks alongside hierarchical tasks. Implemented scope matching logic where project-level scope (P-*) includes all standalone tasks as global scope items, while epic/feature-level scopes exclude standalone tasks for now (until metadata linkage is defined). Added comprehensive test coverage including mixed task environments, security checks, malformed file handling, and edge cases. All quality checks pass with 100% test coverage for the new functionality.
+- filesChanged: ["src/trellis_mcp/filters.py", "tests/integration/test_filters.py"]
