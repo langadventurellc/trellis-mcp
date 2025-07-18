@@ -11,6 +11,7 @@ from .backlog_loader import load_backlog_tasks
 from .dependency_resolver import is_unblocked
 from .exceptions.no_available_task import NoAvailableTask
 from .object_dumper import write_object
+from .path_resolver import resolve_project_roots
 from .schema.status_enum import StatusEnum
 from .schema.task import TaskModel
 from .task_sorter import sort_tasks_by_priority
@@ -46,11 +47,11 @@ def claim_next_task(project_root: str | Path, worktree_path: str | None = None) 
         >>> task.worktree
         '/workspace/feature-branch'
     """
-    # Convert to Path if string
-    project_root_path = Path(project_root)
+    # Resolve project root to planning directory
+    _, planning_root = resolve_project_roots(project_root)
 
     # Load all open tasks from backlog
-    all_tasks = load_backlog_tasks(project_root_path)
+    all_tasks = load_backlog_tasks(planning_root)
 
     # Filter to only open tasks (defensive check since backlog_loader should only return open tasks)
     open_tasks = [task for task in all_tasks if task.status == StatusEnum.OPEN]
@@ -59,7 +60,7 @@ def claim_next_task(project_root: str | Path, worktree_path: str | None = None) 
         raise NoAvailableTask("No open tasks available in backlog")
 
     # Filter to only unblocked tasks (all prerequisites completed)
-    unblocked_tasks = [task for task in open_tasks if is_unblocked(task, project_root_path)]
+    unblocked_tasks = [task for task in open_tasks if is_unblocked(task, planning_root)]
 
     if not unblocked_tasks:
         raise NoAvailableTask(
@@ -79,6 +80,6 @@ def claim_next_task(project_root: str | Path, worktree_path: str | None = None) 
         selected_task.worktree = worktree_path
 
     # Atomically write the updated task to filesystem
-    write_object(selected_task, project_root_path)
+    write_object(selected_task, planning_root)
 
     return selected_task

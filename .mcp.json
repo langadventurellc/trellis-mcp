@@ -5,9 +5,7 @@
       "command": "uvx",
       "args": [
         "--refresh",
-        "--prerelease",
-        "allow",
-        "task-trellis-mcp==1.0.1rc10",
+        "task-trellis-mcp",
         "serve"
       ],
       "env": {}
