@@ -200,9 +200,9 @@ def write_object(model: TrellisObjectModel, project_root: Path) -> None:
     existing_body = ""
     if target_path.exists():
         try:
-            from .markdown_loader import load_markdown
+            from .io_utils import read_markdown
 
-            _, existing_body = load_markdown(target_path)
+            _, existing_body = read_markdown(target_path)
         except Exception:
             # If we can't read the existing file, use empty body
             existing_body = ""
