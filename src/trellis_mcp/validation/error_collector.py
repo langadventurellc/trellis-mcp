@@ -8,6 +8,12 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..exceptions.validation_error import ValidationError, ValidationErrorCode
+from .security import (
+    audit_security_error,
+    filter_sensitive_information,
+    sanitize_error_message,
+    validate_error_message_safety,
+)
 
 
 class ErrorSeverity(Enum):
@@ -101,6 +107,7 @@ class ValidationErrorCollector:
         context: Optional[Dict[str, Any]] = None,
         severity: Optional[ErrorSeverity] = None,
         category: Optional[ErrorCategory] = None,
+        perform_security_validation: bool = False,
     ) -> None:
         """Add a validation error to the collection.
 
@@ -110,6 +117,7 @@ class ValidationErrorCollector:
             context: Additional context information
             severity: Error severity (auto-determined from code if not provided)
             category: Error category (auto-determined from code if not provided)
+            perform_security_validation: Whether to perform security validation on the error
         """
         # Auto-determine severity and category if not provided
         if severity is None:
@@ -118,8 +126,68 @@ class ValidationErrorCollector:
         if category is None:
             category = self._category_map.get(error_code, ErrorCategory.FIELD)
 
+        # Perform security validation if requested
+        if perform_security_validation:
+            # Sanitize the error message
+            sanitized_message = sanitize_error_message(message)
+
+            # Validate message safety
+            safety_issues = validate_error_message_safety(sanitized_message)
+            if safety_issues:
+                # Log security concern but don't prevent adding the error
+                audit_security_error(
+                    f"Unsafe error message detected: {'; '.join(safety_issues)}",
+                    {"original_message": message[:100]},  # Truncate for safety
+                )
+                # Use a generic message instead
+                sanitized_message = "Validation error occurred"
+
+            # Filter sensitive information from context
+            safe_context = filter_sensitive_information(context or {})
+
+            # Audit security-related errors
+            if category == ErrorCategory.SECURITY:
+                audit_security_error(sanitized_message or "", safe_context)
+        else:
+            sanitized_message = message
+            safe_context = context or {}
+
         # Store the error with metadata
-        self._errors.append((message, error_code, severity, category, context or {}))
+        self._errors.append(
+            (sanitized_message or "", error_code, severity, category, safe_context or {})
+        )
+
+    def add_security_error(
+        self,
+        message: str,
+        error_code: ValidationErrorCode,
+        context: Optional[Dict[str, Any]] = None,
+        severity: Optional[ErrorSeverity] = None,
+    ) -> None:
+        """Add a security-related error to the collection.
+
+        This method specifically handles security errors with enhanced security
+        validation and auditing.
+
+        Args:
+            message: Security error message
+            error_code: Error code for programmatic handling
+            context: Additional context information
+            severity: Error severity (defaults to HIGH for security errors)
+        """
+        # Security errors default to HIGH severity
+        if severity is None:
+            severity = ErrorSeverity.HIGH
+
+        # Add the error with security category and validation enabled
+        self.add_error(
+            message=message,
+            error_code=error_code,
+            context=context,
+            severity=severity,
+            category=ErrorCategory.SECURITY,
+            perform_security_validation=True,
+        )
 
     def has_errors(self) -> bool:
         """Check if any errors have been collected.

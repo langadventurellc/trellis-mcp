@@ -4,6 +4,8 @@ This module provides security validation functions to prevent privilege
 escalation and validation bypass attempts through field manipulation.
 """
 
+import re
+import time
 from typing import Any
 
 
@@ -195,3 +197,213 @@ def _generate_security_error(error_type: str, data: dict[str, Any], **kwargs) ->
 
     # Default fallback
     return f"Security validation failed: {error_type}"
+
+
+def sanitize_error_message(message: str | None) -> str | None:
+    """Sanitize error messages to prevent information disclosure.
+
+    This function removes or obfuscates sensitive information from error messages
+    to prevent attackers from gaining insight into system internals.
+
+    Args:
+        message: The original error message
+
+    Returns:
+        Sanitized error message safe for display
+    """
+    if not message:
+        return message
+
+    # Patterns that indicate sensitive information
+    sensitive_patterns = [
+        # Stack traces - handle these first to avoid interference with path patterns
+        (r'File "[^"]+",\s*line \d+', 'File "[REDACTED]", line [REDACTED]'),
+        (r"at [^(]+\([^)]+\)", "at [REDACTED]"),
+        # Database connection strings
+        (r"(postgresql|mysql|sqlite|mongodb)://[^\s]+", "[REDACTED_CONNECTION]"),
+        # API keys and tokens (basic patterns)
+        (r"[Tt]oken[:\s]+[A-Za-z0-9_-]{15,}", "Token: [REDACTED_TOKEN]"),
+        (r"[Kk]ey[:\s]+[A-Za-z0-9_-]{15,}", "Key: [REDACTED_KEY]"),
+        # UUIDs that might be internal IDs
+        (r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", "[REDACTED_UUID]"),
+        # Environment variables
+        (r"[A-Z_]+=[^\s]+", "[REDACTED_ENV]"),
+        # IP addresses
+        (r"\b(?:\d{1,3}\.){3}\d{1,3}\b", "[REDACTED_IP]"),
+        # File paths (put these after stack traces to avoid conflicts)
+        (r"(/[^/\s]+)+/[^/\s]+\.[^/\s]+", "[REDACTED_PATH]"),
+        (r"[A-Za-z]:\\[^\\]+(?:\\[^\\]+)*", "[REDACTED_PATH]"),
+    ]
+
+    sanitized = message
+    for pattern, replacement in sensitive_patterns:
+        sanitized = re.sub(pattern, replacement, sanitized)
+
+    return sanitized
+
+
+def create_consistent_error_response(
+    error_message: str, error_type: str = "validation"
+) -> dict[str, Any]:
+    """Create a consistent error response with timing protection.
+
+    This function ensures all error responses have consistent timing and structure
+    to prevent timing attacks and information disclosure.
+
+    Args:
+        error_message: The error message to include
+        error_type: The type of error (for categorization)
+
+    Returns:
+        Dictionary with consistent error response structure
+    """
+    # Add a small, consistent delay to prevent timing attacks
+    # This helps ensure all error responses take similar time
+    time.sleep(0.001)  # 1ms delay
+
+    sanitized_message = sanitize_error_message(error_message)
+
+    return {
+        "error": True,
+        "message": sanitized_message,
+        "type": error_type,
+        "timestamp": time.time(),
+    }
+
+
+def audit_security_error(error_message: str, context: dict[str, Any] | None = None) -> None:
+    """Audit security-related errors for monitoring purposes.
+
+    This function logs security-related errors in a structured format
+    for security monitoring and analysis.
+
+    Args:
+        error_message: The security error message
+        context: Additional context information
+    """
+    import logging
+
+    # Get or create security logger
+    logger = logging.getLogger("trellis_mcp.security")
+
+    # Sanitize context to prevent log injection
+    safe_context = filter_sensitive_information(context) if context else {}
+
+    # Log security event
+    logger.warning(
+        "Security validation failure: %s",
+        sanitize_error_message(error_message),
+        extra={"security_context": safe_context},
+    )
+
+
+def validate_error_message_safety(message: str | None) -> list[str]:
+    """Validate that an error message is safe for display.
+
+    This function checks error messages for potentially sensitive information
+    that should not be exposed to users.
+
+    Args:
+        message: The error message to validate
+
+    Returns:
+        List of security issues found (empty if safe)
+    """
+    if not message:
+        return []
+
+    issues = []
+
+    # Check for potentially sensitive information
+    sensitive_checks = [
+        (r"password|passwd|pwd", "Error message contains password-related information"),
+        (r"secret|token|key", "Error message contains secret/token information"),
+        (r"/[^/\s]+(?:/[^/\s]+){3,}", "Error message contains detailed file paths"),
+        (r"[A-Za-z]:\\[^\\]+(?:\\[^\\]+){3,}", "Error message contains detailed Windows paths"),
+        (r"(?i)sql.*(error|exception)", "Error message contains database error details"),
+        (r"(?i)stack\s*trace", "Error message contains stack trace information"),
+        (r"(?i)internal\s*error", "Error message exposes internal system details"),
+        (r"\b(?:\d{1,3}\.){3}\d{1,3}\b", "Error message contains IP addresses"),
+        (r":\d{4,5}\b", "Error message contains port numbers"),
+    ]
+
+    for pattern, issue in sensitive_checks:
+        if re.search(pattern, message, re.IGNORECASE):
+            issues.append(issue)
+
+    return issues
+
+
+def filter_sensitive_information(data: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Filter sensitive information from error context data.
+
+    This function removes or obfuscates sensitive information from error
+    context dictionaries to prevent information disclosure.
+
+    Args:
+        data: The error context data
+
+    Returns:
+        Filtered data with sensitive information removed
+    """
+    if not data:
+        return data
+
+    # Fields that should be removed entirely
+    sensitive_fields = {
+        "password",
+        "passwd",
+        "pwd",
+        "secret",
+        "token",
+        "key",
+        "api_key",
+        "auth_token",
+        "session_id",
+        "csrf_token",
+        "private_key",
+        "cert",
+        "certificate",
+        "credential",
+        "connection_string",
+        "database_url",
+    }
+
+    # Fields that should be obfuscated
+    obfuscate_fields = {
+        "email",
+        "username",
+        "user_id",
+        "id",
+        "path",
+        "file_path",
+        "directory",
+        "url",
+        "host",
+        "hostname",
+        "ip",
+        "address",
+    }
+
+    filtered = {}
+    for key, value in data.items():
+        key_lower = key.lower()
+
+        # Skip sensitive fields entirely
+        if any(sensitive in key_lower for sensitive in sensitive_fields):
+            continue
+
+        # Obfuscate certain fields
+        if any(field in key_lower for field in obfuscate_fields):
+            if isinstance(value, str) and len(value) > 4:
+                filtered[key] = value[:2] + "***" + value[-2:]
+            else:
+                filtered[key] = "***"
+        else:
+            # Keep non-sensitive fields
+            if isinstance(value, str):
+                filtered[key] = sanitize_error_message(value)
+            else:
+                filtered[key] = value
+
+    return filtered
