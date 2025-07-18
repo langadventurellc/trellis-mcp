@@ -2,12 +2,12 @@
 kind: feature
 id: F-task-validation-logic-updates
 title: Task Validation Logic Updates
-status: in-progress
+status: done
 priority: normal
 prerequisites:
 - F-base-schema-modification
 created: '2025-07-17T18:51:01.253739'
-updated: '2025-07-17T18:51:01.253739'
+updated: '2025-07-18T07:39:33.719940'
 schema_version: '1.0'
 parent: E-core-schema-validation
 ---
