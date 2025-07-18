@@ -213,7 +213,7 @@ async def test_task_lifecycle_claim_complete_workflow_with_file_movement_and_yam
         assert done_yaml["id"] == task_id
         assert done_yaml["title"] == "Implement authentication system"
         assert done_yaml["parent"] == feature_id
-        assert done_yaml["priority"] == 1  # HIGH priority = 1
+        assert done_yaml["priority"] == "high"  # HIGH priority = "high"
         assert done_yaml["kind"] == "task"
 
         # Step 6: Verify log entry was appended with summary and filesChanged
