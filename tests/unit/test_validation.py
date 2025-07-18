@@ -559,7 +559,7 @@ class TestValidateObjectData:
         data = {
             "kind": "task",
             "id": "T-hierarchy",
-            "parent": "F-nonexistent",
+            "parent": "F-nonexistent-parent",  # Changed to avoid false positive
             "status": "open",
             "title": "Hierarchy Task",
             "created": "2023-01-01T00:00:00",
