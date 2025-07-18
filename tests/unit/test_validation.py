@@ -1939,3 +1939,284 @@ class TestEnforceStatusTransition:
         error_msg = str(exc_info.value)
         assert "Invalid old status" in error_msg
         assert "invalid" in error_msg
+
+
+class TestTaskTypeDetection:
+    """Test task type detection utility functions."""
+
+    def test_is_standalone_task_valid_standalone(self):
+        """Test is_standalone_task with valid standalone task data."""
+        # Valid standalone task (parent=None)
+        task_data = {
+            "kind": "task",
+            "id": "T-standalone",
+            "parent": None,
+            "status": "open",
+            "title": "Standalone Task",
+            "priority": "normal",
+            "prerequisites": [],
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.1",
+        }
+
+        from trellis_mcp.validation import is_standalone_task
+
+        assert is_standalone_task(task_data) is True
+
+    def test_is_standalone_task_missing_parent(self):
+        """Test is_standalone_task with missing parent field."""
+        # Task without parent field (missing key)
+        task_data = {
+            "kind": "task",
+            "id": "T-standalone",
+            "status": "open",
+            "title": "Standalone Task",
+            "priority": "normal",
+            "prerequisites": [],
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.1",
+        }
+
+        from trellis_mcp.validation import is_standalone_task
+
+        assert is_standalone_task(task_data) is True
+
+    def test_is_standalone_task_empty_parent(self):
+        """Test is_standalone_task with empty string parent."""
+        # Task with empty string parent
+        task_data = {
+            "kind": "task",
+            "id": "T-standalone",
+            "parent": "",
+            "status": "open",
+            "title": "Standalone Task",
+            "priority": "normal",
+            "prerequisites": [],
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.1",
+        }
+
+        from trellis_mcp.validation import is_standalone_task
+
+        assert is_standalone_task(task_data) is True
+
+    def test_is_standalone_task_hierarchy_task(self):
+        """Test is_standalone_task with hierarchy task data."""
+        # Hierarchy task (has parent)
+        task_data = {
+            "kind": "task",
+            "id": "T-hierarchy",
+            "parent": "F-feature",
+            "status": "open",
+            "title": "Hierarchy Task",
+            "priority": "normal",
+            "prerequisites": [],
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.1",
+        }
+
+        from trellis_mcp.validation import is_standalone_task
+
+        assert is_standalone_task(task_data) is False
+
+    def test_is_standalone_task_non_task_object(self):
+        """Test is_standalone_task with non-task object."""
+        # Non-task object (project)
+        project_data = {
+            "kind": "project",
+            "id": "P-project",
+            "parent": None,
+            "status": "draft",
+            "title": "Test Project",
+            "priority": "normal",
+            "prerequisites": [],
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.1",
+        }
+
+        from trellis_mcp.validation import is_standalone_task
+
+        assert is_standalone_task(project_data) is False
+
+    def test_is_standalone_task_edge_cases(self):
+        """Test is_standalone_task with edge cases."""
+        from trellis_mcp.validation import is_standalone_task
+
+        # None data
+        assert is_standalone_task(None) is False
+
+        # Empty dict
+        assert is_standalone_task({}) is False
+
+        # Dict with only kind field
+        assert is_standalone_task({"kind": "task"}) is True
+
+        # Dict with kind but wrong type
+        assert is_standalone_task({"kind": "feature"}) is False
+
+    def test_is_hierarchy_task_valid_hierarchy(self):
+        """Test is_hierarchy_task with valid hierarchy task data."""
+        # Valid hierarchy task (has parent)
+        task_data = {
+            "kind": "task",
+            "id": "T-hierarchy",
+            "parent": "F-feature",
+            "status": "open",
+            "title": "Hierarchy Task",
+            "priority": "normal",
+            "prerequisites": [],
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.1",
+        }
+
+        from trellis_mcp.validation import is_hierarchy_task
+
+        assert is_hierarchy_task(task_data) is True
+
+    def test_is_hierarchy_task_standalone_task(self):
+        """Test is_hierarchy_task with standalone task data."""
+        # Standalone task (parent=None)
+        task_data = {
+            "kind": "task",
+            "id": "T-standalone",
+            "parent": None,
+            "status": "open",
+            "title": "Standalone Task",
+            "priority": "normal",
+            "prerequisites": [],
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.1",
+        }
+
+        from trellis_mcp.validation import is_hierarchy_task
+
+        assert is_hierarchy_task(task_data) is False
+
+    def test_is_hierarchy_task_missing_parent(self):
+        """Test is_hierarchy_task with missing parent field."""
+        # Task without parent field (missing key)
+        task_data = {
+            "kind": "task",
+            "id": "T-standalone",
+            "status": "open",
+            "title": "Standalone Task",
+            "priority": "normal",
+            "prerequisites": [],
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.1",
+        }
+
+        from trellis_mcp.validation import is_hierarchy_task
+
+        assert is_hierarchy_task(task_data) is False
+
+    def test_is_hierarchy_task_empty_parent(self):
+        """Test is_hierarchy_task with empty string parent."""
+        # Task with empty string parent
+        task_data = {
+            "kind": "task",
+            "id": "T-standalone",
+            "parent": "",
+            "status": "open",
+            "title": "Standalone Task",
+            "priority": "normal",
+            "prerequisites": [],
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.1",
+        }
+
+        from trellis_mcp.validation import is_hierarchy_task
+
+        assert is_hierarchy_task(task_data) is False
+
+    def test_is_hierarchy_task_non_task_object(self):
+        """Test is_hierarchy_task with non-task object."""
+        # Non-task object (epic with parent)
+        epic_data = {
+            "kind": "epic",
+            "id": "E-epic",
+            "parent": "P-project",
+            "status": "draft",
+            "title": "Test Epic",
+            "priority": "normal",
+            "prerequisites": [],
+            "created": "2023-01-01T00:00:00Z",
+            "updated": "2023-01-01T00:00:00Z",
+            "schema_version": "1.1",
+        }
+
+        from trellis_mcp.validation import is_hierarchy_task
+
+        assert is_hierarchy_task(epic_data) is False
+
+    def test_is_hierarchy_task_edge_cases(self):
+        """Test is_hierarchy_task with edge cases."""
+        from trellis_mcp.validation import is_hierarchy_task
+
+        # None data
+        assert is_hierarchy_task(None) is False
+
+        # Empty dict
+        assert is_hierarchy_task({}) is False
+
+        # Dict with only kind field
+        assert is_hierarchy_task({"kind": "task"}) is False
+
+        # Dict with kind but wrong type
+        assert is_hierarchy_task({"kind": "feature", "parent": "P-project"}) is False
+
+    def test_is_standalone_task_original_signature(self):
+        """Test is_standalone_task with original signature for backward compatibility."""
+        from trellis_mcp.schema.kind_enum import KindEnum
+        from trellis_mcp.validation import is_standalone_task
+
+        # Test original signature: is_standalone_task(object_kind, parent_id)
+        assert is_standalone_task(KindEnum.TASK, None) is True
+        assert is_standalone_task(KindEnum.TASK, "F-feature") is False
+        assert is_standalone_task(KindEnum.PROJECT, None) is False
+        assert is_standalone_task(KindEnum.EPIC, None) is False
+        assert is_standalone_task(KindEnum.FEATURE, None) is False
+
+    def test_function_type_detection_complementary(self):
+        """Test that is_standalone_task and is_hierarchy_task are complementary for valid tasks."""
+        from trellis_mcp.validation import is_hierarchy_task, is_standalone_task
+
+        # Standalone task
+        standalone_task = {
+            "kind": "task",
+            "id": "T-standalone",
+            "parent": None,
+            "status": "open",
+            "title": "Standalone Task",
+        }
+
+        # Hierarchy task
+        hierarchy_task = {
+            "kind": "task",
+            "id": "T-hierarchy",
+            "parent": "F-feature",
+            "status": "open",
+            "title": "Hierarchy Task",
+        }
+
+        # For standalone tasks: is_standalone_task=True, is_hierarchy_task=False
+        assert is_standalone_task(standalone_task) is True
+        assert is_hierarchy_task(standalone_task) is False
+
+        # For hierarchy tasks: is_standalone_task=False, is_hierarchy_task=True
+        assert is_standalone_task(hierarchy_task) is False
+        assert is_hierarchy_task(hierarchy_task) is True
+
+        # For non-task objects: both should return False
+        non_task = {"kind": "project", "parent": None}
+        assert is_standalone_task(non_task) is False
+        assert is_hierarchy_task(non_task) is False
