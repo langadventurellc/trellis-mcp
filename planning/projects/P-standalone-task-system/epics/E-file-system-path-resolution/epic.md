@@ -2,12 +2,12 @@
 kind: epic
 id: E-file-system-path-resolution
 title: File System & Path Resolution
-status: in-progress
+status: done
 priority: normal
 prerequisites:
 - E-core-schema-validation
 created: '2025-07-17T18:47:57.761457'
-updated: '2025-07-17T18:47:57.761457'
+updated: '2025-07-18T17:10:23.155177'
 schema_version: '1.0'
 parent: P-standalone-task-system
 ---
