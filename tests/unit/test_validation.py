@@ -1345,7 +1345,7 @@ class TestValidateFrontMatter:
         assert "parent" in errors[0]
 
     def test_validate_front_matter_missing_parent_for_task(self):
-        """Test missing parent field for task."""
+        """Test that tasks can now be created without a parent field (standalone tasks)."""
         yaml_dict = {
             "kind": "task",
             "id": "test-task",
@@ -1357,9 +1357,7 @@ class TestValidateFrontMatter:
         }
 
         errors = validate_front_matter(yaml_dict, "task")
-        assert len(errors) == 1
-        assert "Missing required fields" in errors[0]
-        assert "parent" in errors[0]
+        assert len(errors) == 0  # Should pass validation for standalone tasks
 
     def test_validate_front_matter_invalid_enum_values(self):
         """Test invalid enum values."""

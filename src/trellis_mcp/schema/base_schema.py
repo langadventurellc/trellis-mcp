@@ -132,8 +132,9 @@ class BaseSchemaModel(TrellisBaseModel):
                     if v is None:
                         raise ValueError("Features must have a parent epic ID")
                 elif object_kind == KindEnum.TASK:
-                    if v is None:
-                        raise ValueError("Tasks must have a parent feature ID")
+                    # Tasks can now be standalone (parent=None) or hierarchy-based
+                    # No validation error for None parent to support standalone tasks
+                    pass
 
         return v
 
