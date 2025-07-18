@@ -99,6 +99,22 @@ def id_to_path(project_root: Path, kind: str, obj_id: str) -> Path:
         not found. This ensures standalone tasks take priority over hierarchy tasks
         with the same ID.
     """
+    # Validate inputs for security and data integrity
+    if not kind or kind not in VALID_KINDS:
+        raise ValueError(f"Invalid kind '{kind}'. Must be one of: {VALID_KINDS}")
+
+    if not obj_id or not obj_id.strip():
+        raise ValueError("Object ID cannot be empty")
+
+    # For tasks, validate input parameters to prevent path traversal attacks
+    if kind == "task":
+        from .validation.field_validation import validate_standalone_task_path_parameters
+
+        validation_errors = validate_standalone_task_path_parameters(obj_id)
+        if validation_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Invalid task ID: {validation_errors[0]}")
+
     # Use the shared utility to find the object path
     result_path = find_object_path(kind, obj_id, project_root)
 
@@ -189,6 +205,15 @@ def resolve_path_for_new_object(
 
     if not obj_id or not obj_id.strip():
         raise ValueError("Object ID cannot be empty")
+
+    # For tasks, validate input parameters to prevent path traversal attacks
+    if kind == "task":
+        from .validation.field_validation import validate_standalone_task_path_parameters
+
+        validation_errors = validate_standalone_task_path_parameters(obj_id, status)
+        if validation_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Invalid task parameters: {validation_errors[0]}")
 
     # Clean the ID (remove any existing prefix if present)
     clean_id = obj_id.strip()
@@ -425,6 +450,15 @@ def children_of(kind: str, obj_id: str, project_root: Path) -> list[Path]:
 
     if not obj_id or not obj_id.strip():
         raise ValueError("Object ID cannot be empty")
+
+    # For tasks, validate input parameters to prevent path traversal attacks
+    if kind == "task":
+        from .validation.field_validation import validate_standalone_task_path_parameters
+
+        validation_errors = validate_standalone_task_path_parameters(obj_id)
+        if validation_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Invalid task ID: {validation_errors[0]}")
 
     # Clean the ID (remove any existing prefix if present)
     clean_id = obj_id.strip()
