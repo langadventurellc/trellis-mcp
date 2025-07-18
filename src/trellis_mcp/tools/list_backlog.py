@@ -55,7 +55,7 @@ def create_list_backlog_tool(settings: Settings):
                         "title": str,        # Task title
                         "status": str,       # Task status
                         "priority": str,     # Task priority
-                        "parent": str,       # Parent feature ID
+                        "parent": str | None,  # Parent feature ID (None for standalone tasks)
                         "file_path": str,    # Path to task file
                         "created": str,      # Creation timestamp
                         "updated": str,      # Last update timestamp

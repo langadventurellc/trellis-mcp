@@ -145,7 +145,8 @@ def resolve_path_for_new_object(
     Args:
         kind: The object kind ('project', 'epic', 'feature', or 'task')
         obj_id: The object ID (without prefix, e.g., 'user-auth' not 'P-user-auth')
-        parent_id: Parent object ID (required for epics, features, tasks)
+        parent_id: Parent object ID (required for epics, features; optional for tasks to
+            support standalone tasks; use empty string or None for no parent)
         project_root: Root directory of the planning structure
         status: Object status (affects task directory and filename, optional)
 
@@ -195,7 +196,7 @@ def resolve_path_for_new_object(
         return path_resolution_root / "projects" / f"P-{clean_id}" / "project.md"
 
     elif kind == "epic":
-        if parent_id is None:
+        if parent_id is None or not parent_id.strip():
             raise ValueError("Parent is required for epic objects")
         # Remove prefix if present to get clean parent ID
         parent_clean = parent_id.replace("P-", "") if parent_id.startswith("P-") else parent_id
@@ -209,7 +210,7 @@ def resolve_path_for_new_object(
         )
 
     elif kind == "feature":
-        if parent_id is None:
+        if parent_id is None or not parent_id.strip():
             raise ValueError("Parent is required for feature objects")
         # Remove prefix if present to get clean parent ID
         parent_clean = parent_id.replace("E-", "") if parent_id.startswith("E-") else parent_id
@@ -232,7 +233,7 @@ def resolve_path_for_new_object(
             raise ValueError(f"Parent epic '{parent_id}' not found")
 
     elif kind == "task":
-        if parent_id is None:
+        if parent_id is None or not parent_id.strip():
             # Standalone task: place in root tasks directory
             task_dir = "tasks-done" if status == "done" else "tasks-open"
 

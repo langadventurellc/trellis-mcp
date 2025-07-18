@@ -34,6 +34,8 @@ def create_create_object_tool(settings: Settings):
     mcp = FastMCP()
 
     @mcp.tool
+    # MCP Inspector can't handle nulls, so we use empty strings/lists for optional fields
+    # DO NOT use None as it causes issues with MCP Inspector!!
     def createObject(
         kind: str,
         title: str,
@@ -55,12 +57,15 @@ def create_create_object_tool(settings: Settings):
             kind: Object type ('project', 'epic', 'feature', or 'task')
             title: Human-readable title for the object
             projectRoot: Root directory for the planning structure
-            id: Optional custom ID (auto-generated if not provided)
-            parent: Parent object ID (required for epics, features, tasks)
-            status: Object status (defaults based on kind)
-            priority: Priority level ('high', 'normal', 'low' - defaults to 'normal')
+            id: Optional custom ID (auto-generated if not provided, use empty string)
+            parent: Parent object ID (required for epics, features; optional for tasks to
+                support standalone tasks, use empty string for no parent)
+            status: Object status (defaults based on kind, use empty string for default)
+            priority: Priority level ('high', 'normal', 'low' - defaults to 'normal',
+                use empty string for default)
             prerequisites: List of prerequisite object IDs (defaults to empty list)
-            description: Optional description for the object body
+            description: Optional description for the object body (use empty string for
+                no description)
 
         Returns:
             Dictionary containing the created object information including id, file_path, and status
@@ -114,7 +119,7 @@ def create_create_object_tool(settings: Settings):
             "schema_version": settings.schema_version,
         }
 
-        # Add parent if provided
+        # Add parent if provided (non-empty string)
         if parent and parent.strip():
             front_matter["parent"] = parent
 
@@ -138,11 +143,7 @@ def create_create_object_tool(settings: Settings):
 
         # Determine file path using centralized path logic
         try:
-            # Convert empty parent string to None for standalone tasks
-            parent_for_path = parent if parent and parent.strip() else None
-            file_path = resolve_path_for_new_object(
-                kind, id, parent_for_path, planning_root, status
-            )
+            file_path = resolve_path_for_new_object(kind, id, parent, planning_root, status)
         except ValueError as e:
             raise ValueError(str(e))
         except FileNotFoundError as e:

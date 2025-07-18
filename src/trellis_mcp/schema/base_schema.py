@@ -27,7 +27,9 @@ class BaseSchemaModel(TrellisBaseModel):
     kind: KindEnum = Field(..., description="The type of object")
     id: str = Field(..., description="Unique identifier for the object")
     parent: str | None = Field(
-        None, description="Parent object ID (absent for projects)", validate_default=True
+        None,
+        description="Parent object ID (absent for projects; optional for tasks)",
+        validate_default=True,
     )
     status: StatusEnum = Field(..., description="Current status of the object")
     title: str = Field(..., description="Human-readable title")
@@ -38,7 +40,7 @@ class BaseSchemaModel(TrellisBaseModel):
     worktree: str | None = Field(None, description="Optional worktree path for development")
     created: datetime = Field(..., description="Creation timestamp")
     updated: datetime = Field(..., description="Last update timestamp")
-    schema_version: Literal["1.1"] = Field("1.1", description="Schema version (must be 1.1)")
+    schema_version: Literal["1.0", "1.1"] = Field("1.1", description="Schema version (1.0 or 1.1)")
 
     @field_validator("status")
     @classmethod
@@ -108,6 +110,12 @@ class BaseSchemaModel(TrellisBaseModel):
         Uses the info.data.get("kind") pattern to determine object type dynamically.
         Note: This validator checks basic parent constraints but cannot validate
         filesystem existence without project_root context.
+
+        Parent field validation rules:
+        - Projects: Must have parent=None (no parent)
+        - Epics: Must have a valid project parent ID
+        - Features: Must have a valid epic parent ID
+        - Tasks: May have a feature parent ID or be standalone (parent=None)
         """
         # Convert empty strings to None for consistency
         if v == "":
@@ -136,9 +144,14 @@ class BaseSchemaModel(TrellisBaseModel):
                     if v is None:
                         raise ValueError("Features must have a parent epic ID")
                 elif object_kind == KindEnum.TASK:
-                    # Tasks can now be standalone (parent=None) or hierarchy-based
+                    # Check schema version for task parent validation
+                    schema_version = info.data.get("schema_version", "1.1") if info.data else "1.1"
+                    if schema_version == "1.0":
+                        # Schema 1.0 tasks must have a parent (hierarchy tasks only)
+                        if v is None:
+                            raise ValueError("Tasks must have a parent in schema version 1.0")
+                    # Schema 1.1: Tasks can be standalone (parent=None) or hierarchy-based
                     # No validation error for None parent to support standalone tasks
-                    pass
 
         return v
 
@@ -219,5 +232,20 @@ class BaseSchemaModel(TrellisBaseModel):
                     self.__class__.validate_status_transition(original_status, self.status)
                 except ValueError as e:
                     raise ValueError(f"Status transition validation failed: {str(e)}")
+
+        return self
+
+    @model_validator(mode="after")
+    def validate_schema_version_constraints(self) -> "BaseSchemaModel":
+        """Validate schema version-specific constraints.
+
+        This model validator runs after all field validators and can access
+        the complete validated model data to enforce schema version constraints.
+        """
+        # Schema version 1.0 specific constraints
+        if self.schema_version == "1.0":
+            # Schema 1.0 tasks must have a parent (hierarchy tasks only)
+            if self.kind == KindEnum.TASK and self.parent is None:
+                raise ValueError("Tasks must have a parent in schema version 1.0")
 
         return self

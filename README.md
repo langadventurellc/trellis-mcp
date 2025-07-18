@@ -10,6 +10,15 @@ Trellis MCP implements the **"Trellis MCP v 1.1"** specification, providing a st
 planning/projects/P-…/epics/E-…/features/F-…/tasks-open/T-….md
 ```
 
+### Key Features
+
+- **Hierarchical project structure**: Projects → Epics → Features → Tasks
+- **Optional parent relationships**: Tasks can be standalone or hierarchy-based (v1.1)
+- **Type-safe operations**: Enhanced type system with type guards and generic support
+- **File-backed storage**: Human-readable Markdown files with YAML front-matter
+- **MCP server integration**: JSON-RPC API for programmatic access
+- **Validation and security**: Comprehensive validation with cycle detection
+
 ## Installation
 
 Install the package in development mode:
@@ -55,12 +64,21 @@ Add `--http` to expose HTTP.
    uv run task-trellis-mcp serve --http localhost:8000
    ```
 
-3. **Create objects with priority fields:**
+3. **Create objects with priority fields and optional parent relationships:**
    ```yaml
-   # Task with high priority
+   # Hierarchy-based task (traditional)
    kind: task
    id: T-setup-auth
+   parent: F-user-management
    title: Set up authentication system
+   priority: high
+   status: open
+   
+   # Standalone task (new in v1.1)
+   kind: task
+   id: T-urgent-bugfix
+   parent: null
+   title: Fix critical security issue
    priority: high
    status: open
    

@@ -2,6 +2,10 @@
 
 This module provides functions to validate parent-child relationships
 in the Trellis MCP object hierarchy.
+
+With schema v1.1, tasks can have optional parent relationships, supporting both:
+- Traditional hierarchy-based tasks with required parent feature IDs
+- Standalone tasks that exist independently (parent=None)
 """
 
 import os

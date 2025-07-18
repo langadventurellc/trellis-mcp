@@ -60,7 +60,12 @@ from .security import validate_standalone_task_security
 from .status_transitions import enforce_status_transition
 
 # Task utilities
-from .task_utils import is_hierarchy_task, is_standalone_task
+from .task_utils import (
+    is_hierarchy_task,
+    is_hierarchy_task_guard,
+    is_standalone_task,
+    is_standalone_task_guard,
+)
 
 # Export all public APIs
 __all__ = [
@@ -86,6 +91,8 @@ __all__ = [
     # Task utilities
     "is_hierarchy_task",
     "is_standalone_task",
+    "is_hierarchy_task_guard",
+    "is_standalone_task_guard",
     # Parent validation
     "validate_parent_exists",
     "validate_parent_exists_for_object",
