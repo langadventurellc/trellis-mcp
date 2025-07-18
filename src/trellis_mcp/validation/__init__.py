@@ -28,6 +28,9 @@ from .cycle_detection import (
     validate_acyclic_prerequisites,
 )
 
+# Error collection and aggregation
+from .error_collector import ErrorCategory, ErrorSeverity, ValidationErrorCollector
+
 # Exception classes
 from .exceptions import CircularDependencyError, TrellisValidationError
 
@@ -72,6 +75,10 @@ __all__ = [
     # Exception classes
     "CircularDependencyError",
     "TrellisValidationError",
+    # Error collection and aggregation
+    "ErrorCategory",
+    "ErrorSeverity",
+    "ValidationErrorCollector",
     # Cache and performance utilities
     "DependencyGraphCache",
     "PerformanceBenchmark",
