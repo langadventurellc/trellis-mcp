@@ -17,8 +17,6 @@ def dump_object(model: TrellisObjectModel) -> str:
     """
     Convert a Trellis object model to markdown string with YAML front-matter.
 
-    Updates the 'updated' timestamp to current time before serialization.
-
     Args:
         model: A Trellis object model instance (Project, Epic, Feature, or Task)
 
@@ -61,8 +59,6 @@ def dump_object_with_body(model: TrellisObjectModel, body: str) -> str:
     """
     Convert a Trellis object model to markdown string with YAML front-matter and custom body.
 
-    Updates the 'updated' timestamp to current time before serialization.
-
     Args:
         model: A Trellis object model instance (Project, Epic, Feature, or Task)
         body: The markdown body content to include after the front-matter
@@ -101,9 +97,8 @@ def dump_object_with_body(model: TrellisObjectModel, body: str) -> str:
         This is the task description.
 
     """
-    # Create a copy with updated timestamp
+    # Create a copy for serialization (timestamp should be updated by caller if needed)
     model_dict = model.model_dump()
-    model_dict["updated"] = datetime.now()
 
     # Convert to dictionary with proper serialization
     front_matter = _serialize_model_dict(model_dict)
@@ -124,6 +119,7 @@ def _serialize_model_dict(model_dict: dict[str, Any]) -> dict[str, Any]:
     Serialize model dictionary for YAML output.
 
     Handles datetime objects, enums, and None values properly.
+    Excludes None values for optional fields that weren't explicitly set.
 
     Args:
         model_dict: Dictionary representation of the model
@@ -133,13 +129,26 @@ def _serialize_model_dict(model_dict: dict[str, Any]) -> dict[str, Any]:
     """
     serialized = {}
 
+    # Fields that should be excluded when None (optional fields)
+    optional_fields = {"worktree"}
+
     for key, value in model_dict.items():
-        if value is None:
+        if value is None and key in optional_fields:
+            # Skip None values for optional fields to avoid cluttering YAML
+            continue
+        elif value is None:
             serialized[key] = None
         elif isinstance(value, datetime):
             serialized[key] = value.isoformat()
         elif hasattr(value, "value"):  # Enum objects
-            serialized[key] = value.value
+            # Use string representation for Priority enum to preserve "high"/"normal"/"low"
+            # instead of numeric values
+            from .models.common import Priority
+
+            if isinstance(value, Priority):
+                serialized[key] = str(value)
+            else:
+                serialized[key] = value.value
         else:
             serialized[key] = value
 
