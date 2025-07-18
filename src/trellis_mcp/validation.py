@@ -625,6 +625,10 @@ def validate_parent_exists_for_object(
     Raises:
         ValueError: If validation requirements are not met
     """
+    # Convert empty string to None for consistency
+    if parent_id == "":
+        parent_id = None
+
     # Projects should not have parents
     if object_kind == KindEnum.PROJECT:
         if parent_id is not None:

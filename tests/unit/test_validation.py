@@ -144,6 +144,16 @@ class TestValidateParentExists:
             "F-test-feature", KindEnum.TASK, tmp_path / "planning"
         )
 
+    def test_validate_parent_exists_for_object_task_standalone(self, tmp_path: Path):
+        """Test that standalone tasks (parent=None) are valid."""
+        # Valid case: task with no parent (standalone task)
+        assert validate_parent_exists_for_object(None, KindEnum.TASK, tmp_path / "planning")
+
+    def test_validate_parent_exists_for_object_task_with_empty_string_parent(self, tmp_path: Path):
+        """Test that tasks with empty string parent are valid (converted to None)."""
+        # Valid case: task with empty string parent (converted to None for standalone task)
+        assert validate_parent_exists_for_object("", KindEnum.TASK, tmp_path / "planning")
+
 
 class TestValidateRequiredFields:
     """Test required fields validation."""
