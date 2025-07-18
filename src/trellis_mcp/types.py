@@ -4,6 +4,17 @@ This module provides type guard functions using typing.TypeGuard for proper
 type narrowing and runtime type checking of Trellis MCP objects.
 It also provides generic type definitions for enhanced type safety with
 optional parent relationships and task type discrimination.
+
+Key Features:
+- Type guards for all object types (project, epic, feature, task)
+- Specialized task type discrimination (standalone vs hierarchy tasks)
+- Generic type variables for enhanced type safety
+- Template functions for task processing with type preservation
+- Factory functions for creating typed task objects
+
+The module supports the new v1.1 schema feature where tasks can have optional
+parent relationships, enabling both traditional hierarchy-based tasks and
+standalone tasks that exist independently of the project structure.
 """
 
 from typing import Any, Callable, Literal, TypeGuard, TypeVar

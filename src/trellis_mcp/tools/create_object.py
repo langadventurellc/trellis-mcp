@@ -35,12 +35,13 @@ def create_create_object_tool(settings: Settings):
 
     @mcp.tool
     # MCP Inspector can't handle nulls, so we use empty strings/lists for optional fields
+    # DO NOT use None as it causes issues with MCP Inspector!!
     def createObject(
         kind: str,
         title: str,
         projectRoot: str,
         id: str = "",
-        parent: str | None = None,
+        parent: str = "",
         status: str = "",
         priority: str = "",
         prerequisites: list[str] = [],
@@ -56,12 +57,15 @@ def create_create_object_tool(settings: Settings):
             kind: Object type ('project', 'epic', 'feature', or 'task')
             title: Human-readable title for the object
             projectRoot: Root directory for the planning structure
-            id: Optional custom ID (auto-generated if not provided)
-            parent: Parent object ID (required for epics, features, tasks; None for standalone)
-            status: Object status (defaults based on kind)
-            priority: Priority level ('high', 'normal', 'low' - defaults to 'normal')
+            id: Optional custom ID (auto-generated if not provided, use empty string)
+            parent: Parent object ID (required for epics, features; optional for tasks to
+                support standalone tasks, use empty string for no parent)
+            status: Object status (defaults based on kind, use empty string for default)
+            priority: Priority level ('high', 'normal', 'low' - defaults to 'normal',
+                use empty string for default)
             prerequisites: List of prerequisite object IDs (defaults to empty list)
-            description: Optional description for the object body
+            description: Optional description for the object body (use empty string for
+                no description)
 
         Returns:
             Dictionary containing the created object information including id, file_path, and status
@@ -115,8 +119,8 @@ def create_create_object_tool(settings: Settings):
             "schema_version": settings.schema_version,
         }
 
-        # Add parent if provided
-        if parent is not None:
+        # Add parent if provided (non-empty string)
+        if parent and parent.strip():
             front_matter["parent"] = parent
 
         # Validate front-matter using validation utilities

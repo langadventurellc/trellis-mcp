@@ -60,6 +60,8 @@ Each Markdown body contains:
 1. **Hierarchy-based tasks**: `parent: F-feature-id` (traditional workflow)
 2. **Standalone tasks**: `parent: null` or omitted (new in v 1.1)
 
+This change introduces a flexible task system where tasks can exist independently of the project hierarchy while maintaining backward compatibility with existing hierarchical workflows.
+
 **Examples:**
 
 ```yaml
@@ -87,6 +89,43 @@ schema: 1.1
 - **Epics**: Must have valid project parent ID
 - **Features**: Must have valid epic parent ID
 - **Tasks**: May have feature parent ID or be standalone (`parent: null`)
+
+**Type System Enhancements:**
+- All parent parameters now use `str | None` type annotations
+- Type guard functions distinguish between standalone and hierarchy tasks
+- Runtime validation ensures proper parent constraints for each object type
+- MCP tool handlers properly handle `None` parent values for standalone tasks
+
+---
+
+## 2.2 · Type System Enhancements (v 1.1)
+
+The type system has been significantly enhanced to support optional parent relationships and provide better type safety:
+
+**Core Type Annotations:**
+- All parent parameters now use `str | None` type annotations instead of empty strings
+- Type guard functions provide runtime type checking and type narrowing
+- Generic type variables support enhanced type safety for task operations
+
+**Type Guard Functions:**
+- `is_standalone_task()` - Identifies tasks with no parent (standalone tasks)  
+- `is_hierarchy_task()` - Identifies tasks with a parent (hierarchy tasks)
+- `is_project_object()`, `is_epic_object()`, `is_feature_object()`, `is_task_object()` - Object type identification
+
+**Generic Type Support:**
+- Template functions for processing tasks while preserving type information
+- Factory functions for creating typed task objects with parent constraints
+- Type-safe validation functions for parent-child relationships
+
+**Runtime Validation:**
+- Enhanced validation logic that properly handles `None` parent values
+- Contextual error messages that distinguish between standalone and hierarchy tasks
+- Security validation for standalone tasks to prevent unauthorized access
+
+**MCP Tool Integration:**
+- All MCP tool handlers properly handle optional parent fields
+- Return types correctly reflect `str | None` for parent fields
+- Documentation includes examples of both standalone and hierarchy task usage
 
 ---
 

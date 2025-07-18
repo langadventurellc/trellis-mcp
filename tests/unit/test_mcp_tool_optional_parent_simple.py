@@ -89,10 +89,10 @@ class TestMCPToolOptionalParentSimple:
         with open("/Users/zach/code/trellis-mcp/src/trellis_mcp/tools/create_object.py", "r") as f:
             content = f.read()
 
-        # Verify the function signature has correct type annotation
-        assert "parent: str | None = None" in content
+        # Verify the function signature has correct type annotation (MCP Inspector compatible)
+        assert 'parent: str = ""' in content
         # Verify the documentation explains the optional parent
-        assert "None for standalone" in content
+        assert "empty string for no parent" in content
 
     def test_update_object_tool_type_annotation_correct(self):
         """Test that updateObject tool has correct type annotations for optional values."""

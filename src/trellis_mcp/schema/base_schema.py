@@ -27,7 +27,9 @@ class BaseSchemaModel(TrellisBaseModel):
     kind: KindEnum = Field(..., description="The type of object")
     id: str = Field(..., description="Unique identifier for the object")
     parent: str | None = Field(
-        None, description="Parent object ID (absent for projects)", validate_default=True
+        None,
+        description="Parent object ID (absent for projects; optional for tasks)",
+        validate_default=True,
     )
     status: StatusEnum = Field(..., description="Current status of the object")
     title: str = Field(..., description="Human-readable title")
@@ -108,6 +110,12 @@ class BaseSchemaModel(TrellisBaseModel):
         Uses the info.data.get("kind") pattern to determine object type dynamically.
         Note: This validator checks basic parent constraints but cannot validate
         filesystem existence without project_root context.
+
+        Parent field validation rules:
+        - Projects: Must have parent=None (no parent)
+        - Epics: Must have a valid project parent ID
+        - Features: Must have a valid epic parent ID
+        - Tasks: May have a feature parent ID or be standalone (parent=None)
         """
         # Convert empty strings to None for consistency
         if v == "":
