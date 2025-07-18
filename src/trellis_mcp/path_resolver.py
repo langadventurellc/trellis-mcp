@@ -60,7 +60,8 @@ def id_to_path(project_root: Path, kind: str, obj_id: str) -> Path:
     the hierarchical structure: Projects → Epics → Features → Tasks.
 
     This function uses the shared find_object_path utility to locate objects
-    within the directory structure.
+    within the directory structure. For tasks, it supports both hierarchy-based
+    and standalone task discovery.
 
     Args:
         project_root: Root directory of the planning structure (e.g., ./planning)
@@ -72,10 +73,12 @@ def id_to_path(project_root: Path, kind: str, obj_id: str) -> Path:
         - project: planning/projects/P-{id}/project.md
         - epic: planning/projects/P-{parent}/epics/E-{id}/epic.md
         - feature: planning/projects/P-{parent}/epics/E-{parent}/features/F-{id}/feature.md
-        - task: planning/projects/P-{parent}/epics/E-{parent}/features/F-{parent}/tasks-open/
-                T-{id}.md
-                or planning/projects/P-{parent}/epics/E-{parent}/features/F-{parent}/tasks-done/
-                {timestamp}-T-{id}.md
+        - task (hierarchy): planning/projects/P-{parent}/epics/E-{parent}/features/
+                F-{parent}/tasks-open/T-{id}.md
+                or planning/projects/P-{parent}/epics/E-{parent}/features/
+                F-{parent}/tasks-done/{timestamp}-T-{id}.md
+        - task (standalone): planning/tasks-open/T-{id}.md
+                or planning/tasks-done/{timestamp}-T-{id}.md
 
     Raises:
         ValueError: If kind is not supported or obj_id is empty
@@ -87,10 +90,14 @@ def id_to_path(project_root: Path, kind: str, obj_id: str) -> Path:
         Path('planning/projects/P-user-auth/project.md')
         >>> id_to_path(project_root, "task", "implement-jwt")
         Path('planning/projects/P-user-auth/epics/E-auth/features/F-login/tasks-open/T-implement-jwt.md')
+        >>> id_to_path(project_root, "task", "standalone-task")
+        Path('planning/tasks-open/T-standalone-task.md')
 
     Note:
-        For tasks, this function will return the path to the actual file location,
-        checking both tasks-open and tasks-done directories to find where the task exists.
+        For tasks, this function searches standalone task directories first (tasks-open
+        and tasks-done at the root level), then falls back to hierarchical search if
+        not found. This ensures standalone tasks take priority over hierarchy tasks
+        with the same ID.
     """
     # Use the shared utility to find the object path
     result_path = find_object_path(kind, obj_id, project_root)
