@@ -2425,3 +2425,424 @@ class TestStandaloneTaskHelpers:
         # Both should end with same suffix
         assert helper_path_done.name.endswith("-T-consistency-test.md")
         assert existing_path_done.name.endswith("-T-consistency-test.md")
+
+
+class TestResolvePathForNewObjectStandaloneTasks:
+    """Test cases for resolve_path_for_new_object function with standalone tasks."""
+
+    def test_standalone_task_open_status(self, temp_dir):
+        """Test resolving standalone task path for open status."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("task", "implement-auth", None, project_root, "open")
+        expected = project_root / "tasks-open" / "T-implement-auth.md"
+
+        assert result == expected
+
+    def test_standalone_task_done_status(self, temp_dir):
+        """Test resolving standalone task path for done status."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("task", "implement-auth", None, project_root, "done")
+
+        # Should be in tasks-done directory with timestamp prefix
+        assert result.parent == project_root / "tasks-done"
+        assert result.name.endswith("-T-implement-auth.md")
+        assert result.name.startswith("2025")  # Should start with current year
+
+    def test_standalone_task_none_status_defaults_to_open(self, temp_dir):
+        """Test resolving standalone task path when status is None (defaults to open)."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("task", "implement-auth", None, project_root, None)
+        expected = project_root / "tasks-open" / "T-implement-auth.md"
+
+        assert result == expected
+
+    def test_standalone_task_empty_parent_defaults_to_open(self, temp_dir):
+        """Test resolving standalone task path when parent is empty string (defaults to open)."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("task", "implement-auth", "", project_root)
+        expected = project_root / "tasks-open" / "T-implement-auth.md"
+
+        assert result == expected
+
+    def test_standalone_task_whitespace_parent_defaults_to_open(self, temp_dir):
+        """Test resolving standalone task path when parent is whitespace (defaults to open)."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("task", "implement-auth", "   ", project_root)
+        expected = project_root / "tasks-open" / "T-implement-auth.md"
+
+        assert result == expected
+
+    def test_standalone_task_with_prefix_id(self, temp_dir):
+        """Test resolving standalone task path when task ID has T- prefix."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("task", "T-implement-auth", None, project_root, "open")
+        expected = project_root / "tasks-open" / "T-implement-auth.md"
+
+        assert result == expected
+
+    def test_standalone_task_project_root_contains_planning(self, temp_dir):
+        """Test resolving standalone task path when project root contains planning directory."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir
+        planning_dir = project_root / "planning"
+        planning_dir.mkdir(parents=True)
+
+        result = resolve_path_for_new_object("task", "implement-auth", None, project_root, "open")
+        expected = planning_dir / "tasks-open" / "T-implement-auth.md"
+
+        assert result == expected
+
+    def test_standalone_task_multiple_hyphens_in_id(self, temp_dir):
+        """Test resolving standalone task path with complex ID containing multiple hyphens."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object(
+            "task", "implement-jwt-auth-system", None, project_root, "open"
+        )
+        expected = project_root / "tasks-open" / "T-implement-jwt-auth-system.md"
+
+        assert result == expected
+
+    def test_standalone_task_with_numbers_in_id(self, temp_dir):
+        """Test resolving standalone task path with numbers in ID."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("task", "task-123-fix", None, project_root, "open")
+        expected = project_root / "tasks-open" / "T-task-123-fix.md"
+
+        assert result == expected
+
+    def test_standalone_task_filename_generation_open(self, temp_dir):
+        """Test filename generation for open standalone tasks."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("task", "test-task", None, project_root, "open")
+
+        # Should use simple T-{id}.md format
+        assert result.name == "T-test-task.md"
+
+    def test_standalone_task_filename_generation_done(self, temp_dir):
+        """Test filename generation for done standalone tasks."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("task", "test-task", None, project_root, "done")
+
+        # Should use timestamp-T-{id}.md format
+        assert result.name.endswith("-T-test-task.md")
+        # Extract timestamp part
+        timestamp_part = result.name.split("-T-")[0]
+        # Should be in format YYYYMMDD_HHMMSS
+        assert len(timestamp_part) == 15  # YYYYMMDD_HHMMSS
+        assert timestamp_part[8] == "_"  # Underscore separator
+        assert timestamp_part[:8].isdigit()  # Date part should be numeric
+        assert timestamp_part[9:].isdigit()  # Time part should be numeric
+
+    def test_standalone_task_directory_structure_open(self, temp_dir):
+        """Test directory structure for open standalone tasks."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("task", "test-task", None, project_root, "open")
+
+        # Should be in tasks-open directory
+        assert result.parent == project_root / "tasks-open"
+        assert result.parent.name == "tasks-open"
+
+    def test_standalone_task_directory_structure_done(self, temp_dir):
+        """Test directory structure for done standalone tasks."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("task", "test-task", None, project_root, "done")
+
+        # Should be in tasks-done directory
+        assert result.parent == project_root / "tasks-done"
+        assert result.parent.name == "tasks-done"
+
+    @pytest.mark.parametrize("status", ["open", "done", None])
+    def test_standalone_task_various_statuses(self, temp_dir, status):
+        """Test resolving standalone task paths for various status values."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("task", "test-task", None, project_root, status)
+
+        if status == "done":
+            assert result.parent == project_root / "tasks-done"
+            assert result.name.endswith("-T-test-task.md")
+        else:  # "open" or None
+            assert result.parent == project_root / "tasks-open"
+            assert result.name == "T-test-task.md"
+
+    @pytest.mark.parametrize(
+        "task_id",
+        [
+            "a",  # Single character
+            "1",  # Single digit
+            "task-with-hyphens",  # Multiple hyphens
+            "task123",  # Numbers
+            "task-mixed-case",  # Lowercase with hyphens
+            "very-long-task-name-with-many-components",  # Long name
+        ],
+    )
+    def test_standalone_task_edge_case_ids(self, temp_dir, task_id):
+        """Test resolving standalone task paths for edge case IDs."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        result = resolve_path_for_new_object("task", task_id, None, project_root, "open")
+        expected = project_root / "tasks-open" / f"T-{task_id}.md"
+
+        assert result == expected
+
+    def test_standalone_task_empty_id_error(self, temp_dir):
+        """Test that empty task ID raises ValueError."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        with pytest.raises(ValueError, match="Object ID cannot be empty"):
+            resolve_path_for_new_object("task", "", None, project_root, "open")
+
+    def test_standalone_task_whitespace_id_error(self, temp_dir):
+        """Test that whitespace-only task ID raises ValueError."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        with pytest.raises(ValueError, match="Object ID cannot be empty"):
+            resolve_path_for_new_object("task", "   ", None, project_root, "open")
+
+    def test_standalone_task_invalid_characters_error(self, temp_dir):
+        """Test that invalid characters in task ID raise ValueError."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        # Test path traversal attack
+        with pytest.raises(ValueError, match="Invalid task parameters"):
+            resolve_path_for_new_object("task", "../../../etc/passwd", None, project_root, "open")
+
+    def test_standalone_task_path_traversal_error(self, temp_dir):
+        """Test that path traversal attempts in task ID raise ValueError."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        malicious_ids = [
+            "../parent-dir",
+            "../../grandparent-dir",
+            "../../../etc/passwd",
+            "/absolute/path",
+            "\\windows\\path",
+        ]
+
+        for malicious_id in malicious_ids:
+            with pytest.raises(
+                ValueError, match="Invalid task parameters|Security validation failed"
+            ):
+                resolve_path_for_new_object("task", malicious_id, None, project_root, "open")
+
+    def test_standalone_task_control_characters_error(self, temp_dir):
+        """Test that control characters in task ID raise ValueError."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        # Test null byte attack
+        with pytest.raises(ValueError, match="Invalid task parameters"):
+            resolve_path_for_new_object("task", "task\x00", None, project_root, "open")
+
+    def test_standalone_task_reserved_names_error(self, temp_dir):
+        """Test that reserved system names in task ID raise ValueError."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        reserved_names = ["con", "prn", "aux", "nul", "com1", "lpt1"]
+
+        for reserved_name in reserved_names:
+            with pytest.raises(ValueError, match="Invalid task parameters"):
+                resolve_path_for_new_object("task", reserved_name, None, project_root, "open")
+
+    def test_standalone_task_security_validation_comprehensive(self, temp_dir):
+        """Test comprehensive security validation for standalone tasks."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        # Test various security threats
+        security_threats = [
+            "../../../etc/passwd",  # Path traversal
+            "/etc/passwd",  # Absolute path
+            "\\windows\\system32",  # Windows path
+            "task\x00null",  # Null byte injection
+            "con",  # Reserved name
+            "invalid@chars",  # Invalid characters - special chars
+            "Task-Mixed-Case",  # Invalid characters - uppercase
+            "task_with_underscores",  # Invalid characters - underscores
+        ]
+
+        for threat in security_threats:
+            with pytest.raises(
+                ValueError, match="Invalid task parameters|Security validation failed"
+            ):
+                resolve_path_for_new_object("task", threat, None, project_root, "open")
+
+    def test_standalone_task_consistency_with_hierarchy_tasks(self, temp_dir):
+        """Test that standalone tasks work alongside hierarchy-based tasks."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        # Create hierarchy structure
+        feature_dir = (
+            project_root
+            / "projects"
+            / "P-test-project"
+            / "epics"
+            / "E-test-epic"
+            / "features"
+            / "F-test-feature"
+        )
+        feature_dir.mkdir(parents=True)
+        feature_file = feature_dir / "feature.md"
+        feature_file.write_text("# Test Feature")
+
+        # Test hierarchy task path
+        hierarchy_task_path = resolve_path_for_new_object(
+            "task", "hierarchy-task", "test-feature", project_root, "open"
+        )
+
+        # Test standalone task path
+        standalone_task_path = resolve_path_for_new_object(
+            "task", "standalone-task", None, project_root, "open"
+        )
+
+        # Should be in different locations
+        assert hierarchy_task_path.parent == feature_dir / "tasks-open"
+        assert standalone_task_path.parent == project_root / "tasks-open"
+
+        # Both should have proper filenames
+        assert hierarchy_task_path.name == "T-hierarchy-task.md"
+        assert standalone_task_path.name == "T-standalone-task.md"
+
+    def test_standalone_task_integration_with_existing_functions(self, temp_dir):
+        """Test integration between standalone task paths and existing functions."""
+        from trellis_mcp.path_resolver import (
+            construct_standalone_task_path,
+            resolve_path_for_new_object,
+        )
+
+        project_root = temp_dir / "planning"
+        task_id = "integration-test"
+
+        # Both functions should produce identical results for open tasks
+        resolve_path = resolve_path_for_new_object("task", task_id, None, project_root, "open")
+        construct_path = construct_standalone_task_path(task_id, "open", project_root)
+
+        assert resolve_path == construct_path
+
+        # Both functions should produce compatible results for done tasks
+        resolve_path_done = resolve_path_for_new_object("task", task_id, None, project_root, "done")
+        construct_path_done = construct_standalone_task_path(task_id, "done", project_root)
+
+        # Directory should be the same
+        assert resolve_path_done.parent == construct_path_done.parent
+        # Both should end with same suffix
+        assert resolve_path_done.name.endswith("-T-integration-test.md")
+        assert construct_path_done.name.endswith("-T-integration-test.md")
+
+    def test_standalone_task_timestamp_uniqueness(self, temp_dir):
+        """Test that done task timestamps are unique for multiple calls."""
+        import time
+
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+        task_id = "timestamp-test"
+
+        # Create first done task
+        path1 = resolve_path_for_new_object("task", task_id, None, project_root, "done")
+
+        # Wait a full second to ensure different timestamps
+        time.sleep(1.1)
+
+        # Create second done task
+        path2 = resolve_path_for_new_object("task", task_id, None, project_root, "done")
+
+        # Should have different filenames due to timestamps
+        assert path1.name != path2.name
+        # But same directory and suffix
+        assert path1.parent == path2.parent
+        assert path1.name.endswith("-T-timestamp-test.md")
+        assert path2.name.endswith("-T-timestamp-test.md")
+
+    def test_standalone_task_path_resolution_root_handling(self, temp_dir):
+        """Test that standalone tasks handle different path resolution root scenarios."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        # Test scenario 1: project root contains planning directory
+        project_root1 = temp_dir / "scenario1"
+        planning_dir1 = project_root1 / "planning"
+        planning_dir1.mkdir(parents=True)
+
+        result1 = resolve_path_for_new_object("task", "test-task", None, project_root1, "open")
+        expected1 = planning_dir1 / "tasks-open" / "T-test-task.md"
+        assert result1 == expected1
+
+        # Test scenario 2: project root IS the planning directory
+        project_root2 = temp_dir / "scenario2"
+        project_root2.mkdir(parents=True)
+
+        result2 = resolve_path_for_new_object("task", "test-task", None, project_root2, "open")
+        expected2 = project_root2 / "tasks-open" / "T-test-task.md"
+        assert result2 == expected2
+
+    def test_standalone_task_prefix_stripping_consistency(self, temp_dir):
+        """Test that task ID prefix stripping works consistently."""
+        from trellis_mcp.path_resolver import resolve_path_for_new_object
+
+        project_root = temp_dir / "planning"
+
+        # Test all possible prefixes are stripped consistently
+        test_cases = [
+            ("T-test-task", "T-test-task.md"),
+            ("test-task", "T-test-task.md"),  # No prefix
+        ]
+
+        for input_id, expected_filename in test_cases:
+            result = resolve_path_for_new_object("task", input_id, None, project_root, "open")
+            assert result.name == expected_filename
+            assert result.parent == project_root / "tasks-open"
