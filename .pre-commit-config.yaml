@@ -35,5 +35,6 @@ repos:
         name: pytest Tests
         entry: bash -c 'if [ -d "tests" ] && [ -n "$(find tests -name "*.py" -not -name "__*" 2>/dev/null)" ]; then uv run pytest -q; else echo "No tests found, skipping pytest"; fi'
         language: system
+        types: [python]
         pass_filenames: false
         always_run: true

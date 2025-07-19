@@ -2,12 +2,12 @@
 kind: feature
 id: F-documentation-and-examples
 title: Documentation and Examples
-status: in-progress
+status: done
 priority: normal
 prerequisites:
 - F-enhanced-error-handling-1
 created: '2025-07-18T17:27:54.311217'
-updated: '2025-07-18T17:27:54.311217'
+updated: '2025-07-18T20:24:50.864685'
 schema_version: '1.1'
 parent: E-cross-system-prerequisites
 ---

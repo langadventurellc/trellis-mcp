@@ -54,6 +54,11 @@ def create_create_object_tool(settings: Settings):
         When no ID is provided, automatically generates a unique ID based on the title.
         Uses comprehensive validation to ensure object consistency and acyclic prerequisites.
 
+        Supports cross-system prerequisite capabilities, allowing tasks to reference both
+        hierarchical objects (within project/epic/feature structure) and standalone tasks.
+        The system automatically validates prerequisite existence across both task systems
+        and ensures no circular dependencies are introduced.
+
         Args:
             kind: Object type ('project', 'epic', 'feature', or 'task')
             title: Human-readable title for the object
@@ -64,7 +69,11 @@ def create_create_object_tool(settings: Settings):
             status: Object status (defaults based on kind, use empty string for default)
             priority: Priority level ('high', 'normal', 'low' - defaults to 'normal',
                 use empty string for default)
-            prerequisites: List of prerequisite object IDs (defaults to empty list)
+            prerequisites: List of prerequisite object IDs supporting cross-system references.
+                Can include hierarchical objects (T-auth-login, F-user-management, E-core-features)
+                and standalone tasks (task-database-setup, task-security-audit).
+                All IDs are automatically cleaned and validated for existence across both systems.
+                Example: ["T-auth-setup", "task-standalone-db", "F-user-validation"]
             description: Optional description for the object body (use empty string for
                 no description)
 
@@ -75,6 +84,11 @@ def create_create_object_tool(settings: Settings):
             ValueError: If kind is invalid or required parameters are missing
             TrellisValidationError: If validation fails (front-matter, object data,
                 or acyclic prerequisites)
+            ValidationError: If cross-system prerequisite validation fails, including:
+                - CROSS_SYSTEM_PREREQUISITE_INVALID: Referenced prerequisite doesn't exist
+                  in either hierarchical or standalone task systems
+                - CROSS_SYSTEM_REFERENCE_CONFLICT: Invalid cross-system reference patterns
+                - CIRCULAR_DEPENDENCY: Prerequisites create cycles spanning both task systems
             FileExistsError: If object with the same ID already exists
             OSError: If file cannot be created due to permissions or disk space
         """

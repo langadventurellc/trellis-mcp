@@ -37,16 +37,27 @@ def create_complete_task_tool(settings: Settings):
         (in-progress or review) and optionally appends a log entry with summary
         and list of changed files. This is part of the task completion workflow.
 
+        Supports cross-system dependency completion workflows, where completing this
+        task may unblock dependent tasks across both hierarchical and standalone task
+        systems. The system efficiently tracks which tasks become eligible after
+        completion, enabling parallel development across different project structures.
+
         Args:
             projectRoot: Root directory for the planning structure
-            taskId: ID of the task to complete (with or without T- prefix)
+            taskId: ID of the task to complete (with or without T- prefix). Can be either
+                a hierarchical task (within project/epic/feature) or standalone task.
             summary: Summary text for the log entry (empty string to skip logging)
             filesChanged: List of relative file paths that were changed
 
         Returns:
-            Dictionary containing the validated task data and file path
+            Dictionary containing the validated task data and file path. Completing this
+            task may unblock dependent tasks in both hierarchical and standalone systems.
 
         Raises:
+            ValidationError: If cross-system completion validation fails, including:
+                - INVALID_STATUS_TRANSITION: Task not in valid status for completion
+                - INVALID_FIELD: Task not found in either hierarchical or standalone systems
+                - Cross-system validation errors during completion processing
             TrellisValidationError: If task is not in valid status for completion
             FileNotFoundError: If task with the given ID cannot be found
             OSError: If file operations fail

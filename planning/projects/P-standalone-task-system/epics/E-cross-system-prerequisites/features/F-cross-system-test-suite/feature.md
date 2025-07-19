@@ -44,7 +44,6 @@ Implement comprehensive integration tests specifically validating cross-system p
 ### Testing Requirements
 - Unit tests for individual cross-system validation functions
 - Integration tests for complete prerequisite workflows
-- Performance tests with networks of 100+ mixed tasks
 - Edge case tests for invalid cross-system references
 - Regression tests to ensure existing functionality remains intact
 
@@ -53,12 +52,6 @@ Implement comprehensive integration tests specifically validating cross-system p
 - Ensure test data doesn't contain sensitive information
 - Test path traversal protection with cross-system references
 - Validate error messages don't leak internal system details
-
-### Performance Requirements
-- Test execution time should remain under 30 seconds total
-- Performance benchmarks should complete within 10 seconds
-- Memory usage during large network tests should stay under 100MB
-- Test setup and teardown should be efficient for CI/CD pipelines
 
 ### Log
 
