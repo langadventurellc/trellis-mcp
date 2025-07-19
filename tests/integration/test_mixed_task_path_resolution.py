@@ -122,17 +122,17 @@ async def test_mixed_task_types_path_resolution_priority(temp_dir):
         assert standalone_unique_id.startswith("T-")
         assert hierarchy_unique_id.startswith("T-")
 
-        # Step 7: Verify tasks exist in correct locations
+        # Step 7: Test path resolution - verify files exist in correct locations
+        # This is the core path resolution functionality unique to this test
         planning_path = temp_dir / "planning"
 
-        # Standalone tasks should be in tasks-open directory
+        # Verify standalone tasks are in correct standalone location
         standalone_path = planning_path / "tasks-open" / f"{standalone_task_id}.md"
         assert standalone_path.exists()
-
         standalone_unique_path = planning_path / "tasks-open" / f"{standalone_unique_id}.md"
         assert standalone_unique_path.exists()
 
-        # Hierarchy tasks should be in feature directory
+        # Verify hierarchy tasks are in correct hierarchy location
         raw_project_id = project_id.removeprefix("P-")
         raw_epic_id = epic_id.removeprefix("E-")
         raw_feature_id = feature_id.removeprefix("F-")
@@ -162,74 +162,6 @@ async def test_mixed_task_types_path_resolution_priority(temp_dir):
             / f"{hierarchy_unique_id}.md"
         )
         assert hierarchy_unique_path.exists()
-
-        # Step 8: Test getObject retrieval for all tasks
-        # Both standalone and hierarchy tasks should be retrievable
-        standalone_retrieved = await client.call_tool(
-            "getObject",
-            {
-                "kind": "task",
-                "id": standalone_task_id,
-                "projectRoot": planning_root,
-            },
-        )
-        assert standalone_retrieved.data["yaml"]["title"] == "Standalone Task with Conflict ID"
-        assert standalone_retrieved.data["yaml"].get("parent") is None
-
-        hierarchy_retrieved = await client.call_tool(
-            "getObject",
-            {
-                "kind": "task",
-                "id": hierarchy_task_id,
-                "projectRoot": planning_root,
-            },
-        )
-        assert hierarchy_retrieved.data["yaml"]["title"] == "Hierarchy Task with Conflict ID"
-        assert hierarchy_retrieved.data["yaml"]["parent"] == feature_id
-
-        # Step 9: Test that both task types appear in listBacklog
-        all_tasks_result = await client.call_tool(
-            "listBacklog",
-            {"projectRoot": planning_root},
-        )
-        assert all_tasks_result.structured_content is not None
-        all_tasks = all_tasks_result.structured_content["tasks"]
-
-        # Should find all 4 tasks (2 standalone + 2 hierarchy)
-        assert len(all_tasks) == 4
-
-        # Verify task IDs are present
-        task_ids = {task["id"] for task in all_tasks}
-        expected_ids = {
-            standalone_task_id,
-            standalone_unique_id,
-            hierarchy_task_id,
-            hierarchy_unique_id,
-        }
-        assert task_ids == expected_ids
-
-        # Step 10: Test feature-scoped listing (should only show hierarchy tasks)
-        feature_tasks_result = await client.call_tool(
-            "listBacklog",
-            {"projectRoot": planning_root, "scope": feature_id},
-        )
-        assert feature_tasks_result.structured_content is not None
-        feature_tasks = feature_tasks_result.structured_content["tasks"]
-
-        # Should only find hierarchy tasks (2 tasks)
-        assert len(feature_tasks) == 2
-        feature_task_ids = {task["id"] for task in feature_tasks}
-        assert feature_task_ids == {hierarchy_task_id, hierarchy_unique_id}
-
-        # Step 11: Test priority ordering with mixed task types
-        # Verify that priority ordering works across both task types
-        priorities = [task["priority"] for task in all_tasks]
-        priority_order = {"high": 1, "normal": 2, "low": 3}
-
-        for i in range(len(all_tasks) - 1):
-            current_priority = priority_order[priorities[i]]
-            next_priority = priority_order[priorities[i + 1]]
-            assert current_priority <= next_priority, f"Priority ordering failed at position {i}"
 
         # Step 12: Test that standalone tasks take priority in claimNextTask
         # The standalone task with high priority should be claimed first
@@ -323,48 +255,13 @@ async def test_mixed_task_types_conflict_resolution(temp_dir):
         )
         standalone_task_id = standalone_task_result.data["id"]
 
-        # Step 4: Verify both tasks exist and have different IDs
-        # (The system should have generated unique IDs automatically)
+        # Step 4: Test conflict resolution - verify unique IDs generated
+        # The system should have automatically generated unique IDs for both tasks
         assert hierarchy_task_id != standalone_task_id
         assert hierarchy_task_id.startswith("T-")
         assert standalone_task_id.startswith("T-")
 
-        # Step 5: Test path resolution for both tasks
-        hierarchy_retrieved = await client.call_tool(
-            "getObject",
-            {
-                "kind": "task",
-                "id": hierarchy_task_id,
-                "projectRoot": planning_root,
-            },
-        )
-        assert hierarchy_retrieved.data["yaml"]["title"] == "Hierarchical Task"
-        assert hierarchy_retrieved.data["yaml"]["parent"] == feature_id
-
-        standalone_retrieved = await client.call_tool(
-            "getObject",
-            {
-                "kind": "task",
-                "id": standalone_task_id,
-                "projectRoot": planning_root,
-            },
-        )
-        assert standalone_retrieved.data["yaml"]["title"] == "Standalone Task"
-        assert standalone_retrieved.data["yaml"].get("parent") is None
-
-        # Step 6: Test that listBacklog finds both tasks
-        all_tasks_result = await client.call_tool(
-            "listBacklog",
-            {"projectRoot": planning_root},
-        )
-        assert all_tasks_result.structured_content is not None
-        all_tasks = all_tasks_result.structured_content["tasks"]
-
-        assert len(all_tasks) == 2
-        task_ids = {task["id"] for task in all_tasks}
-        assert task_ids == {hierarchy_task_id, standalone_task_id}
-
-        # Step 7: Test priority precedence in claimNextTask
+        # Step 6: Test priority precedence in conflict resolution
         # The standalone task has high priority, hierarchy task has low priority
         claim_result = await client.call_tool(
             "claimNextTask",
@@ -377,64 +274,8 @@ async def test_mixed_task_types_conflict_resolution(temp_dir):
         )  # High priority standalone should be claimed
         assert claimed_task["priority"] == "high"
 
-        # Step 8: Test scoped filtering works correctly
-        # Feature scope should only show hierarchy task
-        feature_tasks_result = await client.call_tool(
-            "listBacklog",
-            {"projectRoot": planning_root, "scope": feature_id},
-        )
-        assert feature_tasks_result.structured_content is not None
-        feature_tasks = feature_tasks_result.structured_content["tasks"]
-
-        assert len(feature_tasks) == 1
-        assert feature_tasks[0]["id"] == hierarchy_task_id
-
-        # Step 9: Test that updates work correctly for both task types
-        # Update hierarchy task
-        await client.call_tool(
-            "updateObject",
-            {
-                "kind": "task",
-                "id": hierarchy_task_id,
-                "projectRoot": planning_root,
-                "yamlPatch": {"priority": "normal"},
-            },
-        )
-
-        # Update standalone task
-        await client.call_tool(
-            "updateObject",
-            {
-                "kind": "task",
-                "id": standalone_task_id,
-                "projectRoot": planning_root,
-                "yamlPatch": {"status": "review"},
-            },
-        )
-
-        # Verify updates
-        updated_hierarchy = await client.call_tool(
-            "getObject",
-            {
-                "kind": "task",
-                "id": hierarchy_task_id,
-                "projectRoot": planning_root,
-            },
-        )
-        assert updated_hierarchy.data["yaml"]["priority"] == "normal"
-
-        updated_standalone = await client.call_tool(
-            "getObject",
-            {
-                "kind": "task",
-                "id": standalone_task_id,
-                "projectRoot": planning_root,
-            },
-        )
-        assert updated_standalone.data["yaml"]["status"] == "review"
-
-        # Step 10: Test error handling - try to create task with existing ID
-        # This should still work as the system generates unique IDs
+        # Step 7: Test that ID collision avoidance works
+        # Try to create another task with same title - should get unique ID
         duplicate_attempt_result = await client.call_tool(
             "createObject",
             {
@@ -446,18 +287,7 @@ async def test_mixed_task_types_conflict_resolution(temp_dir):
             },
         )
 
-        # Should succeed with unique ID
+        # Should succeed with unique ID (conflict resolution in action)
         duplicate_task_id = duplicate_attempt_result.data["id"]
         assert duplicate_task_id != hierarchy_task_id
         assert duplicate_task_id.startswith("T-")
-
-        # Verify the new task exists
-        duplicate_retrieved = await client.call_tool(
-            "getObject",
-            {
-                "kind": "task",
-                "id": duplicate_task_id,
-                "projectRoot": planning_root,
-            },
-        )
-        assert duplicate_retrieved.data["yaml"]["title"] == "Hierarchical Task"
