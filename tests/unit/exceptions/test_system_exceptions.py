@@ -1,4 +1,8 @@
-"""Tests for NoAvailableTask exception class."""
+"""Tests for system-level exception classes.
+
+This module consolidates system-level exception tests:
+- NoAvailableTask - System-level task availability errors
+"""
 
 import pytest
 
