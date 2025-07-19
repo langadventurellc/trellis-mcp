@@ -9,11 +9,10 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 from ..exceptions.validation_error import ValidationError, ValidationErrorCode
 from ..utils.sanitization import sanitize_for_audit
-from .cache import InferenceCache, InferenceResult
+from .cache import InferenceCache, InferenceCacheStats, InferenceResult
 from .path_builder import PathBuilder
 from .pattern_matcher import PatternMatcher
 from .validator import FileSystemValidator, ValidationResult
@@ -401,7 +400,7 @@ class KindInferenceEngine:
         # Perform validation
         return self.validator.validate_object_structure(kind, clean_id)
 
-    def get_cache_stats(self) -> dict[str, Any]:
+    def get_cache_stats(self) -> InferenceCacheStats:
         """Get cache performance statistics.
 
         Returns:

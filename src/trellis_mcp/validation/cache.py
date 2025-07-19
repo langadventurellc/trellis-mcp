@@ -7,10 +7,17 @@ redundant file I/O operations when validating prerequisites.
 import logging
 import os
 from pathlib import Path
-from typing import Any
+from typing import TypedDict
 
 # Configure logger for this module
 logger = logging.getLogger(__name__)
+
+
+class CacheStats(TypedDict):
+    """Type definition for cache statistics."""
+
+    cached_projects: int
+    cache_keys: list[str]
 
 
 class DependencyGraphCache:
@@ -118,7 +125,7 @@ class DependencyGraphCache:
 _graph_cache = DependencyGraphCache()
 
 
-def get_cache_stats() -> dict[str, Any]:
+def get_cache_stats() -> CacheStats:
     """Get statistics about the dependency graph cache.
 
     Returns:

@@ -10,13 +10,25 @@ import os
 import threading
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import TypedDict
 
 from .path_builder import PathBuilder
 from .validator import ValidationResult
 
 # Configure logger for this module
 logger = logging.getLogger(__name__)
+
+
+class InferenceCacheStats(TypedDict):
+    """Type definition for inference cache statistics."""
+
+    size: int
+    max_size: int
+    hits: int
+    misses: int
+    evictions: int
+    hit_rate: float
+    memory_usage: int
 
 
 @dataclass
@@ -196,7 +208,7 @@ class InferenceCache:
             self._misses = 0
             self._evictions = 0
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> InferenceCacheStats:
         """Get cache statistics for monitoring.
 
         Returns:
@@ -327,7 +339,7 @@ def clear_inference_cache() -> None:
         _inference_cache.clear()
 
 
-def get_cache_stats() -> dict[str, Any]:
+def get_cache_stats() -> InferenceCacheStats:
     """Get statistics about the global inference cache.
 
     Returns:
