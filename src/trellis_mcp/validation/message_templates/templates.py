@@ -241,4 +241,60 @@ def get_default_templates() -> dict[str, MessageTemplate]:
             description="File access denied",
             required_params=["object_kind", "file_path"],
         ),
+        # Cross-system validation templates
+        "cross_system.reference_conflict": MessageTemplate(
+            template=(
+                "Cannot reference {target_task_type} task '{target_task_id}' from "
+                "{source_task_type} task '{source_task_id}'"
+            ),
+            category="cross_system",
+            description="Cross-system task reference conflict",
+            required_params=[
+                "source_task_type",
+                "target_task_type",
+                "source_task_id",
+                "target_task_id",
+            ],
+        ),
+        "cross_system.prerequisite_invalid": MessageTemplate(
+            template=(
+                "Prerequisite validation failed: {source_task_type} task '{source_task_id}' "
+                "requires {target_task_type} task '{target_task_id}' which does not exist"
+            ),
+            category="cross_system",
+            description="Cross-system prerequisite validation failure",
+            required_params=[
+                "source_task_type",
+                "target_task_type",
+                "source_task_id",
+                "target_task_id",
+            ],
+        ),
+        "cross_system.hierarchy_to_standalone": MessageTemplate(
+            template=(
+                "Cannot reference standalone task '{target_task_id}' from "
+                "hierarchical task '{source_task_id}'"
+            ),
+            category="cross_system",
+            description="Hierarchical task referencing standalone task",
+            required_params=["source_task_id", "target_task_id"],
+        ),
+        "cross_system.standalone_to_hierarchy": MessageTemplate(
+            template=(
+                "Cannot reference hierarchical task '{target_task_id}' from "
+                "standalone task '{source_task_id}'"
+            ),
+            category="cross_system",
+            description="Standalone task referencing hierarchical task",
+            required_params=["source_task_id", "target_task_id"],
+        ),
+        "cross_system.prerequisite_context": MessageTemplate(
+            template=(
+                "Prerequisite validation failed: {source_task_context} requires "
+                "{target_task_context} '{target_task_id}' which does not exist"
+            ),
+            category="cross_system",
+            description="Cross-system prerequisite with task context",
+            required_params=["source_task_context", "target_task_context", "target_task_id"],
+        ),
     }

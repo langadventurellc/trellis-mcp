@@ -5,13 +5,16 @@ values in Trellis MCP objects.
 """
 
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import ValidationError
 
 from ..models.common import Priority
 from ..schema.kind_enum import KindEnum
 from ..schema.status_enum import StatusEnum
+
+if TYPE_CHECKING:
+    from .error_collector import ValidationErrorCollector
 
 
 def validate_required_fields_per_kind(data: dict[str, Any], object_kind: KindEnum) -> list[str]:
@@ -546,5 +549,127 @@ def _validate_status_parameter_security(status: str) -> list[str]:
     # Check for control characters
     if any(ord(c) < 32 for c in status if c not in ["\t", "\n", "\r"]):
         errors.append("Status parameter contains control characters")
+
+    return errors
+
+
+def validate_prerequisite_existence(
+    prerequisites: list[str],
+    project_root: str,
+    collector: "ValidationErrorCollector",
+) -> None:
+    """Validate prerequisite IDs exist across hierarchical and standalone task systems.
+
+    This function verifies all prerequisite IDs exist in the project by building
+    an efficient ID mapping using get_all_objects() and checking each prerequisite
+    against both hierarchical and standalone task systems.
+
+    Args:
+        prerequisites: List of prerequisite IDs to validate (with or without prefixes)
+        project_root: Root directory for the planning structure
+        collector: ValidationErrorCollector instance for error aggregation
+
+    Example:
+        >>> from .error_collector import ValidationErrorCollector
+        >>> collector = ValidationErrorCollector()
+        >>> prerequisites = ["task-1", "T-task-2"]
+        >>> validate_prerequisite_existence(prerequisites, "./planning", collector)
+        >>> collector.has_errors()
+        False
+    """
+    from ..exceptions.validation_error import ValidationErrorCode
+    from ..id_utils import clean_prerequisite_id
+    from .object_loader import get_all_objects
+
+    if not prerequisites:
+        return
+
+    # Performance optimization: build object ID mapping once
+    try:
+        all_objects = get_all_objects(project_root)
+    except Exception as e:
+        collector.add_error(
+            f"Failed to load project objects for prerequisite validation: {str(e)}",
+            ValidationErrorCode.PARENT_NOT_EXIST,
+            context={"validation_type": "prerequisite_existence", "project_root": project_root},
+        )
+        return
+
+    # Validate each prerequisite
+    for prereq_id in prerequisites:
+        if not prereq_id or not prereq_id.strip():
+            collector.add_error(
+                "Empty prerequisite ID found",
+                ValidationErrorCode.PARENT_NOT_EXIST,
+                context={"validation_type": "prerequisite_existence", "prerequisite_id": ""},
+            )
+            continue
+
+        # Clean the prerequisite ID for consistent lookup
+        clean_id = clean_prerequisite_id(prereq_id.strip())
+
+        # Security validation for prerequisite ID
+        security_errors = _validate_prerequisite_id_security(clean_id)
+        for error_msg in security_errors:
+            collector.add_error(
+                f"Prerequisite ID security validation failed: {error_msg}",
+                ValidationErrorCode.INVALID_FIELD,
+                context={
+                    "validation_type": "prerequisite_security",
+                    "prerequisite_id": prereq_id[:50],  # Truncate for safety
+                },
+            )
+            continue  # Skip existence check if security validation fails
+
+        # Check if prerequisite exists in the cross-system object mapping
+        if clean_id not in all_objects:
+            collector.add_error(
+                f"Prerequisite '{prereq_id}' does not exist in project. "
+                f"Checked both hierarchical and standalone task systems.",
+                ValidationErrorCode.PARENT_NOT_EXIST,
+                context={
+                    "validation_type": "prerequisite_existence",
+                    "prerequisite_id": prereq_id,
+                    "clean_id": clean_id,
+                    "cross_system_check": True,
+                },
+            )
+
+
+def _validate_prerequisite_id_security(prereq_id: str) -> list[str]:
+    """Validate prerequisite ID for security vulnerabilities.
+
+    Uses existing security validation patterns to ensure prerequisite IDs
+    are safe for filesystem operations and don't contain malicious content.
+
+    Args:
+        prereq_id: The clean prerequisite ID to validate
+
+    Returns:
+        List of security validation errors
+    """
+    from ..id_utils import validate_id_charset
+
+    errors = []
+
+    # Use existing character set validation
+    if not validate_id_charset(prereq_id):
+        errors.append("contains invalid characters for filesystem paths")
+
+    # Check for path traversal attempts
+    if ".." in prereq_id:
+        errors.append("contains path traversal sequences")
+
+    # Check for absolute path attempts
+    if prereq_id.startswith("/") or prereq_id.startswith("\\"):
+        errors.append("cannot start with path separators")
+
+    # Check for control characters
+    if any(ord(c) < 32 for c in prereq_id if c not in ["\t", "\n", "\r"]):
+        errors.append("contains control characters")
+
+    # Check length constraints to prevent filesystem issues
+    if len(prereq_id) > 255:
+        errors.append("exceeds filesystem name limits (255 characters)")
 
     return errors

@@ -404,7 +404,10 @@ Task that depends on itself
 
         error = exc_info.value
         assert error.cycle_path == ["task1", "task1"]
-        assert "Circular dependency detected: task1 -> task1" in str(error)
+        # Enhanced error message should show task type (hierarchical since it has a parent)
+        assert "Circular dependency detected: task1 (hierarchical) → task1 (hierarchical)" in str(
+            error
+        )
 
     def test_simple_circular_dependency(self, tmp_path: Path):
         """Test validation fails with simple circular dependency (A -> B -> A)."""
