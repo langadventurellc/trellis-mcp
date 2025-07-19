@@ -44,7 +44,7 @@ Implement new discovery capabilities for the Trellis MCP server, specifically th
 - [ ] **Status Filtering**: Only include objects with status='done' in results
 - [ ] **Cross-System Support**: Scan both hierarchical and standalone completed objects
 - [ ] **Performance Target**: Complete scanning in < 200ms for typical completion histories
-- [ ] **ID Parameter**: Accept any valid object ID (P-, E-, F-, T-, task-) as starting point
+- [ ] **ID Parameter**: Accept any valid object ID (P-, E-, F-, T-) as starting point
 
 ### Completion Metadata Quality
 - [ ] **Complete Object Data**: Include ID, kind, title, completion date, parent for each object

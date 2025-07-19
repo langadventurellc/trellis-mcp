@@ -19,8 +19,8 @@ Simplify and streamline the existing MCP tool interfaces by removing unnecessary
 ## Major Components and Deliverables
 
 ### 1. Kind Inference Engine
-- **Automatic object type detection** from ID prefixes (P-, E-, F-, T-, task-)
-- **Pattern matching system** for recognizing hierarchical vs standalone objects
+- **Automatic object type detection** from ID prefixes (P-, E-, F-, T-)
+- **Pattern matching system** for recognizing hierarchical and standalone objects
 - **Validation layer** to ensure inferred types match actual object structures
 - **Error handling** for unrecognized or malformed IDs
 
@@ -43,8 +43,7 @@ Simplify and streamline the existing MCP tool interfaces by removing unnecessary
   - P- → project
   - E- → epic  
   - F- → feature
-  - T- → hierarchical task
-  - task- → standalone task
+  - T- → task (hierarchical and standalone)
 - [ ] **Cross-System Support**: Handle both hierarchical and standalone object patterns
 - [ ] **Validation**: Verify inferred kind matches actual object type in filesystem
 - [ ] **Error Handling**: Return clear, actionable errors for unrecognized ID patterns
@@ -82,7 +81,6 @@ graph TD
     C -->|E-xxx| E[Epic Handler]
     C -->|F-xxx| F[Feature Handler]
     C -->|T-xxx| G[Task Handler]
-    C -->|task-xxx| H[Standalone Task Handler]
     
     D --> I[Object Processor]
     E --> I

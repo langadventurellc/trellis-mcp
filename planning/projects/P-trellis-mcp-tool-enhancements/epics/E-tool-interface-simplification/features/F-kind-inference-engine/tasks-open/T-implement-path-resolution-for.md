@@ -55,7 +55,7 @@ Implement hierarchical path building following existing patterns:
 
 ### 3. Standalone Path Construction
 Implement standalone path building for standalone tasks:
-- **Standalone Tasks**: `planning/tasks-open/T-{id}.md` or `planning/tasks-open/task-{id}.md`
+- **Standalone Tasks**: `planning/tasks-open/T-{id}.md` or `planning/tasks-open/T-{id}.md`
 
 ### 4. Cross-System Path Detection
 Create logic to handle mixed environments with both hierarchical and standalone objects:
@@ -98,9 +98,9 @@ def build_object_path(self, kind: str, object_id: str) -> Path:
 - [ ] **Parent Discovery**: Automatically discover parent relationships for path construction
 
 ### Standalone Path Resolution
-- [ ] **Standalone Task Paths**: Correctly construct paths for standalone tasks (task- prefix)
+- [ ] **Standalone Task Paths**: Correctly construct paths for standalone tasks (T- prefix)
 - [ ] **Root Level Placement**: Place standalone tasks at appropriate root level locations
-- [ ] **ID Format Handling**: Support both T- and task- prefixed standalone tasks
+- [ ] **ID Format Handling**: Support both T- prefixed standalone tasks
 - [ ] **Conflict Avoidance**: Avoid path conflicts between hierarchical and standalone objects
 
 ### Cross-System Compatibility

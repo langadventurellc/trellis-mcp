@@ -108,8 +108,8 @@ from pydantic import Field
 @mcp.tool
 def getObject(
     id: Annotated[str, Field(
-        description="Object ID (P-, E-, F-, T-, task- prefixed)",
-        pattern=r"^(P-|E-|F-|T-|task-).+",
+        description="Object ID (P-, E-, F-, T- prefixed)",
+        pattern=r"^(P-|E-|F-|T-).+",
         min_length=3
     )],
     projectRoot: Annotated[str, Field(

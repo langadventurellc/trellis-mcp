@@ -20,7 +20,7 @@ Implement a robust kind inference engine that automatically detects object types
 
 ### 1. ID Pattern Recognition System
 - **Prefix pattern matcher** for hierarchical objects (P-, E-, F-, T-)
-- **Standalone pattern matcher** for standalone tasks (task-)
+- **Standalone pattern matcher** for standalone tasks (T-)
 - **Pattern validation logic** to ensure ID format correctness
 - **Error handling** for malformed or unrecognized ID patterns
 
@@ -40,7 +40,7 @@ Implement a robust kind inference engine that automatically detects object types
 
 ### ID Pattern Recognition
 - [ ] **Hierarchical Prefixes**: Correctly identify P- → project, E- → epic, F- → feature, T- → task
-- [ ] **Standalone Prefixes**: Correctly identify task- → standalone task
+- [ ] **Standalone Prefixes**: Correctly identify T- → standalone task
 - [ ] **Pattern Validation**: Reject malformed IDs with clear error messages
 - [ ] **Case Sensitivity**: Handle both uppercase and lowercase prefix patterns
 - [ ] **Edge Cases**: Handle edge cases like empty strings, special characters, numeric-only IDs
@@ -77,7 +77,6 @@ graph TD
     C -->|E-xxx| E[Epic Type]
     C -->|F-xxx| F[Feature Type]  
     C -->|T-xxx| G[Task Type]
-    C -->|task-xxx| H[Standalone Task Type]
     C -->|Invalid| I[Pattern Error]
     
     D --> J[Path Builder]

@@ -172,7 +172,7 @@ def getCompletedObjects(
 
 #### Kind Inference Engine
 - [ ] **ID pattern matching**: Automatically detect kind from prefixes (P-=project, E-=epic, F-=feature, T-=task)
-- [ ] **Standalone task detection**: Handle task- prefixed standalone tasks
+- [ ] **Standalone task detection**: Handle T- prefixed standalone tasks
 - [ ] **Error handling**: Return clear errors for unrecognized ID patterns
 - [ ] **Validation**: Ensure inferred kind matches actual object type
 

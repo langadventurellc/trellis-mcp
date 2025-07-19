@@ -1,14 +1,14 @@
 ---
 kind: task
 id: T-create-id-pattern-matching
+parent: F-kind-inference-engine
+status: in-progress
 title: Create ID pattern matching system with regex compilation
-status: open
 priority: high
 prerequisites: []
 created: '2025-07-19T14:07:04.739108'
-updated: '2025-07-19T14:07:04.739108'
+updated: '2025-07-19T14:12:48.907019'
 schema_version: '1.1'
-parent: F-kind-inference-engine
 ---
 # Create ID Pattern Matching System with Regex Compilation
 
@@ -34,8 +34,7 @@ Create compiled regex patterns for efficient ID prefix recognition:
 - **P-** prefix → project type
 - **E-** prefix → epic type  
 - **F-** prefix → feature type
-- **T-** prefix → hierarchical task type
-- **task-** prefix → standalone task type
+- **T-** prefix → hierarchical and standalone task type
 
 ### 2. Pattern Matcher Class
 Implement a `PatternMatcher` class following the existing validation patterns:
@@ -71,7 +70,7 @@ HIERARCHICAL_PATTERNS = {
 }
 
 STANDALONE_PATTERNS = {
-    KindEnum.TASK: re.compile(r"^task-[a-z0-9-]+$"),
+    KindEnum.TASK: re.compile(r"^T-[a-z0-9-]+$"),
 }
 ```
 
@@ -89,7 +88,7 @@ STANDALONE_PATTERNS = {
 
 ### Pattern Recognition Accuracy
 - [ ] **Hierarchical Prefixes**: Correctly identify P- → project, E- → epic, F- → feature, T- → task
-- [ ] **Standalone Prefixes**: Correctly identify task- → standalone task  
+- [ ] **Standalone Prefixes**: Correctly identify T- → standalone task  
 - [ ] **Pattern Validation**: Reject malformed IDs (empty strings, invalid characters, wrong format)
 - [ ] **Case Handling**: Support lowercase prefixes only (following existing ID patterns)
 - [ ] **Edge Cases**: Handle edge cases like extra hyphens, numeric-only IDs, special characters
@@ -147,8 +146,8 @@ def test_hierarchical_pattern_recognition():
     # Test P-, E-, F-, T- prefix recognition
     
 def test_standalone_pattern_recognition():
-    # Test task- prefix recognition
-    
+    # Test T- prefix recognition
+
 def test_invalid_pattern_handling():
     # Test error cases and edge conditions
     
