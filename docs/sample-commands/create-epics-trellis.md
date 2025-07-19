@@ -94,7 +94,13 @@ For each epic, create:
 - **Description**: Comprehensive explanation including:
   - Purpose and goals
   - Major components and deliverables
-  - Success criteria
+  - **Detailed Acceptance Criteria**: Specific, measurable requirements that define epic completion, including:
+    - Functional deliverables with clear success metrics
+    - Integration requirements with other epics or external systems
+    - Performance and quality standards specific to this epic
+    - Security and compliance requirements
+    - User experience and usability criteria
+    - Testing and validation requirements
   - Technical considerations
   - Dependencies on other epics
   - Estimated scale (number of features)

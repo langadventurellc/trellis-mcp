@@ -69,6 +69,7 @@ Check the backlog status or create new tasks for a feature.
 
 The research phase is critical for understanding the context and requirements before writing any code. During this phase:
 
+- **Read parent objects for context**: Use MCP `getObject` to read the parent feature, epic, and project for additional context, specifications, and requirements that may not be fully detailed in the task description
 - **Analyze project structure**: Explore the codebase to understand file organization, naming conventions, and architectural patterns
 - **Study existing implementations**: Find similar code in the project to maintain consistency with established patterns
 - **Research best practices**: Use the context7 MCP tool to access up-to-date documentation for libraries and frameworks
@@ -80,22 +81,27 @@ The research phase is critical for understanding the context and requirements be
 ```
 📚 Research Phase for T-create-user-model
 
-1️⃣ Analyzing project structure...
+1️⃣ Reading parent objects for context...
+   - Feature F-user-registration: Requires email/password fields, verification tokens
+   - Epic E-user-management: Security standards, GDPR compliance requirements
+   - Project P-ecommerce-platform: Tech stack (Node.js, Prisma, PostgreSQL)
+
+2️⃣ Analyzing project structure...
    - Found existing models in: models/
    - Database: PostgreSQL with Prisma ORM
    - Pattern: One model per file
 
-2️⃣ Checking similar implementations...
+3️⃣ Checking similar implementations...
    - Reviewed: models/Post.js
    - Pattern: Class-based models with validation
    - Naming: PascalCase for models
 
-3️⃣ Researching best practices...
+4️⃣ Researching best practices...
    - Using context7 for Prisma documentation
    - Password handling: bcrypt with 12 rounds
    - UUID generation: native Prisma support
 
-4️⃣ Security considerations...
+5️⃣ Security considerations...
    - Never store plain passwords
    - Email validation pattern required
    - Unique constraints on email/username

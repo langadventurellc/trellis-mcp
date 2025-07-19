@@ -93,12 +93,23 @@ Continue until the task structure:
 For each task, create:
 - **Title**: Clear, actionable description
 - **Description**: Detailed explanation including:
-  - Specific implementation requirements
-  - Technical approach to follow
-  - Acceptance criteria
-  - Dependencies on other tasks
-  - Security considerations
-  - Testing requirements
+  - **Detailed Context**: Enough information for a developer new to the project to complete the work, including:
+    - Links to relevant specifications, documentation, or other Trellis objects (tasks, features, epics, projects)
+    - References to existing patterns or similar implementations in the codebase
+    - Specific technologies, frameworks, or libraries to use
+    - File paths and component locations where work should be done
+  - **Specific implementation requirements**: What exactly needs to be built
+  - **Technical approach to follow**: Step-by-step guidance on implementation
+  - **Detailed Acceptance Criteria**: Specific, measurable requirements that define project success, including:
+    - Functional deliverables with clear success metrics
+    - Performance benchmarks (response times, throughput, capacity)
+    - Security requirements and compliance standards
+    - User experience criteria and usability standards
+    - Integration testing requirements with external systems
+    - Deployment and operational readiness criteria
+  - **Dependencies on other tasks**: Prerequisites and sequencing
+  - **Security considerations**: Validation, authorization, and protection requirements
+  - **Testing requirements**: Specific tests to write and coverage expectations
 
 **Task Granularity Guidelines:**
 

@@ -1,6 +1,7 @@
 temp/
 logs/
 test_trellis/
+test_debug/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

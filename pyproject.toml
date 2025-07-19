@@ -85,7 +85,22 @@ exclude = ["bin", "temp", ".venv"]
 dev = [
     "build>=1.2.2.post1",
     "isort>=6.0.1",
+    "poethepoet>=0.36.0",
     "setuptools-scm>=8.3.1",
+]
+
+[tool.poe.tasks]
+black = "black ."
+isort = "isort ."
+lint = "flake8"
+type-check = "pyright"
+test = "pytest -q"
+quality = [
+    "black",
+    "isort",
+    "lint",
+    "type-check",
+    "test",
 ]
 
 [tool.setuptools_scm]

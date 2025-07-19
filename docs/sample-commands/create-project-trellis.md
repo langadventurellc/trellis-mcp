@@ -94,7 +94,15 @@ Based on gathered information:
   - Non-functional requirements (performance, security, etc.)
   - Integration requirements
   - Deployment strategy
-  - Success criteria
+  - **Detailed Acceptance Criteria**: Specific, measurable requirements that define feature completion, including:
+    - Functional behavior with specific input/output expectations
+    - User interface requirements and interaction patterns
+    - Data validation and error handling criteria
+    - Integration points with other features or systems
+    - Performance benchmarks and response time requirements
+    - Security validation and access control requirements
+    - Browser/platform compatibility requirements
+    - Accessibility and usability standards
   - Any other context needed for epic creation
 
 **Architecture Diagram Guidelines:**
