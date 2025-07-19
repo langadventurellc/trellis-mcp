@@ -1,16 +1,17 @@
 ---
 kind: task
 id: T-add-comprehensive-integration-1
+parent: F-cross-system-test-suite
+status: done
 title: Add comprehensive integration workflow tests
-status: open
 priority: normal
 prerequisites:
 - T-implement-mixed-dependency-chain
 - T-add-cross-system-cycle-detection
 created: '2025-07-18T20:54:12.731619'
-updated: '2025-07-18T20:59:10.568753'
+updated: '2025-07-18T22:32:37.045311'
 schema_version: '1.1'
-parent: F-cross-system-test-suite
+worktree: null
 ---
 ### Purpose
 Implement end-to-end integration workflow tests that validate complete task lifecycle operations with cross-system dependencies.
@@ -43,3 +44,5 @@ Implement end-to-end integration workflow tests that validate complete task life
 - Implement comprehensive end-to-end assertion patterns
 
 ### Log
+**2025-07-19T04:07:48.021235Z** - Fixed all failing tests in test_comprehensive_integration_workflows.py. The main issues were that tests were expecting tasks to be claimed in specific orders, but claimNextTask returns tasks based on priority and creation time. Fixed by adapting tests to handle variable ordering while still validating correct behavior.
+- filesChanged: ["tests/integration/test_comprehensive_integration_workflows.py"]
