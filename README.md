@@ -299,7 +299,7 @@ This project follows strict quality standards enforced by automated tools. All c
 Run **all** checks before committing - any failure blocks the commit:
 
 ```bash
-uv run pre-commit run --all-files   # flake8, black, pyright, unit tests
+uv run poe quality   # flake8, black, pyright, unit tests
 ```
 
 #### Code Style
@@ -370,7 +370,7 @@ uv run pyright src/
 uv run pytest -q
 
 # Run all quality checks
-uv run pre-commit run --all-files
+uv run poe quality
 ```
 
 #### Common Commands
@@ -381,7 +381,7 @@ uv run pre-commit run --all-files
 | Start server (STDIO)    | `uv run task-trellis-mcp serve`                  |
 | Start server (HTTP)     | `uv run task-trellis-mcp serve --http localhost:8000` |
 | Initialize planning     | `uv run task-trellis-mcp init`                   |
-| All quality checks      | `uv run pre-commit run --all-files`              |
+| All quality checks      | `uv run poe quality`                             |
 | Run formatter           | `uv run black src/`                              |
 | Run linter              | `uv run flake8 src/`                             |
 | Type check              | `uv run pyright src/`                            |
