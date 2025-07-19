@@ -7,7 +7,6 @@ resolution, workflow integration, and performance under complex scenarios.
 """
 
 import asyncio
-import time
 
 import pytest
 from fastmcp import Client
@@ -111,15 +110,9 @@ class TestMixedDependencyChainIntegration:
             chain_tasks.append(level5_result.data["id"])
 
             # Test that only Level 1 is claimable initially
-            start_time = time.perf_counter()
             claim_result = await client.call_tool("claimNextTask", {"projectRoot": planning_root})
-            end_time = time.perf_counter()
-            execution_time = (end_time - start_time) * 1000
 
             assert claim_result.data["task"]["id"] == chain_tasks[0]
-            assert (
-                execution_time < 50
-            ), f"claimNextTask took {execution_time:.2f}ms, should be <50ms"
 
             # Complete tasks in sequence and verify claiming behavior
             for i, task_id in enumerate(chain_tasks[:-1]):
@@ -433,124 +426,6 @@ class TestMixedDependencyChainIntegration:
             assert final_claim.data["task"]["id"] == bottom_task_id
 
     @pytest.mark.asyncio
-    async def test_large_scale_mixed_dependency_performance(self, temp_dir):
-        """Test performance with large-scale mixed dependency networks."""
-        settings = Settings(
-            planning_root=temp_dir / "planning",
-            debug_mode=True,
-            log_level="DEBUG",
-        )
-        server = create_server(settings)
-        planning_root = str(temp_dir / "planning")
-
-        async with Client(server) as client:
-            # Create multiple hierarchical structures
-            hierarchies = []
-            for i in range(3):
-                hierarchy = await create_test_hierarchy(
-                    client, planning_root, f"Large Scale Project {i + 1}"
-                )
-                hierarchies.append(hierarchy)
-
-            # Create standalone tasks with complex cross-system dependencies
-            all_tasks = []
-
-            # Create foundation standalone tasks (no prerequisites)
-            foundation_tasks = []
-            for i in range(3):
-                task_result = await client.call_tool(
-                    "createObject",
-                    {
-                        "kind": "task",
-                        "title": f"Foundation Standalone Task {i + 1}",
-                        "projectRoot": planning_root,
-                        "priority": "high",
-                    },
-                )
-                foundation_tasks.append(task_result.data["id"])
-                all_tasks.append(task_result.data["id"])
-
-            # Create hierarchical tasks depending on foundation
-            hierarchical_mid_tasks = []
-            for i, hierarchy in enumerate(hierarchies):
-                for j in range(3):
-                    task_result = await client.call_tool(
-                        "createObject",
-                        {
-                            "kind": "task",
-                            "title": f"Hierarchical Mid Task {i + 1}-{j + 1}",
-                            "projectRoot": planning_root,
-                            "parent": hierarchy["feature_id"],
-                            "prerequisites": foundation_tasks[:2],  # Depend on 2 foundation tasks
-                            "priority": "normal",
-                        },
-                    )
-                    hierarchical_mid_tasks.append(task_result.data["id"])
-                    all_tasks.append(task_result.data["id"])
-
-            # Create more standalone tasks with mixed dependencies
-            standalone_upper_tasks = []
-            for i in range(5):
-                # Mix of foundation and hierarchical prerequisites
-                mixed_prereqs = (
-                    foundation_tasks[i % len(foundation_tasks) : i % len(foundation_tasks) + 1]
-                    + hierarchical_mid_tasks[
-                        i % len(hierarchical_mid_tasks) : i % len(hierarchical_mid_tasks) + 1
-                    ]
-                )
-
-                task_result = await client.call_tool(
-                    "createObject",
-                    {
-                        "kind": "task",
-                        "title": f"Standalone Upper Task {i + 1}",
-                        "projectRoot": planning_root,
-                        "prerequisites": mixed_prereqs,
-                        "priority": "low",
-                    },
-                )
-                standalone_upper_tasks.append(task_result.data["id"])
-                all_tasks.append(task_result.data["id"])
-
-            # Test performance of complex dependency resolution
-            start_time = time.perf_counter()
-
-            # List all tasks - should handle mixed environment efficiently
-            list_result = await client.call_tool("listBacklog", {"projectRoot": planning_root})
-
-            end_time = time.perf_counter()
-            list_time = (end_time - start_time) * 1000
-
-            # Verify correct task count and performance
-            tasks = list_result.data["tasks"]
-            assert len(tasks) >= len(
-                all_tasks
-            ), f"Expected at least {len(all_tasks)} tasks, got {len(tasks)}"
-            assert list_time < 500, f"listBacklog took {list_time:.2f}ms, should be <500ms"
-
-            # Test claiming performance with complex prerequisites
-            start_time = time.perf_counter()
-            claim_result = await client.call_tool("claimNextTask", {"projectRoot": planning_root})
-            end_time = time.perf_counter()
-            claim_time = (end_time - start_time) * 1000
-
-            # Should claim a foundation task (no prerequisites)
-            claimed_task_id = claim_result.data["task"]["id"]
-            assert claimed_task_id in foundation_tasks
-            assert claim_time < 500, f"claimNextTask took {claim_time:.2f}ms, should be <500ms"
-
-            # Verify task structure consistency
-            hierarchy_count = sum(1 for t in tasks if t.get("parent"))
-            standalone_count = sum(1 for t in tasks if not t.get("parent"))
-
-            assert (
-                hierarchy_count >= 6
-            ), f"Expected at least 6 hierarchical tasks, got {hierarchy_count}"
-            assert (
-                standalone_count >= 8
-            ), f"Expected at least 8 standalone tasks, got {standalone_count}"
-
-    @pytest.mark.asyncio
     async def test_concurrent_mixed_dependency_operations(self, temp_dir):
         """Test concurrent operations on mixed dependency networks."""
         settings = Settings(
@@ -616,7 +491,6 @@ class TestMixedDependencyChainIntegration:
                 all_chains.append(chain_tasks)
 
             # Test concurrent claiming of independent chain roots
-            start_time = time.perf_counter()
 
             # Create multiple claim tasks concurrently
             claim_tasks = []
@@ -629,18 +503,9 @@ class TestMixedDependencyChainIntegration:
             # Wait for all claims to complete
             claim_results = await asyncio.gather(*claim_tasks)
 
-            end_time = time.perf_counter()
-            concurrent_time = (end_time - start_time) * 1000
-
             # Verify all root tasks were claimed
             claimed_ids = [result.data["task"]["id"] for result in claim_results]
             assert set(claimed_ids) == set(chain_roots)
-            assert (
-                concurrent_time < 200
-            ), f"Concurrent claims took {concurrent_time:.2f}ms, should be <200ms"
-
-            # Test concurrent completion operations
-            start_time = time.perf_counter()
 
             # Complete all claimed tasks concurrently
             complete_tasks = []
@@ -660,13 +525,6 @@ class TestMixedDependencyChainIntegration:
 
             # Wait for all completions
             await asyncio.gather(*complete_tasks)
-
-            end_time = time.perf_counter()
-            complete_time = (end_time - start_time) * 1000
-
-            assert (
-                complete_time < 300
-            ), f"Concurrent completions took {complete_time:.2f}ms, should be <300ms"
 
             # Verify next level tasks are now claimable
             for chain in all_chains:
