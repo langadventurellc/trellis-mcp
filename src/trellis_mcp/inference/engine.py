@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from ..exceptions.validation_error import ValidationError, ValidationErrorCode
+from ..utils.sanitization import sanitize_for_audit
 from .cache import InferenceCache, InferenceResult
 from .path_builder import PathBuilder
 from .pattern_matcher import PatternMatcher
@@ -44,68 +45,7 @@ class ExtendedInferenceResult:
         Returns:
             Sanitized text safe for audit trails
         """
-        if not text:
-            return "[EMPTY]"
-
-        # Patterns that could indicate malicious content
-        dangerous_patterns = [
-            # SQL injection attempts
-            "drop",
-            "select",
-            "insert",
-            "update",
-            "delete",
-            "union",
-            "exec",
-            # Script injection attempts
-            "<script",
-            "</script",
-            "javascript:",
-            "vbscript:",
-            # Template injection attempts
-            "{{",
-            "}}",
-            "${",
-            "#{",
-            # Path traversal attempts
-            "../",
-            "..\\",
-            "/etc/",
-            "c:\\",
-            "passwd",
-            "shadow",
-            # Command injection attempts
-            "|",
-            "&",
-            ";",
-            "`",
-            "$(",
-            # Sensitive data patterns
-            "secret",
-            "password",
-            "key",
-            "token",
-            "api",
-            # Other suspicious patterns
-            "null",
-            "undefined",
-            "function(",
-            "eval(",
-            "alert(",
-        ]
-
-        text_lower = text.lower()
-
-        # Check for dangerous patterns
-        for pattern in dangerous_patterns:
-            if pattern in text_lower:
-                return "[REDACTED]"
-
-        # Truncate if too long
-        if len(text) > max_length:
-            return text[:max_length] + "[TRUNCATED]"
-
-        return text
+        return sanitize_for_audit(text, max_length)
 
     def __str__(self) -> str:
         """Return sanitized string representation for safe audit logging."""
@@ -517,65 +457,4 @@ class KindInferenceEngine:
         Returns:
             Sanitized text safe for error messages
         """
-        if not text:
-            return "[EMPTY]"
-
-        # Patterns that could indicate sensitive content
-        dangerous_patterns = [
-            # SQL injection attempts
-            "drop",
-            "select",
-            "insert",
-            "update",
-            "delete",
-            "union",
-            "exec",
-            # Script injection attempts
-            "<script",
-            "</script",
-            "javascript:",
-            "vbscript:",
-            # Template injection attempts
-            "{{",
-            "}}",
-            "${",
-            "#{",
-            # Path traversal attempts
-            "../",
-            "..\\",
-            "/etc/",
-            "c:\\",
-            "passwd",
-            "shadow",
-            # Command injection attempts
-            "|",
-            "&",
-            ";",
-            "`",
-            "$(",
-            # Sensitive data patterns
-            "secret",
-            "password",
-            "key",
-            "token",
-            "api",
-            # Other suspicious patterns
-            "null",
-            "undefined",
-            "function(",
-            "eval(",
-            "alert(",
-        ]
-
-        text_lower = text.lower()
-
-        # Check for dangerous patterns
-        for pattern in dangerous_patterns:
-            if pattern in text_lower:
-                return "[REDACTED]"
-
-        # Truncate if too long
-        if len(text) > max_length:
-            return text[:max_length] + "[TRUNCATED]"
-
-        return text
+        return sanitize_for_audit(text, max_length)

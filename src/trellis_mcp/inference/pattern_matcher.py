@@ -10,6 +10,7 @@ from typing import Final
 
 from ..exceptions.validation_error import ValidationError, ValidationErrorCode
 from ..schema.kind_enum import KindEnum
+from ..utils.sanitization import sanitize_for_audit
 
 
 class PatternMatcher:
@@ -170,68 +171,7 @@ class PatternMatcher:
         Returns:
             Sanitized text safe for error messages
         """
-        if not text:
-            return "[EMPTY]"
-
-        # Patterns that could indicate malicious content
-        dangerous_patterns = [
-            # SQL injection attempts
-            "drop",
-            "select",
-            "insert",
-            "update",
-            "delete",
-            "union",
-            "exec",
-            # Script injection attempts
-            "<script",
-            "</script",
-            "javascript:",
-            "vbscript:",
-            # Template injection attempts
-            "{{",
-            "}}",
-            "${",
-            "#{",
-            # Path traversal attempts
-            "../",
-            "..\\",
-            "/etc/",
-            "c:\\",
-            "passwd",
-            "shadow",
-            # Command injection attempts
-            "|",
-            "&",
-            ";",
-            "`",
-            "$(",
-            # Sensitive data patterns
-            "secret",
-            "password",
-            "key",
-            "token",
-            "api",
-            # Other suspicious patterns
-            "null",
-            "undefined",
-            "function(",
-            "eval(",
-            "alert(",
-        ]
-
-        text_lower = text.lower()
-
-        # Check for dangerous patterns
-        for pattern in dangerous_patterns:
-            if pattern in text_lower:
-                return "[REDACTED]"
-
-        # Truncate if too long
-        if len(text) > max_length:
-            return text[:max_length] + "[TRUNCATED]"
-
-        return text
+        return sanitize_for_audit(text, max_length)
 
     def _format_pattern_error(self, object_id: str, prefix: str | None) -> str:
         """Format descriptive error message for pattern matching failures.
