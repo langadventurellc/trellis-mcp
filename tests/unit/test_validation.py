@@ -619,6 +619,147 @@ class TestCircularDependencyError:
         assert error.cycle_path == cycle_path
         assert "Circular dependency detected: task1 -> task1" in str(error)
 
+    def test_circular_dependency_error_with_standalone_tasks(self):
+        """Test CircularDependencyError with standalone task context."""
+        cycle_path = ["auth-setup", "user-validation", "auth-setup"]
+        objects_data = {
+            "auth-setup": {
+                "kind": "task",
+                "id": "auth-setup",
+                "parent": None,  # Standalone task
+            },
+            "user-validation": {
+                "kind": "task",
+                "id": "user-validation",
+                "parent": "",  # Standalone task (empty string)
+            },
+        }
+
+        error = CircularDependencyError(cycle_path, objects_data)
+
+        assert error.cycle_path == cycle_path
+        assert error.objects_data == objects_data
+        error_str = str(error)
+        assert "auth-setup (standalone)" in error_str
+        assert "user-validation (standalone)" in error_str
+        assert " → " in error_str  # Enhanced arrow format
+
+    def test_circular_dependency_error_with_hierarchical_tasks(self):
+        """Test CircularDependencyError with hierarchical task context."""
+        cycle_path = ["task-a", "task-b", "task-a"]
+        objects_data = {
+            "task-a": {
+                "kind": "task",
+                "id": "task-a",
+                "parent": "feature-auth",  # Hierarchical task
+            },
+            "task-b": {
+                "kind": "task",
+                "id": "task-b",
+                "parent": "feature-user",  # Hierarchical task
+            },
+        }
+
+        error = CircularDependencyError(cycle_path, objects_data)
+
+        error_str = str(error)
+        assert "task-a (hierarchical)" in error_str
+        assert "task-b (hierarchical)" in error_str
+        assert " → " in error_str
+
+    def test_circular_dependency_error_with_mixed_task_types(self):
+        """Test CircularDependencyError with mixed standalone and hierarchical tasks."""
+        cycle_path = ["standalone-task", "hierarchical-task", "standalone-task"]
+        objects_data = {
+            "standalone-task": {
+                "kind": "task",
+                "id": "standalone-task",
+                "parent": None,  # Standalone
+            },
+            "hierarchical-task": {
+                "kind": "task",
+                "id": "hierarchical-task",
+                "parent": "feature-x",  # Hierarchical
+            },
+        }
+
+        error = CircularDependencyError(cycle_path, objects_data)
+
+        error_str = str(error)
+        assert "standalone-task (standalone)" in error_str
+        assert "hierarchical-task (hierarchical)" in error_str
+
+    def test_circular_dependency_error_with_mixed_object_types(self):
+        """Test CircularDependencyError with mixed object types (task, feature, etc.)."""
+        cycle_path = ["task-1", "feature-auth", "task-2", "task-1"]
+        objects_data = {
+            "task-1": {
+                "kind": "task",
+                "id": "task-1",
+                "parent": "feature-user",  # Hierarchical task
+            },
+            "feature-auth": {
+                "kind": "feature",
+                "id": "feature-auth",
+                "parent": "epic-user-mgmt",
+            },
+            "task-2": {
+                "kind": "task",
+                "id": "task-2",
+                "parent": None,  # Standalone task
+            },
+        }
+
+        error = CircularDependencyError(cycle_path, objects_data)
+
+        error_str = str(error)
+        assert "task-1 (hierarchical)" in error_str
+        assert "feature-auth (feature)" in error_str
+        assert "task-2 (standalone)" in error_str
+
+    def test_circular_dependency_error_missing_object_data(self):
+        """Test CircularDependencyError when object data is missing for some objects."""
+        cycle_path = ["task-1", "missing-task", "task-1"]
+        objects_data = {
+            "task-1": {
+                "kind": "task",
+                "id": "task-1",
+                "parent": None,
+            },
+            # "missing-task" is not in objects_data
+        }
+
+        error = CircularDependencyError(cycle_path, objects_data)
+
+        error_str = str(error)
+        assert "task-1 (standalone)" in error_str
+        assert "missing-task (unknown)" in error_str
+
+    def test_circular_dependency_error_backward_compatibility(self):
+        """Test that CircularDependencyError maintains backward compatibility."""
+        cycle_path = ["task1", "task2", "task1"]
+
+        # Test without objects_data (old behavior)
+        error = CircularDependencyError(cycle_path)
+
+        assert error.cycle_path == cycle_path
+        assert error.objects_data is None
+        error_str = str(error)
+        # Should use old format with simple arrows
+        assert "task1 -> task2 -> task1" in error_str
+        assert " → " not in error_str  # Should not use enhanced arrows
+
+    def test_circular_dependency_error_empty_objects_data(self):
+        """Test CircularDependencyError with empty objects_data."""
+        cycle_path = ["task1", "task2"]
+        objects_data = {}
+
+        error = CircularDependencyError(cycle_path, objects_data)
+
+        error_str = str(error)
+        assert "task1 (unknown)" in error_str
+        assert "task2 (unknown)" in error_str
+
 
 class TestGetAllObjects:
     """Test the get_all_objects function."""
@@ -1056,7 +1197,10 @@ Task 1 description
 
         error = exc_info.value
         assert error.cycle_path == ["task1", "task1"]
-        assert "Circular dependency detected: task1 -> task1" in str(error)
+        # Enhanced error message should show task type (hierarchical since it has a parent)
+        assert "Circular dependency detected: task1 (hierarchical) → task1 (hierarchical)" in str(
+            error
+        )
 
     def test_validate_acyclic_prerequisites_nonexistent_directory(self, tmp_path: Path):
         """Test validation with non-existent directory."""

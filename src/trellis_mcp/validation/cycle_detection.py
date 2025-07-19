@@ -53,8 +53,31 @@ def check_prereq_cycles_in_memory(
         cycle = detect_cycle_dfs(graph)
 
         if cycle:
-            # Raise the same error type as existing code for compatibility
-            raise CircularDependencyError(cycle)
+            # Get all objects for enhanced error context
+            from ..id_utils import clean_prerequisite_id
+
+            # Load existing objects and add proposed object for context
+            existing_objects = get_all_objects(project_root)
+            if isinstance(existing_objects, tuple):
+                existing_objects = existing_objects[0]
+
+            # Create combined objects for context (same logic as graph building)
+            combined_objects = existing_objects.copy()
+            proposed_id = proposed_object_data.get("id")
+            if proposed_id:
+                clean_proposed_id = clean_prerequisite_id(proposed_id)
+                if operation_type == "create":
+                    combined_objects[clean_proposed_id] = proposed_object_data
+                elif operation_type == "update":
+                    if clean_proposed_id in combined_objects:
+                        existing_data = combined_objects[clean_proposed_id].copy()
+                        existing_data.update(proposed_object_data)
+                        combined_objects[clean_proposed_id] = existing_data
+                    else:
+                        combined_objects[clean_proposed_id] = proposed_object_data
+
+            # Raise enhanced error with object context
+            raise CircularDependencyError(cycle, combined_objects)
 
         return True  # No cycles detected
 
@@ -105,7 +128,11 @@ def validate_acyclic_prerequisites(
                 if cycle:
                     if benchmark:
                         benchmark.end("validate_acyclic_prerequisites")
-                    raise CircularDependencyError(cycle)
+                    # Load objects for enhanced error context
+                    objects = get_all_objects(project_root)
+                    if isinstance(objects, tuple):
+                        objects = objects[0]
+                    raise CircularDependencyError(cycle, objects)
 
                 if benchmark:
                     benchmark.end("validate_acyclic_prerequisites")
@@ -136,7 +163,8 @@ def validate_acyclic_prerequisites(
         if cycle:
             if benchmark:
                 benchmark.end("validate_acyclic_prerequisites")
-            raise CircularDependencyError(cycle)
+            # Use the loaded objects for enhanced error context
+            raise CircularDependencyError(cycle, objects)
 
         if benchmark:
             benchmark.end("validate_acyclic_prerequisites")

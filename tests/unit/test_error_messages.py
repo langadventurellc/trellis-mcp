@@ -826,6 +826,7 @@ class TestCoverageValidation:
             "prerequisites",
             "filesystem",
             "generic",
+            "cross_system",
         }
 
         assert (
