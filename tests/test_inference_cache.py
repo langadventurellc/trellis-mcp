@@ -322,8 +322,8 @@ class TestInferenceCacheFileValidation:
             task_file.parent.mkdir(parents=True, exist_ok=True)
             task_file.write_text("---\nkind: task\nid: T-auth\n---\nTest task")
 
-            result = InferenceResult.create("T-auth", "task", True)
-            result.cached_at = os.path.getmtime(task_file)
+            file_mtime = os.path.getmtime(task_file)
+            result = InferenceResult.create("T-auth", "task", True, file_mtime=file_mtime)
 
             cache.put("T-auth", result)
             cached_result = cache.get("T-auth")
@@ -348,6 +348,7 @@ class TestInferenceCacheFileValidation:
 
             result = InferenceResult.create("T-auth", "task", True)
             result.cached_at = original_mtime
+            result.file_mtime = original_mtime
 
             cache.put("T-auth", result)
 
@@ -373,8 +374,8 @@ class TestInferenceCacheFileValidation:
             task_file.parent.mkdir(parents=True, exist_ok=True)
             task_file.write_text("---\nkind: task\nid: T-auth\n---\nTest task")
 
-            result = InferenceResult.create("T-auth", "task", True)
-            result.cached_at = os.path.getmtime(task_file)
+            file_mtime = os.path.getmtime(task_file)
+            result = InferenceResult.create("T-auth", "task", True, file_mtime=file_mtime)
 
             cache.put("T-auth", result)
 

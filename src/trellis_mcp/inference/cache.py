@@ -33,6 +33,7 @@ class InferenceResult:
     is_valid: bool
     cached_at: float
     validation_result: ValidationResult | None = None
+    file_mtime: float | None = None
 
     @classmethod
     def create(
@@ -41,6 +42,7 @@ class InferenceResult:
         inferred_kind: str,
         is_valid: bool,
         validation_result: ValidationResult | None = None,
+        file_mtime: float | None = None,
     ) -> "InferenceResult":
         """Create a new inference result with current timestamp."""
         return cls(
@@ -49,6 +51,7 @@ class InferenceResult:
             is_valid=is_valid,
             cached_at=time.time(),
             validation_result=validation_result,
+            file_mtime=file_mtime,
         )
 
 
@@ -127,7 +130,7 @@ class InferenceCache:
             result = self._cache[clean_id]
 
             # Validate cache entry is still current
-            if self._is_cache_valid(clean_id, result.cached_at):
+            if self._is_cache_valid(clean_id, result):
                 # Update LRU order
                 self._access_order.remove(clean_id)
                 self._access_order.append(clean_id)
@@ -213,7 +216,7 @@ class InferenceCache:
                 "memory_usage": len(self._cache) * 100,  # Rough estimate in bytes
             }
 
-    def _is_cache_valid(self, object_id: str, cached_time: float) -> bool:
+    def _is_cache_valid(self, object_id: str, result: InferenceResult) -> bool:
         """Check if cache entry is still valid by comparing file modification times.
 
         Uses tolerance-based comparison (1ms) following existing patterns from
@@ -222,14 +225,18 @@ class InferenceCache:
 
         Args:
             object_id: Object ID to validate
-            cached_time: Timestamp when entry was cached
+            result: Cached inference result with stored file modification time
 
         Returns:
             True if cache entry is valid, False if file has changed
         """
         if not self.path_builder:
             # Without path validation, use simple time-based expiration (1 minute)
-            return time.time() - cached_time < 60.0
+            return time.time() - result.cached_at < 60.0
+
+        # If no file modification time was stored, use time-based expiration
+        if result.file_mtime is None:
+            return time.time() - result.cached_at < 60.0
 
         try:
             # Infer kind from object ID prefix for path construction
@@ -245,8 +252,9 @@ class InferenceCache:
                 return False
 
             current_mtime = os.path.getmtime(path)
+            # Compare current file modification time with stored modification time
             # Use 1ms tolerance following existing patterns
-            return abs(current_mtime - cached_time) <= 0.001
+            return abs(current_mtime - result.file_mtime) <= 0.001
 
         except Exception as e:
             # If anything goes wrong, consider cache invalid

@@ -160,6 +160,79 @@ class PatternMatcher:
             return object_id[: hyphen_index + 1]
         return None
 
+    def _sanitize_for_error_message(self, text: str, max_length: int = 50) -> str:
+        """Sanitize text for inclusion in error messages to prevent information disclosure.
+
+        Args:
+            text: The text to sanitize
+            max_length: Maximum length of sanitized text
+
+        Returns:
+            Sanitized text safe for error messages
+        """
+        if not text:
+            return "[EMPTY]"
+
+        # Patterns that could indicate malicious content
+        dangerous_patterns = [
+            # SQL injection attempts
+            "drop",
+            "select",
+            "insert",
+            "update",
+            "delete",
+            "union",
+            "exec",
+            # Script injection attempts
+            "<script",
+            "</script",
+            "javascript:",
+            "vbscript:",
+            # Template injection attempts
+            "{{",
+            "}}",
+            "${",
+            "#{",
+            # Path traversal attempts
+            "../",
+            "..\\",
+            "/etc/",
+            "c:\\",
+            "passwd",
+            "shadow",
+            # Command injection attempts
+            "|",
+            "&",
+            ";",
+            "`",
+            "$(",
+            # Sensitive data patterns
+            "secret",
+            "password",
+            "key",
+            "token",
+            "api",
+            # Other suspicious patterns
+            "null",
+            "undefined",
+            "function(",
+            "eval(",
+            "alert(",
+        ]
+
+        text_lower = text.lower()
+
+        # Check for dangerous patterns
+        for pattern in dangerous_patterns:
+            if pattern in text_lower:
+                return "[REDACTED]"
+
+        # Truncate if too long
+        if len(text) > max_length:
+            return text[:max_length] + "[TRUNCATED]"
+
+        return text
+
     def _format_pattern_error(self, object_id: str, prefix: str | None) -> str:
         """Format descriptive error message for pattern matching failures.
 
@@ -170,9 +243,12 @@ class PatternMatcher:
         Returns:
             Formatted error message with suggestions
         """
+        # Sanitize object ID for safe error reporting
+        safe_object_id = self._sanitize_for_error_message(object_id)
+
         if not prefix:
             return (
-                f"Invalid object ID format '{object_id}'. "
+                f"Invalid object ID format '{safe_object_id}'. "
                 f"Expected format: [PREFIX]-[name] where PREFIX is one of: P, E, F, T"
             )
 
@@ -181,19 +257,20 @@ class PatternMatcher:
         if clean_prefix.upper() in ["P", "E", "F", "T"]:
             if clean_prefix.islower():
                 return (
-                    f"Invalid prefix '{prefix}' in object ID '{object_id}'. "
+                    f"Invalid prefix '{prefix}' in object ID '{safe_object_id}'. "
                     f"Prefix must be uppercase. Did you mean '{clean_prefix.upper()}-'?"
                 )
             elif clean_prefix.isupper():
                 # Check if the issue is with the suffix format
                 suffix = object_id[len(prefix) :]
+                safe_suffix = self._sanitize_for_error_message(suffix)
                 if not re.match(r"^[a-z0-9-]+$", suffix):
                     return (
-                        f"Invalid suffix '{suffix}' in object ID '{object_id}'. "
+                        f"Invalid suffix '{safe_suffix}' in object ID '{safe_object_id}'. "
                         f"Suffix must contain only lowercase letters, numbers, and hyphens"
                     )
 
         return (
-            f"Unrecognized prefix '{prefix}' in object ID '{object_id}'. "
+            f"Unrecognized prefix '{prefix}' in object ID '{safe_object_id}'. "
             f"Valid prefixes are: P- (project), E- (epic), F- (feature), T- (task)"
         )

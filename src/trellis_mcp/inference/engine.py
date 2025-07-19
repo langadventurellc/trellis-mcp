@@ -5,6 +5,7 @@ inference components (pattern matching, path resolution, validation, and caching
 into a cohesive, production-ready interface for simplified tool integration.
 """
 
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,6 +33,120 @@ class ExtendedInferenceResult:
     validation_result: ValidationResult | None = None
     inference_time_ms: float = 0.0
     cache_hit: bool = False
+
+    def _sanitize_for_audit(self, text: str, max_length: int = 50) -> str:
+        """Sanitize text for audit trail to prevent information disclosure.
+
+        Args:
+            text: The text to sanitize
+            max_length: Maximum length of sanitized text
+
+        Returns:
+            Sanitized text safe for audit trails
+        """
+        if not text:
+            return "[EMPTY]"
+
+        # Patterns that could indicate malicious content
+        dangerous_patterns = [
+            # SQL injection attempts
+            "drop",
+            "select",
+            "insert",
+            "update",
+            "delete",
+            "union",
+            "exec",
+            # Script injection attempts
+            "<script",
+            "</script",
+            "javascript:",
+            "vbscript:",
+            # Template injection attempts
+            "{{",
+            "}}",
+            "${",
+            "#{",
+            # Path traversal attempts
+            "../",
+            "..\\",
+            "/etc/",
+            "c:\\",
+            "passwd",
+            "shadow",
+            # Command injection attempts
+            "|",
+            "&",
+            ";",
+            "`",
+            "$(",
+            # Sensitive data patterns
+            "secret",
+            "password",
+            "key",
+            "token",
+            "api",
+            # Other suspicious patterns
+            "null",
+            "undefined",
+            "function(",
+            "eval(",
+            "alert(",
+        ]
+
+        text_lower = text.lower()
+
+        # Check for dangerous patterns
+        for pattern in dangerous_patterns:
+            if pattern in text_lower:
+                return "[REDACTED]"
+
+        # Truncate if too long
+        if len(text) > max_length:
+            return text[:max_length] + "[TRUNCATED]"
+
+        return text
+
+    def __str__(self) -> str:
+        """Return sanitized string representation for safe audit logging."""
+        safe_object_id = self._sanitize_for_audit(self.object_id)
+
+        # Sanitize validation result if present
+        safe_validation_result = None
+        if self.validation_result:
+            safe_validation_result = self._sanitize_validation_result(self.validation_result)
+
+        return (
+            f"ExtendedInferenceResult(object_id='{safe_object_id}', "
+            f"inferred_kind='{self.inferred_kind}', is_valid={self.is_valid}, "
+            f"validation_result={safe_validation_result}, "
+            f"inference_time_ms={self.inference_time_ms}, "
+            f"cache_hit={self.cache_hit})"
+        )
+
+    def _sanitize_validation_result(self, validation_result: ValidationResult) -> str:
+        """Sanitize validation result for safe audit logging."""
+        if not validation_result:
+            return "None"
+
+        # Sanitize errors and warnings
+        safe_errors = []
+        for error in validation_result.errors:
+            safe_error = self._sanitize_for_audit(error, max_length=100)
+            safe_errors.append(safe_error)
+
+        safe_warnings = []
+        for warning in validation_result.warnings:
+            safe_warning = self._sanitize_for_audit(warning, max_length=100)
+            safe_warnings.append(safe_warning)
+
+        return (
+            f"ValidationResult(is_valid={validation_result.is_valid}, "
+            f"object_exists={validation_result.object_exists}, "
+            f"type_matches={validation_result.type_matches}, "
+            f"metadata_valid={validation_result.metadata_valid}, "
+            f"errors={safe_errors}, warnings={safe_warnings})"
+        )
 
 
 class KindInferenceEngine:
@@ -77,10 +192,49 @@ class KindInferenceEngine:
 
         self.project_root = Path(project_root)
 
+        # Security validation: Check for path traversal attempts
+        resolved_root = self.project_root.resolve()
+        project_root_str = str(self.project_root)
+
+        # Check for dangerous path patterns
+        dangerous_patterns = ["..", "~", "%2e%2e", "%252e%252e"]
+        for pattern in dangerous_patterns:
+            if pattern in project_root_str:
+                raise ValidationError(
+                    errors=[f"Project root contains potentially dangerous path pattern: {pattern}"],
+                    error_codes=[ValidationErrorCode.INVALID_FIELD],
+                    context={"project_root": project_root_str, "pattern": pattern},
+                )
+
+        # Ensure the resolved path doesn't escape outside expected boundaries
+        # This prevents symlink attacks and path traversal
+        try:
+            # Check that the path is absolute and doesn't contain relative components
+            # after resolution
+            if ".." in str(resolved_root):
+                raise ValidationError(
+                    errors=["Project root resolves to a path with parent directory references"],
+                    error_codes=[ValidationErrorCode.INVALID_FIELD],
+                    context={"project_root": project_root_str, "resolved": str(resolved_root)},
+                )
+        except (OSError, ValueError) as e:
+            raise ValidationError(
+                errors=[f"Project root path is invalid or inaccessible: {str(e)}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"project_root": project_root_str, "error": str(e)},
+            )
+
         # Validate project root accessibility
         if not self.project_root.exists():
             raise ValidationError(
                 errors=[f"Project root does not exist: {self.project_root}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"project_root": str(self.project_root)},
+            )
+
+        if not self.project_root.is_dir():
+            raise ValidationError(
+                errors=[f"Project root must be a directory, not a file: {self.project_root}"],
                 error_codes=[ValidationErrorCode.INVALID_FIELD],
                 context={"project_root": str(self.project_root)},
             )
@@ -155,8 +309,10 @@ class KindInferenceEngine:
         if validate:
             validation_result = self.validator.validate_object_structure(inferred_kind, clean_id)
             if not validation_result.is_valid:
+                # Sanitize error messages to prevent information disclosure
+                sanitized_errors = self._sanitize_error_messages(validation_result.errors)
                 raise ValidationError(
-                    errors=validation_result.errors,
+                    errors=sanitized_errors,
                     error_codes=[ValidationErrorCode.INVALID_FIELD],
                     context={
                         "object_id": clean_id,
@@ -165,11 +321,14 @@ class KindInferenceEngine:
                     },
                 )
 
-        # 4. Cache result
+        # 4. Cache result (only mark as valid if validation passed)
+        # When validate=False, we don't know if the object is valid, so don't cache as valid
+        is_valid = validate  # Only mark as valid if validation was performed and passed
         inference_result = InferenceResult.create(
-            object_id=clean_id, inferred_kind=inferred_kind, is_valid=True
+            object_id=clean_id, inferred_kind=inferred_kind, is_valid=is_valid, file_mtime=None
         )
-        self.cache.put(clean_id, inference_result)
+        if validate:  # Only cache validated results
+            self.cache.put(clean_id, inference_result)
 
         return inferred_kind
 
@@ -232,12 +391,24 @@ class KindInferenceEngine:
         # File system validation
         validation_result = self.validator.validate_object_structure(inferred_kind, clean_id)
 
+        # Get file modification time for cache validation
+        file_mtime = None
+        if validation_result.is_valid:
+            try:
+                path = self.path_builder.for_object(inferred_kind, clean_id).build_path()
+                if path.exists():
+                    file_mtime = os.path.getmtime(path)
+            except Exception:
+                # If we can't get file mtime, cache will use time-based expiration
+                pass
+
         # Cache result regardless of validation outcome
         inference_result = InferenceResult.create(
             object_id=clean_id,
             inferred_kind=inferred_kind,
             is_valid=validation_result.is_valid,
             validation_result=validation_result,
+            file_mtime=file_mtime,
         )
         self.cache.put(clean_id, inference_result)
 
@@ -304,3 +475,107 @@ class KindInferenceEngine:
         Useful for testing or when project structure changes significantly.
         """
         self.cache.clear()
+
+    def _sanitize_error_messages(self, errors: list[str]) -> list[str]:
+        """Sanitize error messages to prevent information disclosure.
+
+        Args:
+            errors: List of error messages to sanitize
+
+        Returns:
+            List of sanitized error messages
+        """
+        sanitized = []
+        for error in errors:
+            # Check for Pydantic validation errors that might contain sensitive data
+            if "input_value=" in error:
+                # Remove the input_value part that could contain sensitive information
+                parts = error.split("input_value=")
+                if len(parts) > 1:
+                    # Keep the part before input_value, remove the sensitive part
+                    before_input = parts[0].strip()
+                    if before_input.endswith(","):
+                        before_input = before_input[:-1]
+                    sanitized_error = before_input + " [input_value=REDACTED]"
+                else:
+                    sanitized_error = error
+            else:
+                # Apply general sanitization patterns
+                sanitized_error = self._sanitize_for_general_errors(error)
+
+            sanitized.append(sanitized_error)
+
+        return sanitized
+
+    def _sanitize_for_general_errors(self, text: str, max_length: int = 200) -> str:
+        """Sanitize general error text for safe error reporting.
+
+        Args:
+            text: The text to sanitize
+            max_length: Maximum length of sanitized text
+
+        Returns:
+            Sanitized text safe for error messages
+        """
+        if not text:
+            return "[EMPTY]"
+
+        # Patterns that could indicate sensitive content
+        dangerous_patterns = [
+            # SQL injection attempts
+            "drop",
+            "select",
+            "insert",
+            "update",
+            "delete",
+            "union",
+            "exec",
+            # Script injection attempts
+            "<script",
+            "</script",
+            "javascript:",
+            "vbscript:",
+            # Template injection attempts
+            "{{",
+            "}}",
+            "${",
+            "#{",
+            # Path traversal attempts
+            "../",
+            "..\\",
+            "/etc/",
+            "c:\\",
+            "passwd",
+            "shadow",
+            # Command injection attempts
+            "|",
+            "&",
+            ";",
+            "`",
+            "$(",
+            # Sensitive data patterns
+            "secret",
+            "password",
+            "key",
+            "token",
+            "api",
+            # Other suspicious patterns
+            "null",
+            "undefined",
+            "function(",
+            "eval(",
+            "alert(",
+        ]
+
+        text_lower = text.lower()
+
+        # Check for dangerous patterns
+        for pattern in dangerous_patterns:
+            if pattern in text_lower:
+                return "[REDACTED]"
+
+        # Truncate if too long
+        if len(text) > max_length:
+            return text[:max_length] + "[TRUNCATED]"
+
+        return text
