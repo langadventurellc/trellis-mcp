@@ -426,7 +426,7 @@ Test content"""
         assert result.is_valid is True
 
     def test_hierarchical_task_validation(self):
-        """Test validation shows proper error for tasks in hierarchical locations."""
+        """Test validation can now find hierarchical tasks with id_to_path fix."""
         # Create full project structure
         project_dir = self.planning_dir / "projects" / "P-test-project"
         epic_dir = project_dir / "epics" / "E-test-epic"
@@ -452,13 +452,13 @@ schema_version: "1.1"
 Test content"""
         task_file.write_text(task_content)
 
-        # The validator by default looks for standalone tasks
-        # A hierarchical task stored in hierarchical location won't be found
-        # This demonstrates the need for kind inference to detect task type
+        # With the id_to_path fix, hierarchical tasks can now be found
+        # The validator should find the object but may fail schema validation
         result = self.validator.validate_object_structure("task", "T-hierarchical-task", "open")
-        assert result.is_valid is False
-        assert result.object_exists is False
-        assert "Object file not found" in result.errors[0]
+        assert result.object_exists is True  # File should be found now
+        assert result.type_matches is True  # Type should match
+        assert result.metadata_valid is True  # Metadata should parse correctly
+        # Schema validation may fail due to missing parent feature, but that's expected
 
 
 class TestValidationPerformance:

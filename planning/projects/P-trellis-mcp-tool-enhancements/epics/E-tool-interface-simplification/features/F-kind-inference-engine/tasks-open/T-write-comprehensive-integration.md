@@ -5,7 +5,7 @@ title: Write comprehensive integration tests and performance benchmarks
 status: open
 priority: normal
 prerequisites:
-- T-create-kind-inference-engine-api
+- T-fix-inference-engine-validator
 created: '2025-07-19T14:10:54.396374'
 updated: '2025-07-19T14:10:54.396374'
 schema_version: '1.1'

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from ..exceptions.validation_error import ValidationError, ValidationErrorCode
 from ..object_parser import parse_object
+from ..path_resolver import id_to_path
 from ..validation.error_collector import ValidationErrorCollector
 from .path_builder import PathBuilder
 
@@ -96,8 +97,8 @@ class FileSystemValidator:
     def validate_object_exists(self, kind: str, object_id: str, status: str = "open") -> bool:
         """Check if object file exists at inferred path.
 
-        Uses PathBuilder to construct the appropriate file path based on
-        object kind and ID, then verifies the file exists on disk.
+        Uses id_to_path to locate the object file through filesystem scanning,
+        which works for all object types without requiring parent context.
 
         Args:
             kind: Object type ("project", "epic", "feature", or "task")
@@ -112,15 +113,14 @@ class FileSystemValidator:
             ValidationError: If path construction fails due to security validation
         """
         try:
-            # Use PathBuilder to construct secure path
-            # For tasks, we need to specify status to build correct path
-            builder = self.path_builder.for_object(kind, object_id)
-            if kind == "task":
-                builder = builder.with_status(status)
-            path = builder.build_path()
+            # Clean the object ID using existing patterns
+            clean_id = self.path_builder._clean_object_id(object_id)
+
+            # Use id_to_path for filesystem scanning (works for all object types)
+            path = id_to_path(self.path_builder._resolution_root, kind, clean_id)
             return path.exists() and path.is_file()
-        except (ValueError, ValidationError):
-            # Path construction failed - object doesn't exist or is invalid
+        except (ValueError, ValidationError, FileNotFoundError):
+            # Path resolution failed - object doesn't exist or is invalid
             return False
 
     def validate_type_consistency(self, kind: str, object_id: str, status: str = "open") -> bool:
@@ -142,11 +142,9 @@ class FileSystemValidator:
             if not self.validate_object_exists(kind, object_id, status):
                 return False
 
-            # Construct path and parse object
-            builder = self.path_builder.for_object(kind, object_id)
-            if kind == "task":
-                builder = builder.with_status(status)
-            path = builder.build_path()
+            # Clean the object ID and use id_to_path to locate object
+            clean_id = self.path_builder._clean_object_id(object_id)
+            path = id_to_path(self.path_builder._resolution_root, kind, clean_id)
             obj = parse_object(path)
 
             # Compare inferred kind with actual kind
@@ -201,10 +199,9 @@ class FileSystemValidator:
 
             # Step 2: Parse object metadata
             try:
-                builder = self.path_builder.for_object(kind, object_id)
-                if kind == "task":
-                    builder = builder.with_status(status)
-                path = builder.build_path()
+                # Clean the object ID and use id_to_path to locate object
+                clean_id = self.path_builder._clean_object_id(object_id)
+                path = id_to_path(self.path_builder._resolution_root, kind, clean_id)
                 obj = parse_object(path)
                 metadata_valid = True
 
