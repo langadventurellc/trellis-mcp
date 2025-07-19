@@ -85,11 +85,21 @@ def create_update_object_tool(settings: Settings):
         entire body content. The operation is atomic - either all changes succeed or none
         are applied.
 
+        Supports cross-system prerequisite modifications, enabling updates to prerequisite
+        lists that span both hierarchical and standalone task systems. All prerequisite
+        changes are validated for existence across both systems and checked for circular
+        dependencies to maintain graph integrity.
+
         Args:
             kind: Object type ('project', 'epic', 'feature', or 'task')
             id: Object ID (with or without prefix)
             projectRoot: Root directory for the planning structure
-            yamlPatch: Optional dictionary of YAML fields to update/merge
+            yamlPatch: Optional dictionary of YAML fields to update/merge. When updating
+                prerequisites, supports cross-system references including hierarchical
+                objects and standalone tasks. Example:
+                {"prerequisites": ["T-auth-setup", "task-standalone-db", "F-validation"]}
+                All prerequisite IDs are automatically cleaned and validated across both
+                task systems before applying changes.
             bodyPatch: Optional new body content to replace existing body
             force: If True, bypass safeguards when deleting objects with protected children
 
@@ -108,6 +118,12 @@ def create_update_object_tool(settings: Settings):
             FileNotFoundError: If object with the given ID cannot be found
             TrellisValidationError: If validation fails (front-matter, status transitions,
                 or acyclic prerequisites)
+            ValidationError: If cross-system prerequisite updates fail, including:
+                - CROSS_SYSTEM_PREREQUISITE_INVALID: Updated prerequisite doesn't exist
+                  in either hierarchical or standalone task systems
+                - CROSS_SYSTEM_REFERENCE_CONFLICT: Invalid cross-system reference patterns
+                - CIRCULAR_DEPENDENCY: Prerequisite updates create cycles spanning both systems
+                - INVALID_STATUS_TRANSITION: Status changes violate cross-system constraints
             OSError: If file cannot be read or written due to permissions or disk space
         """
         # Basic parameter validation

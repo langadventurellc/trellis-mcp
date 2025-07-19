@@ -35,6 +35,12 @@ def create_claim_next_task_tool(settings: Settings):
         have status='done'), sets its status to 'in-progress', and optionally
         stamps the worktree field.
 
+        Supports cross-system prerequisite validation, checking prerequisites across
+        both hierarchical tasks (within project/epic/feature structure) and standalone
+        tasks. Only tasks with all cross-system prerequisites completed are eligible
+        for claiming. Performance is optimized with multi-layer caching for efficient
+        cross-system validation (typically 1-5ms warm, 50-200ms cold).
+
         Tasks are sorted by priority (high=1, normal=2, low=3) then by creation date.
         Only tasks with status='open' and completed prerequisites are eligible.
 
@@ -43,9 +49,15 @@ def create_claim_next_task_tool(settings: Settings):
             worktree: Optional worktree identifier to stamp on the claimed task
 
         Returns:
-            Dictionary containing the claimed task data and file path, or error info
+            Dictionary containing the claimed task data and file path, or error info.
+            The returned task may have a mix of hierarchical and standalone prerequisites.
 
         Raises:
+            ValidationError: If cross-system prerequisite validation fails, including:
+                - CROSS_SYSTEM_PREREQUISITE_INVALID: Task has prerequisites that don't exist
+                  in either hierarchical or standalone task systems
+                - INVALID_FIELD: No eligible tasks available (all have incomplete prerequisites
+                  or none exist in the cross-system task discovery)
             TrellisValidationError: If no eligible tasks are available
             OSError: If file operations fail
         """

@@ -30,23 +30,29 @@ def create_get_next_reviewable_task_tool(settings: Settings):
         """Get the next task that needs review, ordered by oldest updated timestamp.
 
         Finds the task in 'review' status with the oldest 'updated' timestamp across
-        the entire project hierarchy. If multiple tasks have the same timestamp,
-        priority is used as a tiebreaker (high > normal > low).
+        the entire project hierarchy. Supports cross-system task discovery, searching
+        both hierarchical tasks (within project/epic/feature structure) and standalone
+        tasks to find the oldest reviewable task across both systems.
+
+        If multiple tasks have the same timestamp, priority is used as a tiebreaker
+        (high > normal > low). Cross-system task discovery is optimized with caching
+        for efficient review queue management.
 
         Args:
             projectRoot: Root directory for the planning structure
 
         Returns:
-            Dictionary containing the reviewable task data, or None if no reviewable tasks exist.
+            Dictionary containing the reviewable task data from either hierarchical or
+            standalone task systems, or None if no reviewable tasks exist.
             Structure when task found:
             {
                 "task": {
-                    "id": str,           # Clean task ID (e.g., "implement-auth")
+                    "id": str,           # Clean task ID (hierarchical or standalone)
                     "title": str,        # Task title
                     "status": str,       # Task status ("review")
                     "priority": str,     # Task priority ("high", "normal", "low")
                     "parent": str | None,  # Parent feature ID (None for standalone tasks)
-                    "file_path": str,    # Path to task file
+                    "file_path": str,    # Path to task file (hierarchical or standalone path)
                     "created": str,      # Creation timestamp
                     "updated": str,      # Last update timestamp
                 }
@@ -58,6 +64,9 @@ def create_get_next_reviewable_task_tool(settings: Settings):
             }
 
         Raises:
+            ValidationError: If cross-system task discovery fails, including:
+                - MISSING_REQUIRED_FIELD: Invalid projectRoot parameter
+                - INVALID_FIELD: Issues during cross-system review task querying
             ValueError: If projectRoot is empty or invalid
             TrellisValidationError: If there are issues accessing the project structure
         """
