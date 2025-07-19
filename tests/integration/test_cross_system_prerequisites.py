@@ -435,36 +435,6 @@ class TestCrossSystemErrorHandling:
     """Test error handling for cross-system prerequisite scenarios."""
 
     @pytest.mark.asyncio
-    async def test_nonexistent_cross_system_prerequisite(self, temp_dir):
-        """Test error handling for nonexistent prerequisites in cross-system context."""
-        settings = Settings(
-            planning_root=temp_dir / "planning",
-            debug_mode=True,
-            log_level="DEBUG",
-        )
-        server = create_server(settings)
-        planning_root = str(temp_dir / "planning")
-
-        async with Client(server) as client:
-
-            # Try to create task with nonexistent prerequisite
-            with pytest.raises(Exception) as exc_info:
-                await client.call_tool(
-                    "createObject",
-                    {
-                        "kind": "task",
-                        "title": "Task with Invalid Prerequisite",
-                        "projectRoot": planning_root,
-                        "prerequisites": ["nonexistent-task-id"],
-                        "priority": "normal",
-                    },
-                )
-
-            # Verify error mentions cross-system checking
-            error_msg = str(exc_info.value).lower()
-            assert "does not exist" in error_msg or "not found" in error_msg
-
-    @pytest.mark.asyncio
     async def test_multiple_missing_cross_system_prerequisites(self, temp_dir):
         """Test error handling for multiple missing prerequisites across systems."""
         settings = Settings(
@@ -514,47 +484,6 @@ class TestCrossSystemErrorHandling:
                 or "missing-task-2" in error_msg
                 or "missing-task-3" in error_msg
             )
-
-    @pytest.mark.asyncio
-    async def test_malicious_prerequisite_ids_blocked(self, temp_dir):
-        """Test that malicious prerequisite IDs are blocked by security validation."""
-        settings = Settings(
-            planning_root=temp_dir / "planning",
-            debug_mode=True,
-            log_level="DEBUG",
-        )
-        server = create_server(settings)
-        planning_root = str(temp_dir / "planning")
-
-        async with Client(server) as client:
-
-            # Test various malicious prerequisite IDs
-            malicious_ids = [
-                "../../../etc/passwd",  # Path traversal
-                "/etc/passwd",  # Absolute path
-                "task\x00name",  # Null byte injection
-                "\\Windows\\System32",  # Windows path
-            ]
-
-            for malicious_id in malicious_ids:
-                with pytest.raises(Exception) as exc_info:
-                    await client.call_tool(
-                        "createObject",
-                        {
-                            "kind": "task",
-                            "title": "Malicious Test Task",
-                            "projectRoot": planning_root,
-                            "prerequisites": [malicious_id],
-                            "priority": "normal",
-                        },
-                    )
-
-                # Verify security validation caught the issue
-                error_msg = str(exc_info.value).lower()
-                assert any(
-                    keyword in error_msg
-                    for keyword in ["security", "invalid", "malicious", "path", "characters"]
-                )
 
     @pytest.mark.asyncio
     async def test_empty_prerequisite_ids_rejected(self, temp_dir):

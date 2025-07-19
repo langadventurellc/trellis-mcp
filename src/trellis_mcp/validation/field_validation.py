@@ -426,29 +426,24 @@ def validate_standalone_task_path_parameters(task_id: str, status: str | None = 
 
     errors = []
 
-    # Validate task_id parameter
-    if not task_id or not task_id.strip():
-        errors.append("Task ID cannot be empty")
-        return errors
-
-    # Clean the task ID (remove T- prefix if present)
-    clean_id = task_id.strip()
+    # Clean the task ID (remove T- prefix if present) and do basic validation
+    clean_id = task_id.strip() if task_id else ""
     if clean_id.startswith("T-"):
         clean_id = clean_id[2:]
 
-    # Validate character set for task ID
-    if not validate_id_charset(clean_id):
-        errors.append("Task ID contains invalid characters for filesystem paths")
-
-    # Validate length constraints (use more permissive check for compatibility)
-    # Focus on preventing excessively long IDs that could cause security issues
-    # rather than enforcing the strict 32-character limit for existing IDs
-    if len(clean_id) > 255:  # Filesystem limit, not the 32-char preference
-        errors.append("Task ID exceeds filesystem name limits (255 characters)")
-
-    # Additional security validation for task IDs
+    # Security validation for task IDs (includes empty/whitespace/length checks)
     task_security_errors = _validate_task_id_security(clean_id)
     errors.extend(task_security_errors)
+
+    # If there are security errors, don't proceed with charset validation
+    if task_security_errors:
+        # Return early for empty IDs or other security issues
+        if any("cannot be empty" in error for error in task_security_errors):
+            return errors
+
+    # Validate character set for task ID (separate concern from security)
+    if not validate_id_charset(clean_id):
+        errors.append("Task ID contains invalid characters for filesystem paths")
 
     # Validate status parameter if provided
     if status is not None:
@@ -462,17 +457,47 @@ def _validate_task_id_security(task_id: str) -> list[str]:
     """Validate task ID for security vulnerabilities.
 
     Checks for path traversal attempts, injection attacks, and other security issues.
+    Also validates basic constraints like empty strings, whitespace, and length limits.
 
     Args:
-        task_id: The clean task ID to validate
+        task_id: The task ID to validate (should be clean, without T- prefix)
 
     Returns:
         List of security validation errors
     """
     errors = []
 
-    # Check for path traversal attempts
+    # Check for empty or whitespace-only task IDs
+    if not task_id:
+        errors.append("Task ID cannot be empty")
+        return errors
+
+    if not task_id.strip():
+        errors.append("Task ID cannot be empty after whitespace removal")
+        return errors
+
+    # Check for leading/trailing whitespace
+    if task_id != task_id.strip():
+        errors.append("Task ID cannot have leading or trailing whitespace")
+
+    # Check for filesystem length limits
+    if len(task_id) > 255:
+        errors.append("Task ID exceeds filesystem name limits (255 characters)")
+
+    # Check for path traversal attempts (literal and URL-encoded)
     if ".." in task_id:
+        errors.append("Task ID contains path traversal sequences")
+
+    # Check for URL-encoded path traversal attempts
+    url_encoded_patterns = [
+        "%2e%2e",  # URL-encoded ".."
+        "%2E%2E",  # URL-encoded ".." (uppercase)
+        "%2f",  # URL-encoded "/"
+        "%2F",  # URL-encoded "/" (uppercase)
+        "%5c",  # URL-encoded "\"
+        "%5C",  # URL-encoded "\" (uppercase)
+    ]
+    if any(pattern in task_id for pattern in url_encoded_patterns):
         errors.append("Task ID contains path traversal sequences")
 
     # Check for absolute path attempts
@@ -511,11 +536,6 @@ def _validate_task_id_security(task_id: str) -> list[str]:
 
     if task_id.lower() in reserved_names:
         errors.append("Task ID uses reserved system name")
-
-    # Check for excessively long components (filesystem limits)
-    # This is handled by the main validation function, so skip here to avoid duplicates
-    # if len(task_id) > 255:
-    #     errors.append("Task ID exceeds filesystem name limits")
 
     return errors
 

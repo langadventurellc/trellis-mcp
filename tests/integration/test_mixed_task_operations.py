@@ -5,6 +5,8 @@ integration of all operations when both standalone and hierarchical tasks
 coexist in the same project.
 """
 
+import time
+
 import pytest
 from fastmcp import Client
 
@@ -955,3 +957,141 @@ async def test_comprehensive_integration_all_mcp_operations(temp_dir):
         # After completing the claimed task, remaining tasks should be open unless specifically
         # updated
         assert status_counts.get("open", 0) >= 1  # At least one open task remaining
+
+
+@pytest.mark.asyncio
+async def test_mixed_task_types_performance_benchmarks(temp_dir):
+    """Test performance with large numbers of mixed task types.
+
+    Creates a realistic scenario with many standalone and hierarchical tasks
+    to ensure performance doesn't degrade with mixed environments.
+    """
+    # Create settings with temporary planning directory
+    settings = Settings(
+        planning_root=temp_dir / "planning",
+        debug_mode=False,  # Disable debug for performance testing
+        log_level="WARNING",
+    )
+
+    # Create server instance
+    server = create_server(settings)
+    planning_root = str(temp_dir / "planning")
+
+    async with Client(server) as client:
+        # Step 1: Create hierarchical structure (minimal for performance testing)
+        project_result = await client.call_tool(
+            "createObject",
+            {
+                "kind": "project",
+                "title": "Performance Test Project",
+                "projectRoot": planning_root,
+            },
+        )
+        project_id = project_result.data["id"]
+
+        epic_result = await client.call_tool(
+            "createObject",
+            {
+                "kind": "epic",
+                "title": "Performance Test Epic",
+                "projectRoot": planning_root,
+                "parent": project_id,
+            },
+        )
+        epic_id = epic_result.data["id"]
+
+        feature_result = await client.call_tool(
+            "createObject",
+            {
+                "kind": "feature",
+                "title": "Performance Test Feature",
+                "projectRoot": planning_root,
+                "parent": epic_id,
+            },
+        )
+        feature_id = feature_result.data["id"]
+
+        # Step 2: Create large numbers of mixed tasks for performance testing
+        start_time = time.time()
+        created_tasks = []
+
+        # Create 25 hierarchical tasks
+        for i in range(25):
+            task_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "task",
+                    "title": f"Hierarchy Performance Task {i + 1}",
+                    "projectRoot": planning_root,
+                    "parent": feature_id,
+                    "priority": ["high", "normal", "low"][i % 3],
+                },
+            )
+            created_tasks.append(task_result.data["id"])
+
+        # Create 25 standalone tasks
+        for i in range(25):
+            task_result = await client.call_tool(
+                "createObject",
+                {
+                    "kind": "task",
+                    "title": f"Standalone Performance Task {i + 1}",
+                    "projectRoot": planning_root,
+                    "priority": ["high", "normal", "low"][i % 3],
+                },
+            )
+            created_tasks.append(task_result.data["id"])
+
+        creation_time = time.time() - start_time
+
+        # Step 3: Test listBacklog performance with large dataset
+        list_start_time = time.time()
+        all_tasks_result = await client.call_tool(
+            "listBacklog",
+            {"projectRoot": planning_root},
+        )
+        list_time = time.time() - list_start_time
+
+        assert all_tasks_result.structured_content is not None
+        all_tasks = all_tasks_result.structured_content["tasks"]
+        assert len(all_tasks) == 50  # 25 hierarchy + 25 standalone
+
+        # Step 4: Test filtering performance
+        filter_start_time = time.time()
+        high_priority_result = await client.call_tool(
+            "listBacklog",
+            {"projectRoot": planning_root, "priority": "high"},
+        )
+        project_scope_result = await client.call_tool(
+            "listBacklog",
+            {"projectRoot": planning_root, "scope": project_id},
+        )
+        filter_time = time.time() - filter_start_time
+
+        # Step 5: Test claiming performance
+        claim_start_time = time.time()
+        claim_result = await client.call_tool(
+            "claimNextTask",
+            {"projectRoot": planning_root},
+        )
+        claim_time = time.time() - claim_start_time
+
+        assert claim_result.data is not None
+        claimed_task = claim_result.data["task"]
+        assert claimed_task["priority"] == "high"  # Should claim highest priority task
+
+        # Step 6: Performance assertions
+        assert creation_time < 15.0, f"Task creation took too long: {creation_time:.2f}s"
+        assert list_time < 3.0, f"ListBacklog took too long: {list_time:.2f}s"
+        assert filter_time < 5.0, f"Filtering took too long: {filter_time:.2f}s"
+        assert claim_time < 2.0, f"ClaimNextTask took too long: {claim_time:.2f}s"
+
+        # Verify data integrity
+        assert high_priority_result.structured_content is not None
+        high_priority_tasks = high_priority_result.structured_content["tasks"]
+        # Should have roughly 1/3 of tasks as high priority
+        assert len(high_priority_tasks) >= 15
+
+        assert project_scope_result.structured_content is not None
+        project_tasks = project_scope_result.structured_content["tasks"]
+        assert len(project_tasks) == 50  # All tasks should be in project scope
