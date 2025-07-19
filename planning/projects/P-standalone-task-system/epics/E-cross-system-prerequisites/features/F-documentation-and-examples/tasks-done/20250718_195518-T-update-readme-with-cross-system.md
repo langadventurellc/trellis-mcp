@@ -1,14 +1,15 @@
 ---
 kind: task
 id: T-update-readme-with-cross-system
+parent: F-documentation-and-examples
+status: done
 title: Update README with cross-system prerequisites user guide
-status: open
 priority: high
 prerequisites: []
 created: '2025-07-18T19:40:20.078898'
-updated: '2025-07-18T19:40:20.078898'
+updated: '2025-07-18T19:51:21.664948'
 schema_version: '1.1'
-parent: F-documentation-and-examples
+worktree: null
 ---
 Enhance the README.md with a comprehensive user-focused section on cross-system prerequisites, providing practical guidance for developers using the Trellis MCP system.
 
@@ -42,3 +43,6 @@ Enhance the README.md with a comprehensive user-focused section on cross-system 
 
 ### Log
 
+
+**2025-07-19T00:55:18.206246Z** - Enhanced README.md with comprehensive Cross-System Prerequisites section providing practical user guidance. Added overview of concept, 3 detailed usage examples with real command sequences, quick troubleshooting reference table with common issues and solutions, and cross-references to detailed documentation. Section maintains existing README style and formatting while providing copy-pasteable examples for standalone task dependencies, complex multi-level mixed dependencies, and dependency validation commands. All quality checks passing with 1574 tests.
+- filesChanged: ["README.md"]
