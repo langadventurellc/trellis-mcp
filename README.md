@@ -1,184 +1,81 @@
 # Trellis MCP
 
-File-backed MCP server for hierarchical project management (Projects → Epics → Features → Tasks).
+A powerful file-backed MCP (Model Context Protocol) server that implements hierarchical project management for software development teams. Organize your work with a clear structure: Projects → Epics → Features → Tasks.
 
-## Overview
+## Why Trellis MCP?
 
-Trellis MCP implements the **"Trellis MCP v 1.1"** specification, providing a structured approach to project planning and task management. The server stores all state as Markdown files with YAML front-matter in a nested tree structure:
+Trellis MCP transforms project management by providing:
 
-```
-planning/projects/P-…/epics/E-…/features/F-…/tasks-open/T-….md
-```
+- **Structured Workflow**: Break down complex projects into manageable, hierarchical components
+- **Developer-First**: Built for software teams with file-based storage that integrates seamlessly with your existing tools
+- **AI-Native**: Designed specifically for AI coding assistants like Claude, enabling intelligent task management
+- **Dependency Management**: Support for cross-system prerequisites with cycle detection and validation
+- **Human-Readable**: All data stored as Markdown files with YAML front-matter - no proprietary formats
+- **Flexible Architecture**: Support both hierarchical tasks (within project structure) and standalone tasks for urgent work
 
-### Key Features
+Perfect for teams who want to maintain project structure while enabling AI assistants to understand context, claim tasks, and track progress automatically.
+
+## Features
 
 - **Hierarchical project structure**: Projects → Epics → Features → Tasks
-- **Optional parent relationships**: Tasks can be standalone or hierarchy-based (v1.1)
-- **Type-safe operations**: Enhanced type system with type guards and generic support
+- **Cross-system task support**: Mix hierarchical and standalone tasks with prerequisites spanning both systems
 - **File-backed storage**: Human-readable Markdown files with YAML front-matter
-- **MCP server integration**: JSON-RPC API for programmatic access
-- **Validation and security**: Comprehensive validation with cycle detection
+- **MCP server integration**: JSON-RPC API for programmatic access by AI assistants
+- **Comprehensive validation**: Cycle detection, prerequisite validation, and type safety
+- **Atomic operations**: Task claiming, completion, and status transitions with integrity guarantees
 
 ## Installation
 
-Install the package in development mode:
+### Using uv (Fast Python Package Manager)
 
 ```bash
+# Install with uv
+uv add task-trellis-mcp
+
+# Or run directly without installation
+uvx task-trellis-mcp serve
+```
+
+### Development Installation
+
+For development or to install from source:
+
+```bash
+# Clone the repository
+git clone https://github.com/langadventurellc/trellis-mcp.git
+cd trellis-mcp
+
+# Install development dependencies
+uv sync
+
+# Install in editable mode
 uv pip install -e .
 ```
 
-## Quick Start
+### Claude Code Configuration
 
-### 1 · Zero‑install (run directly from PyPI)
-
-```bash
-# 1) install uv once
-curl -LsSf https://astral.sh/uv/install.sh | sh
-# 2) run the server (STDIO transport)
-uvx task-trellis-mcp serve
-# 3) optional – HTTP transport on port 8545
-uvx task-trellis-mcp serve --http 0.0.0.0:8545
-```
-
-### 2 · Zero‑install from GitHub
+Add Trellis MCP to your Claude Code MCP configuration:
 
 ```bash
-uvx --from git+https://github.com/langadventurellc/trellis-mcp.git task-trellis-mcp serve
+# Add to Claude Code
+claude mcp add task-trellis \
+  -- uvx task-trellis-mcp serve
+
+# Or specify a custom project root
+claude mcp add task-trellis \
+  -- uvx task-trellis-mcp --project-root /path/to/project serve
 ```
 
-Add `--http` to expose HTTP.
-
-### 3 · Local development workflow (editable clone)
-
-1. **Initialize a new planning structure:**
-   ```bash
-   uv run task-trellis-mcp init
-   ```
-
-2. **Start the MCP server:**
-   ```bash
-   # STDIO transport (default)
-   uv run task-trellis-mcp serve
-
-   # HTTP transport
-   uv run task-trellis-mcp serve --http localhost:8000
-   ```
-
-3. **Create objects with priority fields and optional parent relationships:**
-   ```yaml
-   # Hierarchy-based task (traditional)
-   kind: task
-   id: T-setup-auth
-   parent: F-user-management
-   title: Set up authentication system
-   priority: high
-   status: open
-   
-   # Standalone task (new in v1.1)
-   kind: task
-   id: T-urgent-bugfix
-   parent: null
-   title: Fix critical security issue
-   priority: high
-   status: open
-   
-   # Feature with normal priority (default)
-   kind: feature  
-   id: F-user-management
-   title: User management system
-   priority: normal
-   status: open
-   ```
-
-4. **Test RPC methods with mcp-inspector:**
-   ```bash
-   # Start mcp-inspector to test your server
-   npx @modelcontextprotocol/inspector node -e "require('child_process').spawn('task-trellis-mcp', ['serve'], {stdio: 'inherit'})"
-   
-   # Or test with CLI mode to call getNextReviewableTask
-   npx @modelcontextprotocol/inspector --cli task-trellis-mcp serve --method tools/call --tool-name getNextReviewableTask --tool-arg projectRoot=.
-   ```
-   
-   Example output when reviewable task found:
-   ```json
-   {
-     "task": {
-       "id": "implement-auth",
-       "title": "Implement authentication system", 
-       "status": "review",
-       "priority": "high",
-       "parent": "F-user-management",
-       "file_path": "./planning/projects/P-app/epics/E-auth/features/F-user-management/tasks-open/T-implement-auth.md",
-       "created": "2025-01-15T10:00:00Z",
-       "updated": "2025-01-15T14:30:00Z"
-     }
-   }
-   ```
-   
-   Example output when no reviewable tasks exist:
-   ```json
-   {
-     "task": null
-   }
-   ```
-
-5. **Delete objects with cascade deletion:**
-   ```bash
-   # Delete a task (no children to cascade)
-   task-trellis-mcp delete task T-001
-   
-   # Delete a feature with confirmation prompt
-   task-trellis-mcp delete feature F-user-management
-   # Output: ⚠️  Delete Feature F-user-management and 5 descendants? [y/N]
-   
-   # Delete an epic and all its children
-   task-trellis-mcp delete epic E-auth
-   # Output: ⚠️  Delete Epic E-auth and 12 descendants? [y/N]
-   
-   # Force delete even if children have protected status (in-progress/review)
-   task-trellis-mcp delete project P-001 --force
-   ```
-   
-   Example output after successful deletion:
-   ```
-   ✓ Deleted epic E-auth
-     Cascade deleted 12 items:
-       - planning/projects/P-001/epics/E-auth/epic.md
-       - planning/projects/P-001/epics/E-auth/features/F-login/feature.md
-       - planning/projects/P-001/epics/E-auth/features/F-login/tasks-open/T-login-form.md
-       - planning/projects/P-001/epics/E-auth/features/F-login/tasks-done/2025-01-15T10:30:00-T-setup-db.md
-       - ... (and 8 more files)
-   ```
-
-6. Run from test.pypi.org:
-
-```bash
-uvx \
-  --prerelease allow \
-  --index-url https://test.pypi.org/simple/ \
-  --extra-index-url https://pypi.org/simple/ \
-  task-trellis-mcp==1.0.0rc1 serve
-```
-
-```bash
-claude mcp add task-trellis-test \
-  -- uvx --prerelease allow \
-         --index-url https://test.pypi.org/simple/ \
-         --extra-index-url https://pypi.org/simple/ \
-         task-trellis-mcp==1.0.0rc1 serve
-```
+Configuration in `~/.config/claude/mcp_servers.json`:
 
 ```json
 {
   "mcpServers": {
-    "trellis-test": {
+    "task-trellis": {
       "type": "stdio",
       "command": "uvx",
       "args": [
-        "--prerelease", "allow",
-        "--index-url", "https://test.pypi.org/simple/",
-        "--extra-index-url", "https://pypi.org/simple/",
-        "task-trellis-mcp==1.0.0rc1",
+        "task-trellis-mcp",
         "serve"
       ]
     }
@@ -186,135 +83,204 @@ claude mcp add task-trellis-test \
 }
 ```
 
-## Cross-System Prerequisites
+### VS Code with Claude Extension
 
-Trellis MCP supports cross-system prerequisites, enabling tasks to depend on components across different parts of your project hierarchy or external systems. This powerful feature allows you to create complex dependency relationships while maintaining clear validation and security.
+Add to your VS Code settings:
 
-### Overview
-
-Cross-system prerequisites allow you to:
-- **Mix hierarchy and standalone tasks**: Standalone tasks can depend on hierarchy-based tasks and vice versa
-- **Create complex dependency networks**: Build sophisticated dependency relationships across different project areas
-- **Maintain validation integrity**: All prerequisites are validated with comprehensive security checks and cycle detection
-
-### Practical Examples
-
-#### 1. Standalone Task with Hierarchy Prerequisites
-
-Create a standalone urgent task that depends on hierarchy-based components:
-
-```bash
-# Create a feature in your project hierarchy
-uv run task-trellis-mcp createObject feature "User Authentication System" \
-  --project-root . --parent E-core-features --id F-user-auth
-
-# Create a task within that feature  
-uv run task-trellis-mcp createObject task "Implement JWT tokens" \
-  --project-root . --parent F-user-auth --id T-jwt-implementation
-
-# Create a standalone urgent task that depends on the hierarchy task
-uv run task-trellis-mcp createObject task "Deploy security hotfix" \
-  --project-root . --id T-security-hotfix --priority high \
-  --prerequisites T-jwt-implementation
-```
-
-#### 2. Complex Multi-Level Mixed Dependencies
-
-Build sophisticated dependency networks spanning multiple systems:
-
-```bash
-# Create hierarchy tasks
-uv run task-trellis-mcp createObject task "Database migration" \
-  --project-root . --parent F-data-layer --id T-db-migration
-
-uv run task-trellis-mcp createObject task "API endpoints" \
-  --project-root . --parent F-api-layer --id T-api-endpoints \
-  --prerequisites T-db-migration
-
-# Create standalone tasks that integrate with hierarchy
-uv run task-trellis-mcp createObject task "Performance monitoring setup" \
-  --project-root . --id T-monitoring --priority normal \
-  --prerequisites T-api-endpoints
-
-uv run task-trellis-mcp createObject task "Production deployment" \
-  --project-root . --id T-deploy --priority high \
-  --prerequisites T-monitoring,T-security-hotfix
-```
-
-#### 3. Checking Cross-System Dependencies
-
-Validate and monitor your cross-system prerequisites:
-
-```bash
-# List tasks and their cross-system dependencies
-uv run task-trellis-mcp listBacklog --project-root . --status open
-
-# Claim next available task (respects cross-system prerequisites)
-uv run task-trellis-mcp claimNextTask --project-root .
-
-# Check specific task dependencies
-uv run task-trellis-mcp getObject task T-deploy --project-root .
-```
-
-Example output showing cross-system dependency validation:
 ```json
 {
-  "yaml": {
-    "id": "T-deploy",
-    "title": "Production deployment", 
-    "prerequisites": ["T-monitoring", "T-security-hotfix"],
-    "status": "open",
-    "priority": "high"
-  },
-  "validation": {
-    "prerequisites_valid": true,
-    "cross_system_resolved": true,
-    "ready_to_claim": false,
-    "blocking_prerequisites": ["T-monitoring"]
+  "claude.mcpServers": {
+    "task-trellis": {
+      "command": "uvx",
+      "args": ["task-trellis-mcp", "serve"]
+    }
   }
 }
 ```
 
-### Quick Troubleshooting
+### Other MCP Clients
 
-**Common Issues & Solutions:**
+For other MCP-compatible tools, use the command:
 
-| Issue | Quick Fix | When to Check Docs |
-|-------|-----------|-------------------|
-| "Prerequisites not found" | Verify task IDs exist with `getObject` | [Architecture docs](docs/cross-system-prerequisites/architecture.md) for resolution details |
-| "Circular dependency detected" | Check dependency chain with `listBacklog` | [Troubleshooting guide](docs/cross-system-prerequisites/troubleshooting.md#cycle-detection) |
-| "Performance slow with many prerequisites" | Use `--priority high` for critical paths | [Performance guidelines](docs/cross-system-prerequisites/performance.md) |
-| "Task claiming fails" | Ensure prerequisites are completed (`status: done`) | [Examples](docs/cross-system-prerequisites/examples/) for dependency patterns |
-
-**Debug Commands:**
 ```bash
-# Check all objects for dependency issues
-uv run task-trellis-mcp listBacklog --project-root . --priority high
-
-# Validate specific task's prerequisites  
-uv run task-trellis-mcp getObject task T-problematic-task --project-root .
-
-# Check for circular dependencies
-uv run task-trellis-mcp createObject task "test-cycle" --project-root . \
-  --prerequisites T-existing-task  # Will validate for cycles
+uvx task-trellis-mcp serve
 ```
 
-### Performance Considerations
+Or with HTTP transport:
 
-For large projects with complex cross-system dependencies:
-- **Keep prerequisite lists focused** (1-10 items per task)
-- **Use priority levels** to optimize critical paths
-- **Monitor validation performance** with timing checks
-- **Consider breaking large dependency chains** into smaller segments
+```bash
+uvx task-trellis-mcp serve --http localhost:8545
+```
 
-### Detailed Documentation
+## Usage
 
-For comprehensive information on cross-system prerequisites:
+### MCP Tool Integration
 
-- **📋 [Architecture](docs/cross-system-prerequisites/architecture.md)** - System design and technical details
-- **📚 [Examples](docs/cross-system-prerequisites/examples/)** - Real-world implementation patterns  
-- **🔧 [Troubleshooting](docs/cross-system-prerequisites/troubleshooting.md)** - Debugging and problem resolution
-- **⚡ [Performance](docs/cross-system-prerequisites/performance.md)** - Optimization strategies and benchmarks
+Trellis MCP provides a comprehensive set of tools for AI assistants to manage hierarchical project structures. Once configured with your MCP client, these tools enable intelligent project planning and task management.
+
+#### Core MCP Tools
+
+- **`createObject`** - Create projects, epics, features, or tasks with validation
+- **`getObject`** - Retrieve detailed object information by kind and ID
+- **`updateObject`** - Modify object properties with atomic updates
+- **`listBacklog`** - Query and filter tasks across the project hierarchy
+- **`claimNextTask`** - Automatically claim highest-priority available task
+- **`completeTask`** - Mark tasks complete with logging and file tracking
+- **`getNextReviewableTask`** - Find tasks ready for code review
+
+#### Creating Project Hierarchies
+
+Start by creating a project and breaking it down into manageable components:
+
+```javascript
+// Create a new project
+await mcp.call('createObject', {
+  kind: 'project',
+  title: 'E-commerce Platform Redesign',
+  priority: 'high',
+  projectRoot: '.',
+  description: 'Comprehensive redesign of the e-commerce platform...'
+});
+
+// Create an epic within the project
+await mcp.call('createObject', {
+  kind: 'epic',
+  title: 'User Authentication System',
+  parent: 'P-ecommerce-platform-redesign',
+  priority: 'high',
+  projectRoot: '.'
+});
+
+// Create features within the epic
+await mcp.call('createObject', {
+  kind: 'feature',
+  title: 'User Registration',
+  parent: 'E-user-authentication-system',
+  priority: 'high',
+  projectRoot: '.'
+});
+
+// Create implementable tasks
+await mcp.call('createObject', {
+  kind: 'task',
+  title: 'Create user database model',
+  parent: 'F-user-registration',
+  priority: 'high',
+  projectRoot: '.',
+  prerequisites: ['T-setup-database-schema']
+});
+```
+
+#### Task Management Workflow
+
+Use the task management tools to claim, track, and complete work:
+
+```javascript
+// List available tasks
+const backlog = await mcp.call('listBacklog', {
+  projectRoot: '.',
+  status: 'open',
+  priority: 'high',
+  sortByPriority: true
+});
+
+// Claim the next highest-priority task
+const claimedTask = await mcp.call('claimNextTask', {
+  projectRoot: '.',
+  worktree: 'feature/user-auth'
+});
+
+// Update task progress
+await mcp.call('updateObject', {
+  kind: 'task',
+  id: 'T-create-user-model',
+  projectRoot: '.',
+  yamlPatch: {
+    status: 'review'
+  }
+});
+
+// Complete the task with summary
+await mcp.call('completeTask', {
+  projectRoot: '.',
+  taskId: 'T-create-user-model',
+  summary: 'Implemented user model with validation and security features',
+  filesChanged: ['src/models/User.js', 'tests/models/User.test.js']
+});
+```
+
+#### Cross-System Prerequisites
+
+Trellis supports complex dependency relationships across different parts of your project:
+
+```javascript
+// Create a standalone urgent task that depends on hierarchy tasks
+await mcp.call('createObject', {
+  kind: 'task',
+  title: 'Security hotfix deployment',
+  projectRoot: '.',
+  priority: 'high',
+  prerequisites: ['T-auth-implementation', 'T-validation-update'],
+  // No parent - this is a standalone task
+});
+
+// Check if tasks are ready to claim (prerequisites completed)
+const reviewableTask = await mcp.call('getNextReviewableTask', {
+  projectRoot: '.'
+});
+```
+
+#### Querying and Filtering
+
+Use flexible querying to understand project status:
+
+```javascript
+// Get all open tasks for a specific feature
+const featureTasks = await mcp.call('listBacklog', {
+  projectRoot: '.',
+  scope: 'F-user-registration',
+  status: 'open'
+});
+
+// Get high-priority tasks across the entire project
+const urgentTasks = await mcp.call('listBacklog', {
+  projectRoot: '.',
+  priority: 'high',
+  sortByPriority: true
+});
+
+// Get task details with prerequisites
+const taskDetails = await mcp.call('getObject', {
+  kind: 'task',
+  id: 'T-create-user-model',
+  projectRoot: '.'
+});
+```
+
+### Working with AI Assistants
+
+When using Trellis MCP with AI coding assistants, you can request natural language operations that use these tools behind the scenes:
+
+- "Create a new project for inventory management and break it down into epics"
+- "Claim the next highest priority task and implement it"
+- "Show me all open tasks that are ready to work on"
+- "Complete the current task and provide a summary of what was implemented"
+
+### Sample Commands
+
+For examples of how to create comprehensive AI assistant commands that leverage these MCP tools, see the [sample commands](docs/sample-commands/) directory. These examples show how to build complex workflows that combine multiple MCP tool calls for project planning and task implementation.
+
+### Direct CLI Usage
+
+You can also use Trellis MCP directly from the command line for manual operations:
+
+```bash
+# Initialize a new project structure
+task-trellis-mcp init
+
+# Start the MCP server
+task-trellis-mcp serve
+```
 
 ## Requirements
 
@@ -322,21 +288,154 @@ For comprehensive information on cross-system prerequisites:
 - Click >= 8.1
 - FastMCP >= 0.7
 
-## Development
+## Developer Guidelines
 
-Install development dependencies:
+### Code Quality Standards
+
+This project follows strict quality standards enforced by automated tools. All changes must pass the quality gate before being committed.
+
+#### Quality Gate
+
+Run **all** checks before committing - any failure blocks the commit:
 
 ```bash
-uv pip install -r requirements.dev.txt
-pre-commit install
+uv run pre-commit run --all-files   # flake8, black, pyright, unit tests
 ```
 
-Run quality checks:
+#### Code Style
+
+- **Formatting**: `black` and `flake8` enforce code style automatically
+- **Type Checking**: `pyright` ensures type safety with strict settings
+- **Line Limits**: Functions ≤ 40 LOC, classes ≤ 200 LOC
+- **Import Organization**: One logical concept per file
+- **Modern Python**: Use built-in types (`list`, `dict`) over `typing` equivalents
+- **Union Types**: Use `str | None` instead of `Optional[str]`
+
+#### Architecture Principles
+
+- **Single Responsibility**: Each module/class/function has one clear purpose
+- **Minimal Coupling**: Components interact through clean interfaces
+- **High Cohesion**: Related functionality grouped together
+- **Dependency Injection**: Avoid tight coupling between components
+- **No Circular Dependencies**: Maintain clear dependency flow
+
+#### Security Requirements
+
+- **Input Validation**: Validate ALL user inputs
+- **Parameterized Queries**: Never concatenate user data into queries
+- **Secure Defaults**: Fail closed, not open
+- **Least Privilege**: Request minimum permissions needed
+- **No Hardcoded Secrets**: Use environment variables and configuration
+
+#### Testing Standards
+
+- **Comprehensive Coverage**: Write tests alongside implementation
+- **Test Pyramid**: Unit tests > integration tests > end-to-end tests
+- **Fast Feedback**: Unit tests must run quickly (< 5 seconds total)
+- **Clear Test Names**: Test names describe behavior being verified
+- **Isolated Tests**: No dependencies between test cases
+
+### Development Workflow
+
+#### Setup
 
 ```bash
-pre-commit run --all-files
-pytest -q
+# Clone repository
+git clone https://github.com/langadventurellc/trellis-mcp.git
+cd trellis-mcp
+
+# Install dependencies
+uv sync
+
+# Install pre-commit hooks
+uv run pre-commit install
+
+# Install in editable mode
+uv pip install -e .
 ```
+
+#### Daily Development
+
+```bash
+# Format code
+uv run black src/
+
+# Lint code
+uv run flake8 src/
+
+# Type check
+uv run pyright src/
+
+# Run unit tests
+uv run pytest -q
+
+# Run all quality checks
+uv run pre-commit run --all-files
+```
+
+#### Common Commands
+
+| Goal                    | Command                                          |
+| ----------------------- | ------------------------------------------------ |
+| Install dependencies    | `uv sync`                                        |
+| Start server (STDIO)    | `uv run task-trellis-mcp serve`                  |
+| Start server (HTTP)     | `uv run task-trellis-mcp serve --http localhost:8000` |
+| Initialize planning     | `uv run task-trellis-mcp init`                   |
+| All quality checks      | `uv run pre-commit run --all-files`              |
+| Run formatter           | `uv run black src/`                              |
+| Run linter              | `uv run flake8 src/`                             |
+| Type check              | `uv run pyright src/`                            |
+| Run unit tests          | `uv run pytest -q`                               |
+
+### Task-Centric Development
+
+This project uses its own task management system for development:
+
+#### Working with Tasks
+
+```bash
+# Claim next available task
+uv run task-trellis-mcp claim-task
+
+# List available tasks
+uv run task-trellis-mcp list tasks --status open
+
+# Complete a task with summary
+uv run task-trellis-mcp complete T-task-id \
+  --summary "Implemented feature with comprehensive tests" \
+  --files-changed src/module.py,tests/test_module.py
+```
+
+### Contributing Guidelines
+
+#### Before Starting
+
+- Check existing issues and discussions
+- Understand the Trellis MCP specification
+- Review existing code patterns
+- Set up development environment properly
+
+#### Making Changes
+
+- Create feature branch from `main`
+- Ensure all quality checks pass
+- Keep commits focused and atomic
+
+#### Pull Request Process
+
+- Provide clear description of changes
+- Include test coverage information
+- Document any breaking changes
+- Link to relevant issues or discussions
+- Ensure CI passes completely
+
+### Performance Considerations
+
+- **File Operations**: Use efficient file I/O patterns
+- **Validation**: Cache validation results when appropriate
+- **Dependencies**: Minimize external dependencies
+- **Memory Usage**: Clean up resources properly
+- **Cross-System Operations**: Optimize for common access patterns
 
 ## License
 
