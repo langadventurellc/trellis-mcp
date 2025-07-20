@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
-from trellis_mcp.logger import write_event
+from trellis_mcp.logging.logger import write_event
 
 
 class TestWriteEventJSONL:
@@ -20,7 +20,7 @@ class TestWriteEventJSONL:
     def test_single_entry_valid_json(self):
         """Test that a single log entry produces valid JSON parseable with json.loads()."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch("trellis_mcp.logger.Settings") as mock_settings:
+            with patch("trellis_mcp.logging.logger.Settings") as mock_settings:
                 mock_settings.return_value.log_dir = Path(temp_dir)
 
                 # Write a single log entry
@@ -41,7 +41,7 @@ class TestWriteEventJSONL:
     def test_multiple_entries_multiple_json_lines(self):
         """Test that multiple log entries create multiple JSON lines."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch("trellis_mcp.logger.Settings") as mock_settings:
+            with patch("trellis_mcp.logging.logger.Settings") as mock_settings:
                 mock_settings.return_value.log_dir = Path(temp_dir)
 
                 # Write multiple log entries
@@ -65,7 +65,7 @@ class TestWriteEventJSONL:
     def test_json_loads_can_parse_each_entry(self):
         """Test that json.loads() can successfully parse each log entry."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch("trellis_mcp.logger.Settings") as mock_settings:
+            with patch("trellis_mcp.logging.logger.Settings") as mock_settings:
                 mock_settings.return_value.log_dir = Path(temp_dir)
 
                 # Write entries with various data types
@@ -89,7 +89,7 @@ class TestWriteEventFields:
     def test_required_fields_present(self):
         """Test that all required fields (ts, level, msg) are present."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch("trellis_mcp.logger.Settings") as mock_settings:
+            with patch("trellis_mcp.logging.logger.Settings") as mock_settings:
                 mock_settings.return_value.log_dir = Path(temp_dir)
 
                 write_event("INFO", "Test message")
@@ -108,7 +108,7 @@ class TestWriteEventFields:
     def test_additional_fields_included(self):
         """Test that additional fields (**fields) are included in log entry."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch("trellis_mcp.logger.Settings") as mock_settings:
+            with patch("trellis_mcp.logging.logger.Settings") as mock_settings:
                 mock_settings.return_value.log_dir = Path(temp_dir)
 
                 write_event("INFO", "Test message", user_id=123, action="login", success=True)
@@ -125,7 +125,7 @@ class TestWriteEventFields:
     def test_timestamp_format_rfc3339(self):
         """Test that timestamp field follows RFC 3339 format."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch("trellis_mcp.logger.Settings") as mock_settings:
+            with patch("trellis_mcp.logging.logger.Settings") as mock_settings:
                 mock_settings.return_value.log_dir = Path(temp_dir)
 
                 write_event("INFO", "Test message")
@@ -154,7 +154,7 @@ class TestWriteEventConcurrency:
     def test_multiple_threads_writing_simultaneously(self):
         """Test multiple threads writing simultaneously without race conditions."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch("trellis_mcp.logger.Settings") as mock_settings:
+            with patch("trellis_mcp.logging.logger.Settings") as mock_settings:
                 mock_settings.return_value.log_dir = Path(temp_dir)
 
                 num_threads = 10
@@ -198,7 +198,7 @@ class TestWriteEventConcurrency:
     def test_concurrent_writes_no_data_corruption(self):
         """Test that concurrent writes don't cause data corruption."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch("trellis_mcp.logger.Settings") as mock_settings:
+            with patch("trellis_mcp.logging.logger.Settings") as mock_settings:
                 mock_settings.return_value.log_dir = Path(temp_dir)
 
                 # Track which messages were written by each thread
@@ -246,7 +246,7 @@ class TestWriteEventConcurrency:
     def test_threading_lock_effectiveness(self):
         """Test that the threading lock prevents race conditions."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch("trellis_mcp.logger.Settings") as mock_settings:
+            with patch("trellis_mcp.logging.logger.Settings") as mock_settings:
                 mock_settings.return_value.log_dir = Path(temp_dir)
 
                 # Test with rapid concurrent writes

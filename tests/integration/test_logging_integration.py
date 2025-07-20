@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from fastmcp import Client
 
-from trellis_mcp.prune_logs import prune_logs
+from trellis_mcp.logging.prune_logs import prune_logs
 from trellis_mcp.server import create_server
 from trellis_mcp.settings import Settings
 

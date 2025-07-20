@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 from freezegun import freeze_time
 
-from trellis_mcp.prune_logs import prune_logs
+from trellis_mcp.logging.prune_logs import prune_logs
 from trellis_mcp.settings import Settings
 
 
@@ -319,7 +319,7 @@ class TestPruneLogsRetention:
         """Test prune_logs with default settings (no settings parameter)."""
         with tempfile.TemporaryDirectory() as temp_dir:
             # Mock the default settings to use our temp directory
-            with patch("trellis_mcp.prune_logs.Settings") as mock_settings:
+            with patch("trellis_mcp.logging.prune_logs.Settings") as mock_settings:
                 mock_settings.return_value.log_dir = Path(temp_dir)
                 mock_settings.return_value.log_retention_days = 30
 

@@ -9,8 +9,8 @@ from typing import Any
 
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
+from ..settings import Settings
 from .logger import write_event
-from .settings import Settings
 
 
 class JsonRpcLoggingMiddleware(Middleware):

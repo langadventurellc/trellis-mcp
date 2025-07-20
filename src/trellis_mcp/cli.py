@@ -12,10 +12,10 @@ import click
 from .complete_task import complete_task
 from .filters import apply_filters, filter_by_scope
 from .loader import ConfigLoader
+from .logging.prune_logs import prune_logs
 from .models.filter_params import FilterParams
 from .models.task_sort_key import task_sort_key
 from .path_resolver import children_of, id_to_path, resolve_project_roots
-from .prune_logs import prune_logs
 from .scanner import scan_tasks
 from .server import create_server
 from .types import VALID_KINDS

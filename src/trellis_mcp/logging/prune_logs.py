@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Final, Union
 
-from .settings import Settings
+from ..settings import Settings
 
 # Pattern for daily log filenames (YYYY-MM-DD.log)
 DAILY_LOG_PATTERN: Final[re.Pattern[str]] = re.compile(r"^(\d{4})-(\d{2})-(\d{2})\.log$")

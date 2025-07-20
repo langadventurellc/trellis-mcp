@@ -6,9 +6,9 @@ Provides server setup with basic tools and resources for project management.
 
 from fastmcp import FastMCP
 
-from .json_rpc_logging_middleware import JsonRpcLoggingMiddleware
-from .logger import write_event
-from .prune_logs import prune_logs
+from .logging.json_rpc_logging_middleware import JsonRpcLoggingMiddleware
+from .logging.logger import write_event
+from .logging.prune_logs import prune_logs
 from .settings import Settings
 from .tools.claim_next_task import create_claim_next_task_tool
 from .tools.complete_task import create_complete_task_tool

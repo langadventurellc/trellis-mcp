@@ -8,9 +8,9 @@ import json
 import threading
 from typing import Any
 
+from ..settings import Settings
 from .log_filename import daily_log_filename
 from .rfc3339_timestamp import rfc3339_timestamp
-from .settings import Settings
 
 # Global lock for thread-safe file operations
 _log_lock = threading.Lock()
