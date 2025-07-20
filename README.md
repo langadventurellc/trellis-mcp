@@ -124,7 +124,7 @@ Trellis MCP provides a comprehensive set of tools for AI assistants to manage hi
 - **`getObject`** - Retrieve detailed object information with automatic type detection
 - **`updateObject`** - Modify object properties with atomic updates
 - **`listBacklog`** - Query and filter tasks across the project hierarchy
-- **`claimNextTask`** - Automatically claim highest-priority available task with optional scope filtering
+- **`claimNextTask`** - Claim tasks using priority-based, scope-based, or direct task ID selection
 - **`completeTask`** - Mark tasks complete with logging and file tracking
 
 #### Creating Project Hierarchies
@@ -187,6 +187,20 @@ const backlog = await mcp.call('listBacklog', {
 const claimedTask = await mcp.call('claimNextTask', {
   projectRoot: '.',
   worktree: 'feature/user-auth'
+});
+
+// Claim specific task by ID (direct claiming)
+const specificTask = await mcp.call('claimNextTask', {
+  projectRoot: '.',
+  taskId: 'T-implement-user-auth',
+  worktree: 'feature/auth-implementation'
+});
+
+// Claim specific standalone task
+const standaloneTask = await mcp.call('claimNextTask', {
+  projectRoot: '.',
+  taskId: 'task-security-audit',
+  worktree: 'hotfix/security'
 });
 
 // Claim task within specific project scope
@@ -276,15 +290,18 @@ When using Trellis MCP with AI coding assistants, you can request natural langua
 
 - "Create a new project for inventory management and break it down into epics"
 - "Claim the next highest priority task and implement it"
+- "Claim the specific task T-implement-user-auth and work on it"
+- "Work on the security audit task directly"
 - "Claim a task from the user authentication epic"
 - "Show me all open tasks that are ready to work on"
 - "Show me tasks in the frontend development epic"
 - "Complete the current task and provide a summary of what was implemented"
 - "Claim a task from the login feature specifically"
+- "Continue work on task T-fix-validation-bug"
 
-#### Natural Language Scope Claiming
+#### Natural Language Task Claiming
 
-AI assistants can interpret scope-focused requests:
+AI assistants can interpret various claiming strategies:
 
 ```javascript
 // "Work on user authentication epic"
@@ -297,6 +314,18 @@ const authTask = await mcp.call('claimNextTask', {
 const loginTask = await mcp.call('claimNextTask', {
   projectRoot: './planning', 
   scope: 'F-login-functionality'
+});
+
+// "Work on the specific user registration task"
+const specificTask = await mcp.call('claimNextTask', {
+  projectRoot: './planning',
+  taskId: 'T-user-registration-form'
+});
+
+// "Continue the security audit task"
+const auditTask = await mcp.call('claimNextTask', {
+  projectRoot: './planning',
+  taskId: 'task-security-audit'
 });
 
 // "Claim any task from the mobile app project"

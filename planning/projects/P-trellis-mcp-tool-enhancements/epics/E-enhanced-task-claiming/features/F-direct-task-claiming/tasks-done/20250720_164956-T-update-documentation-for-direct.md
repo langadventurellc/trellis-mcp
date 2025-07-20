@@ -1,15 +1,16 @@
 ---
 kind: task
 id: T-update-documentation-for-direct
+parent: F-direct-task-claiming
+status: done
 title: Update documentation for direct task claiming feature
-status: open
 priority: low
 prerequisites:
 - T-update-claimnexttask-tool-to
 created: '2025-07-20T15:20:13.959954'
-updated: '2025-07-20T15:20:13.959954'
+updated: '2025-07-20T16:42:36.952165'
 schema_version: '1.1'
-parent: F-direct-task-claiming
+worktree: null
 ---
 ## Context
 
@@ -93,3 +94,6 @@ result = claim_next_task(
 
 ### Log
 
+
+**2025-07-20T21:49:56.802683Z** - Comprehensive documentation update for direct task claiming feature. Created complete tool documentation, workflow guides, and API reference. Enhanced existing scope-based claiming docs with direct claiming sections, parameter interaction rules, and error handling. Updated README with direct claiming examples and AI assistant integration patterns. All acceptance criteria met with practical examples, troubleshooting guides, and consistent formatting across all documentation files.
+- filesChanged: ["docs/tools/claim-next-task.md", "docs/workflows/task-claiming.md", "docs/api/mcp-tools.md", "docs/scope-based-task-claiming.md", "README.md"]
