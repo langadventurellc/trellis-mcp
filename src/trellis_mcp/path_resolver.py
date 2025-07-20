@@ -599,6 +599,214 @@ def children_of(kind: str, obj_id: str, project_root: Path) -> list[Path]:
     return descendant_paths
 
 
+def discover_immediate_children(kind: str, obj_id: str, project_root: Path) -> list[dict[str, str]]:
+    """Find immediate child objects with metadata.
+
+    Discovers only immediate child objects (not recursive descendants) for a given
+    parent object and returns their metadata. Unlike children_of(), this function
+    returns rich metadata about each child rather than just file paths.
+
+    Args:
+        kind: The parent object kind ('project', 'epic', 'feature', or 'task')
+        obj_id: The parent object ID (without prefix, e.g., 'user-auth' not 'P-user-auth')
+        project_root: Root directory of the planning structure
+
+    Returns:
+        List of dictionaries with structure:
+        {
+            "id": str,        # Clean child ID (without prefix)
+            "title": str,     # Child object title
+            "status": str,    # Child object status
+            "kind": str,      # Child object type
+            "created": str,   # ISO timestamp
+            "file_path": str  # Path to child file
+        }
+
+        For parent-child relationships:
+        - project → epics: Scan {project_dir}/epics/E-*/epic.md files only
+        - epic → features: Scan {epic_dir}/features/F-*/feature.md files only
+        - feature → tasks: Scan {feature_dir}/tasks-open/T-*.md and
+                         {feature_dir}/tasks-done/*-T-*.md files only
+        - task → []: Tasks have no children, return empty list
+
+    Raises:
+        ValueError: If kind is not supported, obj_id is empty, or security validation fails
+        FileNotFoundError: If the parent object cannot be found
+
+    Example:
+        >>> project_root = Path("./planning")
+        >>> discover_immediate_children("project", "user-auth", project_root)
+        [{"id": "authentication", "title": "User Authentication", "status": "in-progress",
+          "kind": "epic", "created": "2025-01-01T10:00:00Z", "file_path": "..."}]
+        >>> discover_immediate_children("task", "implement-jwt", project_root)
+        []  # Tasks have no children
+    """
+    # Validate inputs using same patterns as children_of()
+    if not kind or kind not in VALID_KINDS:
+        raise ValueError(f"Invalid kind '{kind}'. Must be one of: {VALID_KINDS}")
+
+    if not obj_id or not obj_id.strip():
+        raise ValueError("Object ID cannot be empty")
+
+    # Validate input parameters to prevent path traversal attacks for all object types
+    from .validation.field_validation import _validate_task_id_security
+
+    # Use task ID security validation for all object types (same security concerns)
+    security_errors = _validate_task_id_security(obj_id.strip())
+    if security_errors:
+        # Use the first error for the exception message
+        raise ValueError(f"Invalid {kind} ID: {security_errors[0]}")
+
+    # For tasks, additional validation
+    if kind == "task":
+        from .validation.field_validation import validate_standalone_task_path_parameters
+        from .validation.security import validate_standalone_task_path_security
+
+        validation_errors = validate_standalone_task_path_parameters(obj_id)
+        if validation_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Invalid task ID: {validation_errors[0]}")
+
+        # Enhanced security validation for standalone task paths
+        task_security_errors = validate_standalone_task_path_security(obj_id, str(project_root))
+        if task_security_errors:
+            # Use the first error for the exception message
+            raise ValueError(f"Security validation failed: {task_security_errors[0]}")
+
+    # Clean the ID (remove any existing prefix if present)
+    clean_id = obj_id.strip()
+    if clean_id.startswith(("P-", "E-", "F-", "T-")):
+        clean_id = clean_id[2:]
+
+    # Tasks have no children
+    if kind == "task":
+        return []
+
+    # Find the parent object's path to locate its directory
+    parent_path = find_object_path(kind, clean_id, project_root)
+    if parent_path is None:
+        if kind == "project":
+            raise FileNotFoundError(f"Project with ID '{clean_id}' not found")
+        elif kind == "epic":
+            raise FileNotFoundError(f"Epic with ID '{clean_id}' not found")
+        elif kind == "feature":
+            raise FileNotFoundError(f"Feature with ID '{clean_id}' not found")
+
+    # At this point, parent_path is guaranteed to be a Path object
+    assert parent_path is not None, "parent_path should not be None at this point"
+
+    # Get the parent directory containing the children
+    parent_dir = parent_path.parent
+    children_metadata = []
+
+    # Import markdown loader for metadata parsing
+    from .markdown_loader import load_markdown
+
+    # Collect immediate children based on the parent kind
+    if kind == "project":
+        # For projects, find only immediate epics
+        epics_dir = parent_dir / "epics"
+        if epics_dir.exists():
+            for epic_dir in epics_dir.iterdir():
+                if epic_dir.is_dir() and epic_dir.name.startswith("E-"):
+                    epic_file = epic_dir / "epic.md"
+                    if epic_file.exists():
+                        child_metadata = _extract_child_metadata(epic_file, "epic", load_markdown)
+                        if child_metadata:
+                            children_metadata.append(child_metadata)
+
+    elif kind == "epic":
+        # For epics, find only immediate features
+        features_dir = parent_dir / "features"
+        if features_dir.exists():
+            for feature_dir in features_dir.iterdir():
+                if feature_dir.is_dir() and feature_dir.name.startswith("F-"):
+                    feature_file = feature_dir / "feature.md"
+                    if feature_file.exists():
+                        child_metadata = _extract_child_metadata(
+                            feature_file, "feature", load_markdown
+                        )
+                        if child_metadata:
+                            children_metadata.append(child_metadata)
+
+    elif kind == "feature":
+        # For features, find only immediate tasks
+        _add_immediate_tasks_metadata(parent_dir, children_metadata, load_markdown)
+
+    # Sort results by creation date (oldest first) for consistent ordering
+    children_metadata.sort(key=lambda child: child.get("created", ""))
+    return children_metadata
+
+
+def _extract_child_metadata(
+    child_path: Path, child_kind: str, load_markdown_func
+) -> dict[str, str] | None:
+    """Extract metadata from a child object file.
+
+    Args:
+        child_path: Path to the child object file
+        child_kind: Kind of the child object ('epic', 'feature', 'task')
+        load_markdown_func: Function to load markdown with YAML front-matter
+
+    Returns:
+        Dictionary with child metadata or None if extraction fails
+    """
+    try:
+        yaml_data, _ = load_markdown_func(child_path)
+
+        # Extract clean ID (remove prefix if present)
+        raw_id = yaml_data.get("id", "")
+        if raw_id.startswith(("P-", "E-", "F-", "T-")):
+            clean_id = raw_id[2:]
+        else:
+            clean_id = raw_id
+
+        return {
+            "id": clean_id,
+            "title": yaml_data.get("title", ""),
+            "status": yaml_data.get("status", ""),
+            "kind": child_kind,
+            "created": yaml_data.get("created", ""),
+            "file_path": str(child_path),
+        }
+    except Exception:
+        # Handle missing fields gracefully with defaults - don't let parsing errors stop discovery
+        return None
+
+
+def _add_immediate_tasks_metadata(
+    feature_dir: Path, children_metadata: list[dict[str, str]], load_markdown_func
+) -> None:
+    """Add immediate task metadata from a feature directory to the children list.
+
+    Args:
+        feature_dir: Path to the feature directory
+        children_metadata: List to append task metadata to
+        load_markdown_func: Function to load markdown with YAML front-matter
+    """
+    # Check tasks-open directory
+    tasks_open_dir = feature_dir / "tasks-open"
+    if tasks_open_dir.exists():
+        for task_file in tasks_open_dir.iterdir():
+            if (
+                task_file.is_file()
+                and task_file.name.startswith("T-")
+                and task_file.name.endswith(".md")
+            ):
+                task_metadata = _extract_child_metadata(task_file, "task", load_markdown_func)
+                if task_metadata:
+                    children_metadata.append(task_metadata)
+
+    # Check tasks-done directory
+    tasks_done_dir = feature_dir / "tasks-done"
+    if tasks_done_dir.exists():
+        for task_file in tasks_done_dir.iterdir():
+            if task_file.is_file() and task_file.name.endswith(".md") and "-T-" in task_file.name:
+                task_metadata = _extract_child_metadata(task_file, "task", load_markdown_func)
+                if task_metadata:
+                    children_metadata.append(task_metadata)
+
+
 def _add_tasks_from_feature(feature_dir: Path, descendant_paths: list[Path]) -> None:
     """Helper function to add all tasks from a feature directory to the descendant paths list.
 

@@ -1,14 +1,15 @@
 ---
 kind: task
 id: T-create-immediate-children
+parent: F-children-discovery-system
+status: done
 title: Create immediate children discovery function with unit tests and documentation
-status: open
 priority: high
 prerequisites: []
 created: '2025-07-19T19:01:21.073884'
-updated: '2025-07-19T19:01:21.073884'
+updated: '2025-07-19T19:08:20.591230'
 schema_version: '1.1'
-parent: F-children-discovery-system
+worktree: null
 ---
 # Create Immediate Children Discovery Function
 
@@ -128,3 +129,6 @@ test_cases = [
 
 ### Log
 
+
+**2025-07-20T00:15:59.638261Z** - Implemented discover_immediate_children() function in src/trellis_mcp/path_resolver.py that finds only immediate child objects (not recursive descendants) and returns rich metadata instead of just file paths. The function uses the same security validation patterns as children_of(), supports all parent-child relationships (Project→Epics, Epic→Features, Feature→Tasks), and includes comprehensive error handling with graceful defaults for missing metadata fields. Performance targets are met (< 50ms for small collections) with results sorted by creation date. Added comprehensive unit tests with 25 test cases covering all scenarios including edge cases, security validation, corrupted file handling, and performance testing. All quality checks pass (black, isort, flake8, pyright, pytest) with 1738 total tests passing.
+- filesChanged: ["src/trellis_mcp/path_resolver.py", "tests/unit/test_discover_immediate_children.py"]
