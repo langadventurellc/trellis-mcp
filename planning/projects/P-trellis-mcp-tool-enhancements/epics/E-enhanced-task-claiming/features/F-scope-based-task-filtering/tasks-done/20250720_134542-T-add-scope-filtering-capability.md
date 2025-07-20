@@ -1,15 +1,16 @@
 ---
 kind: task
 id: T-add-scope-filtering-capability
+parent: F-scope-based-task-filtering
+status: done
 title: Add scope filtering capability to task scanner
-status: open
 priority: high
 prerequisites:
 - T-extend-filterparams-model-to
 created: '2025-07-20T13:19:48.083515'
-updated: '2025-07-20T13:19:48.083515'
+updated: '2025-07-20T13:30:29.065580'
 schema_version: '1.1'
-parent: F-scope-based-task-filtering
+worktree: null
 ---
 ## Context
 
@@ -80,3 +81,6 @@ Create unit tests in `tests/test_scanner.py`:
 
 ### Log
 
+
+**2025-07-20T18:45:42.863000Z** - Enhanced filter_by_scope with KindInferenceEngine validation by adding validate_scope_exists() function that provides scope validation using the kind inference engine. The implementation maintains backwards compatibility by keeping filter_by_scope unchanged but adds a new validation function that tools can call. Added comprehensive test coverage for scope validation scenarios including valid scopes, nonexistent scopes, and empty scope IDs. All quality checks pass including formatting, linting, type checking, and 38 integration tests.
+- filesChanged: ["src/trellis_mcp/filters.py", "tests/integration/test_filters.py"]

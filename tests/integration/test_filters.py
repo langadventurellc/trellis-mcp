@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from trellis_mcp.filters import apply_filters, filter_by_scope
+from trellis_mcp.filters import apply_filters, filter_by_scope, validate_scope_exists
 from trellis_mcp.models.filter_params import FilterParams
 from trellis_mcp.schema.task import TaskModel
 
@@ -33,6 +33,54 @@ def sample_project_structure():
         # Create all directories
         tasks_open_dir.mkdir(parents=True)
         tasks_done_dir.mkdir(parents=True)
+
+        # Create object files that KindInferenceEngine needs for validation
+        project_content = """---
+kind: project
+id: P-test-project
+title: Test Project
+status: in-progress
+priority: normal
+created: 2025-07-13T19:12:00-05:00
+updated: 2025-07-13T19:12:00-05:00
+schema_version: "1.1"
+---
+
+Test project for filtering.
+"""
+        (planning_dir / "P-test-project" / "project.md").write_text(project_content)
+
+        epic_content = """---
+kind: epic
+id: E-test-epic
+parent: P-test-project
+title: Test Epic
+status: in-progress
+priority: normal
+created: 2025-07-13T19:12:00-05:00
+updated: 2025-07-13T19:12:00-05:00
+schema_version: "1.1"
+---
+
+Test epic for filtering.
+"""
+        (epic_dir.parent / "epic.md").write_text(epic_content)
+
+        feature_content = """---
+kind: feature
+id: F-test-feature
+parent: E-test-epic
+title: Test Feature
+status: in-progress
+priority: normal
+created: 2025-07-13T19:12:00-05:00
+updated: 2025-07-13T19:12:00-05:00
+schema_version: "1.1"
+---
+
+Test feature for filtering.
+"""
+        (feature_dir / "feature.md").write_text(feature_content)
 
         # Create task files with YAML front-matter
         task1_content = """---
@@ -107,6 +155,23 @@ This is test task 4.
 
         (tasks_open2_dir / "T-task-4.md").write_text(task4_content)
 
+        # Add feature object file for F-another-feature
+        another_feature_content = """---
+kind: feature
+id: F-another-feature
+parent: E-test-epic
+title: Another Feature
+status: in-progress
+priority: normal
+created: 2025-07-13T19:12:00-05:00
+updated: 2025-07-13T19:12:00-05:00
+schema_version: "1.1"
+---
+
+Another test feature for filtering.
+"""
+        (feature2_dir / "feature.md").write_text(another_feature_content)
+
         # Create another epic with tasks
         epic2_dir = project_dir / "E-another-epic" / "features"
         feature3_dir = epic2_dir / "F-feature-in-epic2"
@@ -129,6 +194,39 @@ This is test task 5.
 """
 
         (tasks_open3_dir / "T-task-5.md").write_text(task5_content)
+
+        # Add object files for E-another-epic and F-feature-in-epic2
+        another_epic_content = """---
+kind: epic
+id: E-another-epic
+parent: P-test-project
+title: Another Epic
+status: in-progress
+priority: normal
+created: 2025-07-13T19:12:00-05:00
+updated: 2025-07-13T19:12:00-05:00
+schema_version: "1.1"
+---
+
+Another test epic for filtering.
+"""
+        (epic2_dir.parent / "epic.md").write_text(another_epic_content)
+
+        feature_in_epic2_content = """---
+kind: feature
+id: F-feature-in-epic2
+parent: E-another-epic
+title: Feature in Epic2
+status: in-progress
+priority: normal
+created: 2025-07-13T19:12:00-05:00
+updated: 2025-07-13T19:12:00-05:00
+schema_version: "1.1"
+---
+
+Test feature in another epic.
+"""
+        (feature3_dir / "feature.md").write_text(feature_in_epic2_content)
 
         # Create another project
         project2_dir = planning_dir / "P-another-project" / "epics"
@@ -154,7 +252,83 @@ This is test task 6.
 
         (tasks_open4_dir / "T-task-6.md").write_text(task6_content)
 
+        # Add object files for P-another-project, E-epic-in-project2, F-feature-in-project2
+        another_project_content = """---
+kind: project
+id: P-another-project
+title: Another Project
+status: in-progress
+priority: normal
+created: 2025-07-13T19:12:00-05:00
+updated: 2025-07-13T19:12:00-05:00
+schema_version: "1.1"
+---
+
+Another test project for filtering.
+"""
+        (project2_dir.parent / "project.md").write_text(another_project_content)
+
+        epic_in_project2_content = """---
+kind: epic
+id: E-epic-in-project2
+parent: P-another-project
+title: Epic in Project2
+status: in-progress
+priority: normal
+created: 2025-07-13T19:12:00-05:00
+updated: 2025-07-13T19:12:00-05:00
+schema_version: "1.1"
+---
+
+Test epic in another project.
+"""
+        (epic3_dir.parent / "epic.md").write_text(epic_in_project2_content)
+
+        feature_in_project2_content = """---
+kind: feature
+id: F-feature-in-project2
+parent: E-epic-in-project2
+title: Feature in Project2
+status: in-progress
+priority: normal
+created: 2025-07-13T19:12:00-05:00
+updated: 2025-07-13T19:12:00-05:00
+schema_version: "1.1"
+---
+
+Test feature in another project.
+"""
+        (feature4_dir / "feature.md").write_text(feature_in_project2_content)
+
         yield temp_path
+
+
+def test_validate_scope_exists_valid_project(sample_project_structure):
+    """Test validate_scope_exists with valid project scope."""
+    scope_kind = validate_scope_exists(sample_project_structure, "P-test-project")
+    assert scope_kind == "project"
+
+
+def test_validate_scope_exists_valid_feature(sample_project_structure):
+    """Test validate_scope_exists with valid feature scope."""
+    scope_kind = validate_scope_exists(sample_project_structure, "F-test-feature")
+    assert scope_kind == "feature"
+
+
+def test_validate_scope_exists_nonexistent_scope(sample_project_structure):
+    """Test validate_scope_exists with non-existent scope."""
+    from trellis_mcp.exceptions import ValidationError
+
+    with pytest.raises(ValidationError, match="Object file not found for feature"):
+        validate_scope_exists(sample_project_structure, "F-nonexistent")
+
+
+def test_validate_scope_exists_empty_scope(sample_project_structure):
+    """Test validate_scope_exists with empty scope ID."""
+    from trellis_mcp.exceptions import ValidationError
+
+    with pytest.raises(ValidationError, match="Object ID cannot be empty"):
+        validate_scope_exists(sample_project_structure, "")
 
 
 def test_filter_by_project_scope(sample_project_structure):
@@ -219,7 +393,7 @@ def test_filter_by_nonexistent_scope(sample_project_structure):
     """Test filtering with a non-existent scope ID."""
     tasks = list(filter_by_scope(sample_project_structure, "F-nonexistent"))
 
-    # Should return no tasks
+    # Should return no tasks for non-existent scope
     assert len(tasks) == 0
 
 
@@ -227,7 +401,7 @@ def test_filter_empty_scope_id(sample_project_structure):
     """Test filtering with empty scope ID."""
     tasks = list(filter_by_scope(sample_project_structure, ""))
 
-    # Should return no tasks
+    # Should return no tasks for empty scope
     assert len(tasks) == 0
 
 
@@ -828,6 +1002,7 @@ This is another standalone task.
         tasks = list(filter_by_scope(temp_path, "P-nonexistent-project"))
 
         # Should include all standalone tasks for any project scope
+        # even if the project doesn't exist in hierarchy
         task_ids = [task.id for task in tasks]
         assert "only-standalone-1" in task_ids
         assert "only-standalone-2" in task_ids

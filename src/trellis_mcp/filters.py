@@ -3,10 +3,42 @@
 from pathlib import Path
 from typing import Iterator
 
+from .inference import KindInferenceEngine
 from .markdown_loader import load_markdown
 from .models.filter_params import FilterParams
 from .object_parser import parse_object
 from .schema.task import TaskModel
+
+
+def validate_scope_exists(root: Path, scope_id: str) -> str:
+    """Validate that a scope object exists using KindInferenceEngine.
+
+    This function provides scope validation that can be called by tools
+    before using filter_by_scope to ensure the scope exists.
+
+    Args:
+        root: Path to the project root containing planning/ directory
+        scope_id: ID of the scope to validate (project/epic/feature ID)
+
+    Returns:
+        The validated scope kind ("project", "epic", "feature")
+
+    Raises:
+        ValidationError: If scope_id is invalid or scope object doesn't exist
+    """
+    project_root = root.resolve()
+    planning_dir = project_root / "planning"
+
+    if not planning_dir.exists() or not planning_dir.is_dir():
+        from .exceptions import ValidationError, ValidationErrorCode
+
+        raise ValidationError(
+            errors=["Planning directory not found"],
+            error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
+        )
+
+    inference_engine = KindInferenceEngine(planning_dir)
+    return inference_engine.infer_kind(scope_id, validate=True)
 
 
 def filter_by_scope(root: Path, scope_id: str) -> Iterator[TaskModel]:
@@ -17,6 +49,9 @@ def filter_by_scope(root: Path, scope_id: str) -> Iterator[TaskModel]:
 
     Standalone task filtering: project scope includes all standalone tasks,
     epic/feature scope filtering for standalone tasks requires metadata linkage.
+
+    Note: This function does not validate scope existence for backwards compatibility.
+    Use validate_scope_exists() before calling this function if validation is needed.
 
     Args:
         root: Path to the project root containing planning/ directory
