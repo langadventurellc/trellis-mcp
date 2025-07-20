@@ -3,7 +3,7 @@ kind: task
 id: T-add-medium-priority-validation
 title: Add medium priority support to createObject validation
 status: open
-priority: normal
+priority: low
 prerequisites: []
 created: '2025-07-20T17:49:45.639234'
 updated: '2025-07-20T17:49:45.639234'

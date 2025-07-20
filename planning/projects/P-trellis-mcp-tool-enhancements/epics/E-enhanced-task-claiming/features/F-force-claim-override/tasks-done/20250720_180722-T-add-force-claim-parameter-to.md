@@ -1,14 +1,15 @@
 ---
 kind: task
 id: T-add-force-claim-parameter-to
+parent: F-force-claim-override
+status: done
 title: Add force_claim parameter to claimNextTask tool interface
-status: open
 priority: high
 prerequisites: []
 created: '2025-07-20T17:59:42.898885'
-updated: '2025-07-20T17:59:42.898885'
+updated: '2025-07-20T18:02:35.709763'
 schema_version: '1.1'
-parent: F-force-claim-override
+worktree: null
 ---
 # Add force_claim parameter to claimNextTask tool interface
 
@@ -62,3 +63,6 @@ The claimNextTask tool needs to support a force_claim parameter that bypasses no
 
 ### Log
 
+
+**2025-07-20T23:07:22.740958Z** - Successfully implemented force_claim parameter for claimNextTask tool interface with comprehensive validation and testing. Added force_claim: bool = False parameter with robust validation logic requiring taskId when True and preventing use with scope parameter. Implemented 7 comprehensive unit tests covering all validation scenarios including edge cases, error contexts, and parameter passing. Updated tool documentation with clear usage examples and warnings. All quality checks pass (isort, black, flake8, pyright) with no regressions in existing functionality. This foundational interface change enables subsequent tasks to implement core force claiming logic while maintaining security boundaries and backward compatibility.
+- filesChanged: ["src/trellis_mcp/tools/claim_next_task.py", "tests/unit/tools/test_claim_next_task.py"]

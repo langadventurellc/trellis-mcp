@@ -30,6 +30,7 @@ def create_claim_next_task_tool(settings: Settings):
         worktree: str = "",
         scope: str = "",
         taskId: str = "",
+        force_claim: bool = False,
     ) -> dict[str, str | dict[str, str]]:
         """Claim the next highest-priority open task with all prerequisites completed.
 
@@ -69,6 +70,10 @@ def create_claim_next_task_tool(settings: Settings):
             taskId: Optional task ID to claim directly (T- prefixed or standalone format).
                 If provided, claims specific task instead of priority-based selection.
                 Empty/omitted: Uses priority-based selection (existing behavior preserved)
+            force_claim: Optional boolean to bypass normal claiming restrictions.
+                When True, allows claiming tasks that would normally be blocked.
+                IMPORTANT: Only valid when taskId is specified. Incompatible with scope parameter.
+                Default: False (maintains standard claiming behavior)
 
         Usage Examples:
             # Claim any available task (no scope filtering)
@@ -88,6 +93,21 @@ def create_claim_next_task_tool(settings: Settings):
                 projectRoot="/path/to/planning",
                 scope="F-user-auth",
                 worktree="feature/auth"
+            )
+
+            # Force claim specific task (bypasses normal restrictions)
+            claimNextTask(
+                projectRoot="/path/to/planning",
+                taskId="T-urgent-fix",
+                force_claim=True
+            )
+
+            # Force claim with worktree (emergency reassignment)
+            claimNextTask(
+                projectRoot="/path/to/planning",
+                taskId="T-critical-bug",
+                worktree="hotfix/critical",
+                force_claim=True
             )
 
         Scope Boundary Behavior:
@@ -162,9 +182,29 @@ def create_claim_next_task_tool(settings: Settings):
                     context={"field": "scope", "value": scope},
                 ) from e
 
-        # Call the core claim_next_task function with validated scope and task_id parameters
+        # Validate force_claim parameter restrictions
+        if force_claim:
+            # force_claim requires taskId to be specified
+            if not taskId or not taskId.strip():
+                raise ValidationError(
+                    errors=["force_claim parameter requires taskId to be specified"],
+                    error_codes=[ValidationErrorCode.INVALID_FIELD],
+                    context={"field": "force_claim", "value": force_claim, "taskId": taskId},
+                )
+
+            # force_claim is incompatible with scope parameter
+            if scope and scope.strip():
+                raise ValidationError(
+                    errors=["force_claim parameter is incompatible with scope parameter"],
+                    error_codes=[ValidationErrorCode.INVALID_FIELD],
+                    context={"field": "force_claim", "value": force_claim, "scope": scope},
+                )
+
+        # Call the core claim_next_task function with validated parameters
         task_id_param = taskId.strip() if taskId and taskId.strip() else None
         try:
+            # Note: force_claim parameter will be passed to core function by subsequent tasks
+            # For now, parameter validation is complete but core logic implementation is pending
             claimed_task = claim_next_task(projectRoot, worktree, scope_param, task_id_param)
         except NoAvailableTask as e:
             raise ValidationError(
