@@ -215,6 +215,187 @@ class TestDirectClaimingStatusValidation:
         assert "Task T-review is not available for claiming (status: review)" in str(exc_info.value)
 
 
+class TestDirectClaimingStatusOverride:
+    """Test status override functionality for force claiming."""
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task.logging.warning")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_force_claim_can_override_in_progress_status(
+        self, mock_find, mock_log_warning, mock_write
+    ):
+        """Test that force_claim=True can claim tasks with in-progress status."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        in_progress_task = create_test_task(
+            "T-in-progress", Priority.NORMAL, base_time, status=StatusEnum.IN_PROGRESS
+        )
+
+        mock_find.return_value = in_progress_task
+
+        result = claim_specific_task("/test/project", "T-in-progress", force_claim=True)
+
+        assert result.id == "T-in-progress"
+        assert result.status == StatusEnum.IN_PROGRESS
+        mock_write.assert_called_once_with(result, Path("/test/project"))
+
+        # Verify status override logging
+        mock_log_warning.assert_called_once()
+        warning_call = mock_log_warning.call_args[0][0]
+        assert (
+            "Force claiming task T-in-progress: overriding status 'in-progress' -> 'in-progress'"
+            in warning_call
+        )
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task.logging.warning")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_force_claim_can_override_review_status(self, mock_find, mock_log_warning, mock_write):
+        """Test that force_claim=True can claim tasks with review status."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        review_task = create_test_task(
+            "T-review", Priority.NORMAL, base_time, status=StatusEnum.REVIEW
+        )
+
+        mock_find.return_value = review_task
+
+        result = claim_specific_task("/test/project", "T-review", force_claim=True)
+
+        assert result.id == "T-review"
+        assert result.status == StatusEnum.IN_PROGRESS
+        mock_write.assert_called_once_with(result, Path("/test/project"))
+
+        # Verify status override logging
+        mock_log_warning.assert_called_once()
+        warning_call = mock_log_warning.call_args[0][0]
+        assert (
+            "Force claiming task T-review: overriding status 'review' -> 'in-progress'"
+            in warning_call
+        )
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task.logging.warning")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_force_claim_can_override_done_status(self, mock_find, mock_log_warning, mock_write):
+        """Test that force_claim=True can claim tasks with done status."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        done_task = create_test_task("T-done", Priority.NORMAL, base_time, status=StatusEnum.DONE)
+
+        mock_find.return_value = done_task
+
+        result = claim_specific_task("/test/project", "T-done", force_claim=True)
+
+        assert result.id == "T-done"
+        assert result.status == StatusEnum.IN_PROGRESS
+        mock_write.assert_called_once_with(result, Path("/test/project"))
+
+        # Verify status override logging
+        mock_log_warning.assert_called_once()
+        warning_call = mock_log_warning.call_args[0][0]
+        assert (
+            "Force claiming task T-done: overriding status 'done' -> 'in-progress'" in warning_call
+        )
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task.logging.warning")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_force_claim_with_worktree_includes_in_logging(
+        self, mock_find, mock_log_warning, mock_write
+    ):
+        """Test that status override logging includes worktree context when provided."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        review_task = create_test_task(
+            "T-review", Priority.NORMAL, base_time, status=StatusEnum.REVIEW
+        )
+
+        mock_find.return_value = review_task
+
+        result = claim_specific_task(
+            "/test/project", "T-review", worktree="feature/urgent-fix", force_claim=True
+        )
+
+        assert result.id == "T-review"
+        assert result.status == StatusEnum.IN_PROGRESS
+        assert result.worktree == "feature/urgent-fix"
+        mock_write.assert_called_once_with(result, Path("/test/project"))
+
+        # Verify status override logging includes worktree
+        mock_log_warning.assert_called_once()
+        warning_call = mock_log_warning.call_args[0][0]
+        expected_msg = (
+            "Force claiming task T-review: overriding status 'review' -> 'in-progress' "
+            "with worktree 'feature/urgent-fix'"
+        )
+        assert expected_msg in warning_call
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task.logging.warning")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_force_claim_open_task_no_status_override_logging(
+        self, mock_find, mock_log_warning, mock_write
+    ):
+        """Test that force claiming open tasks doesn't trigger status override logging."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        open_task = create_test_task("T-open", Priority.NORMAL, base_time, status=StatusEnum.OPEN)
+
+        mock_find.return_value = open_task
+
+        result = claim_specific_task("/test/project", "T-open", force_claim=True)
+
+        assert result.id == "T-open"
+        assert result.status == StatusEnum.IN_PROGRESS
+        mock_write.assert_called_once_with(result, Path("/test/project"))
+
+        # Verify no status override logging for open tasks
+        mock_log_warning.assert_not_called()
+
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_normal_claim_still_enforces_status_restrictions(self, mock_find):
+        """Test that normal claiming (force_claim=False) still enforces status restrictions."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+        # Test each non-open status is still restricted for normal claiming
+        test_cases = [
+            (StatusEnum.IN_PROGRESS, "in-progress"),
+            (StatusEnum.REVIEW, "review"),
+            (StatusEnum.DONE, "done"),
+        ]
+
+        for status, status_str in test_cases:
+            with pytest.raises(NoAvailableTask) as exc_info:
+                task = create_test_task("T-test", Priority.NORMAL, base_time, status=status)
+                mock_find.return_value = task
+                claim_specific_task("/test/project", "T-test", force_claim=False)
+
+            assert f"Task T-test is not available for claiming (status: {status_str})" in str(
+                exc_info.value
+            )
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task.logging.warning")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_atomic_status_transitions_during_override(
+        self, mock_find, mock_log_warning, mock_write
+    ):
+        """Test that status override operations complete atomically."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        review_task = create_test_task(
+            "T-atomic", Priority.NORMAL, base_time, status=StatusEnum.REVIEW
+        )
+
+        mock_find.return_value = review_task
+
+        result = claim_specific_task("/test/project", "T-atomic", force_claim=True)
+
+        # Verify atomic operation: task status is updated to IN_PROGRESS
+        assert result.status == StatusEnum.IN_PROGRESS
+
+        # Verify write_object called once with updated task
+        mock_write.assert_called_once()
+        written_task = mock_write.call_args[0][0]
+        assert written_task.status == StatusEnum.IN_PROGRESS
+        assert written_task.id == "T-atomic"
+
+
 class TestDirectClaimingPrerequisiteValidation:
     """Test prerequisite validation in direct claiming."""
 

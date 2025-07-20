@@ -103,11 +103,20 @@ def claim_specific_task(
     if not target_task:
         raise NoAvailableTask(f"Task not found: {task_id}")
 
-    # Validate task is in open status
-    if target_task.status != StatusEnum.OPEN:
+    # Validate task is in open status unless force_claim=True
+    if not force_claim and target_task.status != StatusEnum.OPEN:
         raise NoAvailableTask(
             f"Task {task_id} is not available for claiming (status: {target_task.status.value})"
         )
+
+    # Log status override when force claiming non-open tasks
+    if force_claim and target_task.status != StatusEnum.OPEN:
+        worktree_info = f" with worktree '{worktree}'" if worktree else ""
+        status_msg = (
+            f"Force claiming task {task_id}: "
+            f"overriding status '{target_task.status.value}' -> 'in-progress'"
+        )
+        logging.warning(status_msg + worktree_info)
 
     # Validate task is unblocked (all prerequisites completed) unless force_claim=True
     if not force_claim:
