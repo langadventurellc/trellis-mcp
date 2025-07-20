@@ -1,0 +1,78 @@
+---
+kind: task
+id: T-write-integration-tests-for
+title: Write integration tests for complete force claim workflows
+status: open
+priority: normal
+prerequisites:
+- T-add-comprehensive-force-claim
+created: '2025-07-20T18:00:47.803370'
+updated: '2025-07-20T18:00:47.803370'
+schema_version: '1.1'
+parent: F-force-claim-override
+---
+# Write integration tests for complete force claim workflows
+
+## Context
+Integration tests are needed to verify the complete force claim functionality works end-to-end across all components. These tests should cover the full workflow from tool interface through core logic to audit logging, testing real-world scenarios.
+
+## Implementation Requirements
+
+### End-to-End Force Claim Testing
+- Test complete force claim workflow from claimNextTask tool to task file updates
+- Verify force claim with all task statuses (open, in-progress, review, done)
+- Test force claim with incomplete prerequisites and verify bypass
+- Validate force claim parameter validation and error handling
+
+### Cross-System Integration Testing
+- Test force claiming of hierarchical tasks (within project/epic/feature structure)
+- Test force claiming of standalone tasks
+- Verify cross-system prerequisite bypass functionality
+- Test interaction with existing normal claiming workflows
+
+### Concurrent Access Testing
+- Test concurrent force claim attempts on the same task
+- Verify atomic operations prevent data corruption
+- Test force claim during normal claiming operations
+- Validate proper error handling for race conditions
+
+### Audit Trail Integration Testing
+- Verify complete audit trail generation for force claim operations
+- Test audit logging integration with existing logging infrastructure
+- Validate log format consistency and completeness
+- Test audit trail for failed force claim operations
+
+## Detailed Acceptance Criteria
+- [ ] Integration tests cover force claiming from tool interface to file system
+- [ ] Tests verify force claim works with all task statuses and prerequisite states
+- [ ] Tests validate cross-system force claiming (hierarchical and standalone tasks)
+- [ ] Tests verify parameter validation prevents misuse of force claim functionality
+- [ ] Tests confirm concurrent force claim attempts handled gracefully
+- [ ] Tests validate complete audit trail generation for all force claim scenarios
+- [ ] Tests verify integration with existing normal claiming workflows
+- [ ] Tests confirm atomic operations prevent data corruption
+- [ ] Integration tests run successfully in CI/CD pipeline
+- [ ] Test coverage includes error scenarios and edge cases
+- [ ] Tests verify rollback capabilities for failed force claim operations
+
+## Technical Approach
+1. Create comprehensive integration test suite in `tests/integration/test_force_claim.py`
+2. Set up test scenarios with hierarchical and standalone task structures
+3. Test all force claim parameter combinations and validation scenarios
+4. Verify end-to-end workflows including audit logging
+5. Add concurrent access testing with threading or async patterns
+
+## Files to Create/Modify
+- `tests/integration/test_force_claim.py`: Comprehensive integration test suite
+- `tests/integration/conftest.py`: Test fixtures for force claim scenarios (if needed)
+
+## Dependencies
+- Requires T-add-comprehensive-force-claim for complete audit logging functionality
+
+## Security Considerations
+- Tests verify access control boundaries maintained during force operations
+- Tests validate audit trail completeness for security compliance
+- Tests confirm no privilege escalation through force claim functionality
+
+### Log
+

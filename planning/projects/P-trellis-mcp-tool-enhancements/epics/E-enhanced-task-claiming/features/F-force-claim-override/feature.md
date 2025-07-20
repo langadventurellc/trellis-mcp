@@ -6,7 +6,6 @@ status: in-progress
 priority: high
 prerequisites:
 - F-direct-task-claiming
-- F-enhanced-parameter-validation
 created: '2025-07-20T13:12:30.624894'
 updated: '2025-07-20T13:12:30.624894'
 schema_version: '1.1'
@@ -16,7 +15,7 @@ parent: E-enhanced-task-claiming
 
 ## Purpose and Functionality
 
-Implement force claim capabilities for the `claimNextTask` tool, allowing users to bypass normal claiming restrictions when claiming specific tasks by ID. This supports emergency scenarios, task reassignment, and administrative workflows where standard claiming rules need to be overridden.
+Implement force claim capabilities for the `claimNextTask` tool, allowing users to bypass normal claiming restrictions when claiming specific tasks by ID. This supports emergency scenarios, task reassignment, and administrative workflows where standard claiming rules need to be overridden. Unit tests should be completed in the same task as the changes to production code. Do not create a separate task just for unit tests. Do not add any performance tests to this feature.
 
 ## Key Components to Implement
 
