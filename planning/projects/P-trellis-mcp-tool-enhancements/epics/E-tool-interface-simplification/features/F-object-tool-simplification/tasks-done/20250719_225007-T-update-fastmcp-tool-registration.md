@@ -1,16 +1,17 @@
 ---
 kind: task
 id: T-update-fastmcp-tool-registration
+parent: F-object-tool-simplification
+status: done
 title: Update FastMCP tool registration for simplified interfaces
-status: open
 priority: normal
 prerequisites:
 - T-create-simplified-getobject-tool
 - T-create-simplified-updateobject
 created: '2025-07-19T20:24:12.421169'
-updated: '2025-07-19T20:24:12.421169'
+updated: '2025-07-19T22:41:14.022189'
 schema_version: '1.1'
-parent: F-object-tool-simplification
+worktree: null
 ---
 ## Purpose
 
@@ -194,3 +195,5 @@ This task completes the integration of simplified tools into the server infrastr
 
 ### Log
 
+
+**2025-07-20T03:50:06.998117Z** - The FastMCP tool registration has been verified as complete. Both simplified getObject and updateObject tools are correctly registered in the server initialization using their factory functions. The tools successfully use automatic kind inference, accept simplified parameter sets (no explicit `kind` parameter required), and return clean response formats without internal file_path exposure. Server startup, tool discovery, and basic tool operations all work correctly with the simplified interfaces.

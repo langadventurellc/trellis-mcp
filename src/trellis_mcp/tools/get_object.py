@@ -139,7 +139,11 @@ def create_get_object_tool(settings: Settings):
         # Discover immediate children
         children_list = []
         try:
-            children_list = discover_immediate_children(kind, clean_id, planning_root)
+            raw_children = discover_immediate_children(kind, clean_id, planning_root)
+            # Filter out file_path for clean response format
+            children_list = [
+                {k: v for k, v in child.items() if k != "file_path"} for child in raw_children
+            ]
         except Exception:
             # Log warning but continue with empty children array
             # Don't let children discovery errors break getObject functionality

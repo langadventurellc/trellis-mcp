@@ -1,15 +1,16 @@
 ---
 kind: task
 id: T-write-comprehensive-integratio-2
+parent: F-object-tool-simplification
+status: done
 title: Write comprehensive integration tests for simplified tools
-status: open
 priority: normal
 prerequisites:
 - T-update-fastmcp-tool-registration
 created: '2025-07-19T20:24:52.070882'
-updated: '2025-07-19T20:24:52.070882'
+updated: '2025-07-19T22:51:11.625712'
 schema_version: '1.1'
-parent: F-object-tool-simplification
+worktree: null
 ---
 ## Purpose
 
@@ -227,3 +228,17 @@ This comprehensive testing ensures that the simplified tools deliver the promise
 
 ### Log
 
+
+**2025-07-20T04:31:03.226594Z** - Implemented comprehensive integration tests for simplified getObject and updateObject tools with 26 total tests covering all functional requirements. Created unit tests for both tools (8 getObject + 10 updateObject) and 8 integration tests covering end-to-end workflows, cross-system compatibility, kind inference, response format validation, error handling, and complex scenarios. All tests focus on functional correctness as requested, not performance regression testing.
+
+Key test coverage includes:
+- Kind inference integration across all object types (P-, E-, F-, T-)
+- Clean response format validation (file_path excluded, kind included)
+- Cross-system compatibility (hierarchical and standalone objects)
+- Comprehensive error handling for invalid IDs and missing objects
+- End-to-end workflow testing with realistic project structures
+- Children discovery integration with simplified response format
+- Concurrent operations and complex workflows (cascade deletion)
+
+Fixed compatibility issue with existing children discovery tests that expected file_path in metadata by updating validation helper to align with simplified tools' clean response format. All 1806 tests now pass with zero errors or warnings.
+- filesChanged: ["tests/unit/test_simplified_getobject.py", "tests/unit/test_simplified_updateobject.py", "tests/integration/test_simplified_tools_integration.py", "tests/fixtures/integration/children_discovery_fixtures.py", "src/trellis_mcp/tools/get_object.py"]

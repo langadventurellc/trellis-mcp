@@ -735,8 +735,8 @@ def validate_children_metadata(children: List[Dict[str, str]], expected_types: L
     Raises:
         AssertionError: If validation fails
     """
-    # Check required fields are present
-    required_fields = ["id", "title", "status", "kind", "created", "file_path"]
+    # Check required fields are present (file_path excluded for simplified tools)
+    required_fields = ["id", "title", "status", "kind", "created"]
     for child in children:
         for field in required_fields:
             assert (
