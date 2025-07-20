@@ -399,3 +399,172 @@ class TestDirectClaimingEdgeCases:
 
         # Worktree should remain None when empty string provided
         assert result.worktree is None
+
+
+class TestDirectClaimingForceClaimBypass:
+    """Test force claim functionality for bypassing prerequisites."""
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_force_claim_bypasses_prerequisite_validation(self, mock_find, mock_write):
+        """Test that force_claim=True bypasses prerequisite validation."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        blocked_task = create_test_task(
+            "T-blocked", Priority.NORMAL, base_time, prerequisites=["T-incomplete"]
+        )
+
+        mock_find.return_value = blocked_task
+
+        # Should succeed with force_claim=True even when prerequisites are incomplete
+        result = claim_specific_task("/test/project", "T-blocked", force_claim=True)
+
+        assert result.id == "T-blocked"
+        assert result.status == StatusEnum.IN_PROGRESS
+
+        # Verify is_unblocked was NOT called when force_claim=True
+        # (we don't mock is_unblocked, so if it were called and returned False,
+        # this would raise NoAvailableTask)
+        mock_write.assert_called_once_with(result, Path("/test/project"))
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task.is_unblocked")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_force_claim_false_maintains_prerequisite_validation(
+        self, mock_find, mock_unblocked, mock_write
+    ):
+        """Test that force_claim=False maintains normal prerequisite validation."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        blocked_task = create_test_task(
+            "T-blocked", Priority.NORMAL, base_time, prerequisites=["T-incomplete"]
+        )
+
+        mock_find.return_value = blocked_task
+        mock_unblocked.return_value = False  # Simulate incomplete prerequisites
+
+        with pytest.raises(NoAvailableTask) as exc_info:
+            claim_specific_task("/test/project", "T-blocked", force_claim=False)
+
+        assert "Task T-blocked cannot be claimed - prerequisites not completed" in str(
+            exc_info.value
+        )
+        mock_unblocked.assert_called_once_with(blocked_task, Path("/test/project"))
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_force_claim_with_no_prerequisites_works_normally(self, mock_find, mock_write):
+        """Test that force_claim=True works correctly for tasks with no prerequisites."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        task_no_prereqs = create_test_task(
+            "T-no-prereqs", Priority.NORMAL, base_time, prerequisites=[]
+        )
+
+        mock_find.return_value = task_no_prereqs
+
+        result = claim_specific_task("/test/project", "T-no-prereqs", force_claim=True)
+
+        assert result.id == "T-no-prereqs"
+        assert result.status == StatusEnum.IN_PROGRESS
+        mock_write.assert_called_once_with(result, Path("/test/project"))
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task.logging.warning")
+    @patch("trellis_mcp.validation.get_all_objects")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_force_claim_logs_warning_for_incomplete_prerequisites(
+        self, mock_find, mock_get_objects, mock_log_warning, mock_write
+    ):
+        """Test that force_claim logs warning when bypassing incomplete prerequisites."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        blocked_task = create_test_task(
+            "T-blocked", Priority.NORMAL, base_time, prerequisites=["T-incomplete", "T-missing"]
+        )
+
+        mock_find.return_value = blocked_task
+        # Mock get_all_objects to simulate incomplete prerequisites
+        # Note: clean_prerequisite_id removes T- prefix, so "T-incomplete" becomes "incomplete"
+        mock_get_objects.return_value = {
+            "incomplete": {"status": "in-progress"},  # Not done
+            # "missing" is not in the dict, so it's missing
+        }
+
+        result = claim_specific_task("/test/project", "T-blocked", force_claim=True)
+
+        assert result.id == "T-blocked"
+        assert result.status == StatusEnum.IN_PROGRESS
+
+        # Verify warning was logged with details about incomplete prerequisites
+        mock_log_warning.assert_called_once()
+        warning_call = mock_log_warning.call_args[0][0]
+        assert "Force claiming task T-blocked with incomplete prerequisites" in warning_call
+        assert "T-incomplete" in warning_call
+        assert "T-missing" in warning_call
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task.logging.warning")
+    @patch("trellis_mcp.validation.get_all_objects")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_force_claim_logs_audit_failure_gracefully(
+        self, mock_find, mock_get_objects, mock_log_warning, mock_write
+    ):
+        """Test that force_claim handles audit logging failures gracefully."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        blocked_task = create_test_task(
+            "T-blocked", Priority.NORMAL, base_time, prerequisites=["T-incomplete"]
+        )
+
+        mock_find.return_value = blocked_task
+        # Simulate error in audit logging
+        mock_get_objects.side_effect = Exception("Audit check failed")
+
+        # Should still succeed with force claim despite audit logging failure
+        result = claim_specific_task("/test/project", "T-blocked", force_claim=True)
+
+        assert result.id == "T-blocked"
+        assert result.status == StatusEnum.IN_PROGRESS
+
+        # Verify fallback warning was logged
+        mock_log_warning.assert_called_once()
+        warning_call = mock_log_warning.call_args[0][0]
+        assert "Force claiming task T-blocked" in warning_call
+        assert "Could not determine prerequisite status for audit" in warning_call
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.validation.get_all_objects")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_force_claim_with_completed_prerequisites_no_warning(
+        self, mock_find, mock_get_objects, mock_write
+    ):
+        """Test that force_claim with completed prerequisites doesn't log warnings."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        task_with_prereqs = create_test_task(
+            "T-with-prereqs", Priority.NORMAL, base_time, prerequisites=["T-completed"]
+        )
+
+        mock_find.return_value = task_with_prereqs
+        # Mock all prerequisites as completed (note: clean_prerequisite_id removes T- prefix)
+        mock_get_objects.return_value = {"completed": {"status": "done"}}
+
+        with patch("trellis_mcp.claim_next_task.logging.warning") as mock_log_warning:
+            result = claim_specific_task("/test/project", "T-with-prereqs", force_claim=True)
+
+            assert result.id == "T-with-prereqs"
+            assert result.status == StatusEnum.IN_PROGRESS
+
+            # No warning should be logged when all prerequisites are completed
+            mock_log_warning.assert_not_called()
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_force_claim_default_parameter_is_false(self, mock_find, mock_write):
+        """Test that force_claim parameter defaults to False."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        task = create_test_task("T-test", Priority.NORMAL, base_time, prerequisites=[])
+
+        mock_find.return_value = task
+
+        # Call without force_claim parameter (should default to False)
+        result = claim_specific_task("/test/project", "T-test")
+
+        assert result.id == "T-test"
+        assert result.status == StatusEnum.IN_PROGRESS
+        # No prerequisites to check, so this should work fine

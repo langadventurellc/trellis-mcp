@@ -71,9 +71,10 @@ def create_claim_next_task_tool(settings: Settings):
                 If provided, claims specific task instead of priority-based selection.
                 Empty/omitted: Uses priority-based selection (existing behavior preserved)
             force_claim: Optional boolean to bypass normal claiming restrictions.
-                When True, allows claiming tasks that would normally be blocked.
-                IMPORTANT: Only valid when taskId is specified. Incompatible with scope parameter.
-                Default: False (maintains standard claiming behavior)
+                When True, allows claiming tasks that would normally be blocked by incomplete
+                prerequisites or non-open status. IMPORTANT: Only valid when taskId is specified.
+                Incompatible with scope parameter. Default: False (maintains standard
+                claiming behavior)
 
         Usage Examples:
             # Claim any available task (no scope filtering)
@@ -203,9 +204,10 @@ def create_claim_next_task_tool(settings: Settings):
         # Call the core claim_next_task function with validated parameters
         task_id_param = taskId.strip() if taskId and taskId.strip() else None
         try:
-            # Note: force_claim parameter will be passed to core function by subsequent tasks
-            # For now, parameter validation is complete but core logic implementation is pending
-            claimed_task = claim_next_task(projectRoot, worktree, scope_param, task_id_param)
+            # Pass force_claim parameter to core function for prerequisite bypass logic
+            claimed_task = claim_next_task(
+                projectRoot, worktree, scope_param, task_id_param, force_claim
+            )
         except NoAvailableTask as e:
             raise ValidationError(
                 errors=[str(e)],

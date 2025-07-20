@@ -4,8 +4,10 @@ Provides the core function for atomically claiming the next highest-priority
 unblocked task from the backlog, supporting both hierarchical and standalone tasks.
 """
 
+import logging
 from datetime import datetime
 from pathlib import Path
+from typing import Any, cast
 
 from .dependency_resolver import is_unblocked
 from .exceptions.no_available_task import NoAvailableTask
@@ -46,23 +48,28 @@ def claim_specific_task(
     project_root: str | Path,
     task_id: str,
     worktree: str = "",
+    force_claim: bool = False,
 ) -> TaskModel:
     """Claim a specific task by ID with validation and atomic updates.
 
     Locates a specific task by ID across both hierarchical and standalone task
     systems, validates its claimability, and claims it atomically by updating
-    its status to 'in-progress'.
+    its status to 'in-progress'. When force_claim=True, bypasses prerequisite
+    validation to allow claiming tasks with incomplete dependencies.
 
     Args:
         project_root: Root directory of the planning structure
         task_id: Task ID to claim directly (T- prefixed or standalone format)
         worktree: Optional worktree identifier to stamp on the claimed task
+        force_claim: When True, bypasses prerequisite validation and allows
+            claiming tasks with incomplete dependencies. Defaults to False.
 
     Returns:
         TaskModel: The updated task object with status=in-progress
 
     Raises:
-        NoAvailableTask: If task not found, wrong status, or prerequisites incomplete
+        NoAvailableTask: If task not found, wrong status, or (when force_claim=False)
+            prerequisites incomplete
         ValidationError: If task data is invalid
         OSError: If file operations fail
 
@@ -72,6 +79,11 @@ def claim_specific_task(
         <StatusEnum.IN_PROGRESS: 'in-progress'>
         >>> task.worktree
         '/workspace/auth'
+
+        >>> # Force claim a task with incomplete prerequisites
+        >>> task = claim_specific_task("./planning", "T-blocked-task", force_claim=True)
+        >>> task.status
+        <StatusEnum.IN_PROGRESS: 'in-progress'>
     """
     # Resolve project root to planning directory
     scanning_root, planning_root = resolve_project_roots(project_root)
@@ -97,9 +109,40 @@ def claim_specific_task(
             f"Task {task_id} is not available for claiming (status: {target_task.status.value})"
         )
 
-    # Validate task is unblocked (all prerequisites completed)
-    if not is_unblocked(target_task, planning_root):
-        raise NoAvailableTask(f"Task {task_id} cannot be claimed - prerequisites not completed")
+    # Validate task is unblocked (all prerequisites completed) unless force_claim=True
+    if not force_claim:
+        if not is_unblocked(target_task, planning_root):
+            raise NoAvailableTask(f"Task {task_id} cannot be claimed - prerequisites not completed")
+    else:
+        # Log warning when bypassing prerequisite validation
+        if target_task.prerequisites:
+            incomplete_prereqs = []
+            # Check which prerequisites are incomplete for audit logging
+            try:
+                from .utils.id_utils import clean_prerequisite_id
+                from .validation import get_all_objects
+
+                all_objects = cast(dict[str, dict[str, Any]], get_all_objects(planning_root))
+                for prereq_id in target_task.prerequisites:
+                    clean_prereq_id = clean_prerequisite_id(prereq_id)
+                    if clean_prereq_id not in all_objects:
+                        incomplete_prereqs.append(prereq_id)
+                    elif all_objects[clean_prereq_id].get("status", "") != "done":
+                        incomplete_prereqs.append(prereq_id)
+
+                if incomplete_prereqs:
+                    logging.warning(
+                        f"Force claiming task {task_id} with incomplete prerequisites: "
+                        f"{incomplete_prereqs}. Task dependency graph integrity maintained "
+                        f"but business rules bypassed."
+                    )
+            except Exception as e:
+                # If we can't check prerequisites for logging, still proceed with force claim
+                # but log that we couldn't determine incomplete prerequisites
+                logging.warning(
+                    f"Force claiming task {task_id}. Could not determine prerequisite "
+                    f"status for audit: {e}"
+                )
 
     # Update task metadata
     target_task.status = StatusEnum.IN_PROGRESS
@@ -118,6 +161,7 @@ def claim_next_task(
     worktree_path: str | None = None,
     scope: str | None = None,
     task_id: str | None = None,
+    force_claim: bool = False,
 ) -> TaskModel:
     """Claim the next highest-priority unblocked task or a specific task by ID.
 
@@ -131,13 +175,16 @@ def claim_next_task(
 
     When task_id is provided, claims that specific task directly, bypassing
     priority-based selection. When scope is provided, only tasks within that
-    scope boundary are eligible for claiming.
+    scope boundary are eligible for claiming. When force_claim=True with task_id,
+    bypasses prerequisite validation to allow claiming blocked tasks.
 
     Args:
         project_root: Root directory of the planning structure
         worktree_path: Optional worktree identifier to stamp on the claimed task
         scope: Optional scope ID (P-, E-, F-) to filter tasks by parent boundaries
         task_id: Optional task ID to claim directly (T- prefixed or standalone format)
+        force_claim: When True, bypasses prerequisite validation for direct task claiming.
+            Only valid when task_id is provided. Defaults to False.
 
     Returns:
         TaskModel: The updated task object with status=in-progress
@@ -162,6 +209,11 @@ def claim_next_task(
         >>> scoped_task = claim_next_task(project_root, scope="F-user-auth")
         >>> print(f"Claimed within scope: {scoped_task.title}")
         Claimed within scope: Create login form
+
+        >>> # Force claim a blocked task
+        >>> blocked_task = claim_next_task(project_root, task_id="T-blocked", force_claim=True)
+        >>> print(f"Force claimed: {blocked_task.title}")
+        Force claimed: Blocked task with incomplete prerequisites
     """
     # Resolve project root to planning directory
     scanning_root, planning_root = resolve_project_roots(project_root)
@@ -169,7 +221,7 @@ def claim_next_task(
     # Handle direct task claiming by ID if task_id is provided
     if task_id and task_id.strip():
         # Route to dedicated direct claiming function
-        return claim_specific_task(project_root, task_id.strip(), worktree_path or "")
+        return claim_specific_task(project_root, task_id.strip(), worktree_path or "", force_claim)
 
     # Validate scope if provided
     if scope and scope.strip():
