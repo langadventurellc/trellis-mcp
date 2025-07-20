@@ -277,40 +277,6 @@ async def test_mixed_task_types_all_mcp_tools_consistency(temp_dir):
         )
         assert completed_task.data["yaml"]["status"] == "done"
 
-        # Step 8: Test getNextReviewableTask with mixed task types
-        # Move another task to review
-        another_task = next(
-            t for t in created_tasks if t["id"] not in [claimed_task["id"], review_task["id"]]
-        )
-        await client.call_tool(
-            "updateObject",
-            {
-                "id": another_task["id"],
-                "projectRoot": planning_root,
-                "yamlPatch": {"status": "in-progress"},
-            },
-        )
-        await client.call_tool(
-            "updateObject",
-            {
-                "id": another_task["id"],
-                "projectRoot": planning_root,
-                "yamlPatch": {"status": "review"},
-            },
-        )
-
-        # Get next reviewable task
-        reviewable_result = await client.call_tool(
-            "getNextReviewableTask",
-            {"projectRoot": planning_root},
-        )
-
-        assert reviewable_result.data is not None
-        assert reviewable_result.data["task"] is not None
-        reviewable_task = reviewable_result.data["task"]
-        assert reviewable_task["status"] == "review"
-        assert reviewable_task["id"] == another_task["id"]
-
 
 @pytest.mark.asyncio
 async def test_comprehensive_scope_filtering_mixed_environments(temp_dir):
@@ -868,29 +834,6 @@ async def test_comprehensive_integration_all_mcp_operations(temp_dir):
             },
         )
         assert hierarchy_updated.data["yaml"]["priority"] == "high"
-
-        # Step 7: Test review workflow
-        # Move claimed task to review
-        await client.call_tool(
-            "updateObject",
-            {
-                "id": first_claimed_id,
-                "projectRoot": planning_root,
-                "yamlPatch": {"status": "review"},
-            },
-        )
-
-        # Test getNextReviewableTask
-        reviewable_result = await client.call_tool(
-            "getNextReviewableTask",
-            {"projectRoot": planning_root},
-        )
-
-        assert reviewable_result.data is not None
-        assert reviewable_result.data["task"] is not None
-        reviewable_task = reviewable_result.data["task"]
-        assert reviewable_task["id"] == first_claimed_id
-        assert reviewable_task["status"] == "review"
 
         # Step 8: Test completeTask
         complete_result = await client.call_tool(

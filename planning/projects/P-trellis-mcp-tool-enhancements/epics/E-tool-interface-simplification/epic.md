@@ -2,7 +2,7 @@
 kind: epic
 id: E-tool-interface-simplification
 title: Tool Interface Simplification
-status: in-progress
+status: done
 priority: normal
 prerequisites: []
 created: '2025-07-19T13:57:22.253172'

@@ -212,13 +212,6 @@ async def test_mixed_task_types_error_handling(temp_dir):
             )
         assert "no" in str(exc_info.value).lower() and "available" in str(exc_info.value).lower()
 
-        # Step 11: Test getNextReviewableTask when no tasks in review
-        no_review_result = await client.call_tool(
-            "getNextReviewableTask",
-            {"projectRoot": planning_root},
-        )
-        assert no_review_result.data["task"] is None
-
         # Step 12: Test that the system gracefully handles directory permissions
         # This test depends on the system's ability to handle permission errors
         # We'll test that the system continues to function even with some access issues

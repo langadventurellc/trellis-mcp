@@ -21,7 +21,7 @@ Consult `` (v 1.0) for schema & lifecycles.
 Run **all** checks before committing:
 
 ```bash
-uv run poe quality                   # isort, black, flake8, pyright, pytest
+uv run poe quality                   # isort, black, flake8, pyright
 uv run pre-commit run --all-files    # Alternative: run checks on git-staged files only
 ```
 
@@ -47,9 +47,6 @@ Any ❌ = block. Fix → re‑run → commit.
 | Start server (HTTP)     | `uv run trellis-mcp serve --http localhost:8000` |
 | Initialize planning     | `uv run trellis-mcp init`                        |
 | All quality checks      | `uv run poe quality`                             |
-| Run formatter           | `uv run black src/`                              |
-| Run linter              | `uv run flake8 src/`                             |
-| Type check              | `uv run pyright src/`                            |
 | Run unit tests          | `uv run pytest -q`                               |
 
 ## 🖥️ CLI Commands

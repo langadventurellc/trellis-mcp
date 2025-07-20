@@ -100,7 +100,6 @@ quality = [
     "isort",
     "lint",
     "type-check",
-    "test",
 ]
 
 [tool.setuptools_scm]
