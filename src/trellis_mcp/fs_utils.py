@@ -6,10 +6,8 @@ including directory creation, path handling, and object discovery.
 
 import shutil
 from pathlib import Path
-from typing import Final
 
-# Valid object kinds in the Trellis MCP hierarchy
-VALID_KINDS: Final[set[str]] = {"project", "epic", "feature", "task"}
+from .valid_kinds import VALID_KINDS
 
 
 def ensure_parent_dirs(path: Path) -> None:
