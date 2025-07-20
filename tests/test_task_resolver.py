@@ -9,7 +9,6 @@ from unittest.mock import patch
 import pytest
 
 from trellis_mcp.task_resolver import (
-    normalize_task_id,
     resolve_task_by_id,
     validate_task_id_format,
 )
@@ -256,85 +255,6 @@ class TestValidateTaskIdFormat:
         assert validate_task_id_format("a")
         assert validate_task_id_format("1")
         assert not validate_task_id_format("-")
-
-
-class TestNormalizeTaskId:
-    """Test cases for the normalize_task_id function."""
-
-    def test_basic_normalization(self):
-        """Test basic task ID normalization."""
-        test_cases = [
-            ("T-implement-auth", "implement-auth"),
-            ("implement-auth", "implement-auth"),
-            ("  T-task-name  ", "task-name"),
-            ("T-UPPERCASE-TASK", "uppercase-task"),
-            ("task_with_underscores", "task-with-underscores"),
-            ("Task With Spaces", "task-with-spaces"),
-        ]
-
-        for input_id, expected in test_cases:
-            result = normalize_task_id(input_id)
-            assert (
-                result == expected
-            ), f"normalize_task_id('{input_id}') should return '{expected}', got '{result}'"
-
-    def test_special_character_normalization(self):
-        """Test normalization of special characters."""
-        test_cases = [
-            ("task@with-special", "taskwith-special"),
-            ("task#with%symbols", "taskwithsymbols"),
-            ("task.with.dots", "taskwithdots"),
-            ("task/with\\slashes", "taskwithslashes"),
-            ("multiple   spaces", "multiple-spaces"),
-            ("tabs\t\tand\nnewlines", "tabs-and-newlines"),
-        ]
-
-        for input_id, expected in test_cases:
-            result = normalize_task_id(input_id)
-            assert (
-                result == expected
-            ), f"normalize_task_id('{input_id}') should return '{expected}', got '{result}'"
-
-    def test_hyphen_cleanup(self):
-        """Test cleanup of multiple hyphens."""
-        test_cases = [
-            ("double--hyphens", "double-hyphens"),
-            ("triple---hyphens", "triple-hyphens"),
-            ("--leading-hyphens", "leading-hyphens"),
-            ("trailing-hyphens--", "trailing-hyphens"),
-            ("--surrounded--", "surrounded"),
-            ("multiple--hyphens--everywhere", "multiple-hyphens-everywhere"),
-        ]
-
-        for input_id, expected in test_cases:
-            result = normalize_task_id(input_id)
-            assert (
-                result == expected
-            ), f"normalize_task_id('{input_id}') should return '{expected}', got '{result}'"
-
-    def test_empty_and_edge_cases(self):
-        """Test empty strings and edge cases."""
-        assert normalize_task_id("") == ""
-        assert normalize_task_id("   ") == ""
-        assert normalize_task_id("T-") == ""
-        assert normalize_task_id("---") == ""
-        assert normalize_task_id("T-a") == "a"
-        assert normalize_task_id("a") == "a"
-
-    def test_prefix_removal(self):
-        """Test T- prefix removal variations."""
-        test_cases = [
-            ("T-simple-task", "simple-task"),
-            ("t-lowercase-prefix", "lowercase-prefix"),  # should be normalized to lowercase first
-            ("T-T-double-prefix", "double-prefix"),  # should handle nested prefixes
-            ("NOT-T-PREFIX", "not-t-prefix"),  # T in middle should remain, only prefixes removed
-        ]
-
-        for input_id, expected in test_cases:
-            result = normalize_task_id(input_id)
-            assert (
-                result == expected
-            ), f"normalize_task_id('{input_id}') should return '{expected}', got '{result}'"
 
 
 class TestCrossSystemIntegration:

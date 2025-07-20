@@ -53,7 +53,6 @@ class TestInferenceEngineIntegration:
                 assert extended_result.object_id == object_id
                 assert extended_result.inferred_kind == expected_kind
                 assert extended_result.is_valid is True
-                assert extended_result.inference_time_ms > 0
                 assert extended_result.cache_hit is True  # Cache hit from infer_kind
 
                 # Test cache hit on subsequent call

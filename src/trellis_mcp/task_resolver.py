@@ -15,12 +15,12 @@ This module is foundational for the direct task claiming feature, enabling
 users to claim specific tasks by ID through the claimNextTask tool.
 """
 
-import re
 from pathlib import Path
 from typing import Optional
 
 from .utils.fs_utils import find_object_path
-from .utils.id_utils import clean_prerequisite_id, validate_id_charset
+from .utils.id_utils import validate_id_charset
+from .utils.normalize_id import normalize_id
 
 
 def resolve_task_by_id(project_root: str, task_id: str) -> Optional[Path]:
@@ -64,7 +64,7 @@ def resolve_task_by_id(project_root: str, task_id: str) -> Optional[Path]:
         raise ValueError("Task ID cannot be empty")
 
     # Normalize the task ID for consistent lookup
-    normalized_id = normalize_task_id(task_id)
+    normalized_id = normalize_id(task_id, "task")
 
     # Validate the normalized task ID format (check if normalization produced valid result)
     if not normalized_id or not validate_task_id_format(normalized_id):
@@ -124,7 +124,7 @@ def validate_task_id_format(task_id: str) -> bool:
 
     Note:
         This function validates the normalized task ID (without T- prefix).
-        Use normalize_task_id() first to clean the ID before validation.
+        Use normalize_id() from utils.normalize_id first to clean the ID before validation.
     """
     if not task_id or not task_id.strip():
         return False
@@ -154,61 +154,3 @@ def validate_task_id_format(task_id: str) -> bool:
         return False
 
     return True
-
-
-def normalize_task_id(task_id: str) -> str:
-    """Normalize task ID for consistent lookup operations.
-
-    Cleans and normalizes task IDs by removing T- prefix if present and
-    applying consistent formatting. Handles both hierarchical (T- prefixed)
-    and standalone task ID formats.
-
-    Args:
-        task_id: Raw task ID to normalize
-
-    Returns:
-        Normalized task ID without prefix (clean ID)
-
-    Example:
-        >>> normalize_task_id("T-implement-auth")
-        'implement-auth'
-        >>> normalize_task_id("implement-auth")
-        'implement-auth'
-        >>> normalize_task_id("  T-task-name  ")
-        'task-name'
-        >>> normalize_task_id("")
-        ''
-
-    Note:
-        This function uses existing ID cleaning utilities to ensure
-        consistency with the rest of the codebase. The returned ID
-        can be used directly with find_object_path and other utilities.
-    """
-    if not task_id:
-        return ""
-
-    # Strip whitespace and convert to lowercase for consistency
-    cleaned_id = task_id.strip().lower()
-
-    # Additional normalization for consistency
-    # Remove any remaining whitespace that might be in the middle
-    normalized_id = re.sub(r"\s+", "-", cleaned_id)
-
-    # Remove any non-allowed characters and convert underscores to hyphens
-    normalized_id = re.sub(r"[^a-z0-9-]", "", normalized_id.replace("_", "-"))
-
-    # Use existing prerequisite ID cleaning utility to handle T- prefix removal
-    # This removes T- prefix if present and handles edge cases
-    normalized_id = clean_prerequisite_id(normalized_id)
-
-    # Handle nested T- prefixes by repeatedly cleaning until no more T- prefixes
-    while normalized_id.startswith("t-"):
-        normalized_id = clean_prerequisite_id(normalized_id)
-
-    # Clean up multiple consecutive hyphens
-    normalized_id = re.sub(r"-+", "-", normalized_id)
-
-    # Remove leading/trailing hyphens
-    normalized_id = normalized_id.strip("-")
-
-    return normalized_id
