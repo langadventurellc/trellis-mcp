@@ -53,7 +53,6 @@ async def test_getNextReviewableTask_integration_with_mixed_status_tasks(temp_di
         await setup_client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": in_progress_task_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "in-progress"},
@@ -77,7 +76,6 @@ async def test_getNextReviewableTask_integration_with_mixed_status_tasks(temp_di
         await setup_client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": review_task_high_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "in-progress"},
@@ -87,7 +85,6 @@ async def test_getNextReviewableTask_integration_with_mixed_status_tasks(temp_di
         await setup_client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": review_task_high_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "review"},
@@ -111,7 +108,6 @@ async def test_getNextReviewableTask_integration_with_mixed_status_tasks(temp_di
         await setup_client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": review_task_normal_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "in-progress"},
@@ -121,7 +117,6 @@ async def test_getNextReviewableTask_integration_with_mixed_status_tasks(temp_di
         await setup_client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": review_task_normal_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "review"},

@@ -158,7 +158,7 @@ Implement email verification for new users.
             # Test project level - should include both epics
             project_result = await client.call_tool(
                 "getObject",
-                {"kind": "project", "id": "ecommerce", "projectRoot": str(project_root)},
+                {"id": "P-ecommerce", "projectRoot": str(project_root)},
             )
 
             project_children = project_result.data["children"]
@@ -175,7 +175,7 @@ Implement email verification for new users.
             # Test epic level - should include both features
             epic_result = await client.call_tool(
                 "getObject",
-                {"kind": "epic", "id": "user-management", "projectRoot": str(project_root)},
+                {"id": "E-user-management", "projectRoot": str(project_root)},
             )
 
             epic_children = epic_result.data["children"]
@@ -192,7 +192,7 @@ Implement email verification for new users.
             # Test feature level - should include both tasks
             feature_result = await client.call_tool(
                 "getObject",
-                {"kind": "feature", "id": "user-registration", "projectRoot": str(project_root)},
+                {"id": "F-user-registration", "projectRoot": str(project_root)},
             )
 
             feature_children = feature_result.data["children"]
@@ -212,8 +212,7 @@ Implement email verification for new users.
             task_result = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
-                    "id": "create-registration-form",
+                    "id": "T-create-registration-form",
                     "projectRoot": str(project_root),
                 },
             )
@@ -349,7 +348,7 @@ Second completed task.
         async with Client(server) as client:
             result = await client.call_tool(
                 "getObject",
-                {"kind": "feature", "id": "mixed-tasks", "projectRoot": str(project_root)},
+                {"id": "F-mixed-tasks", "projectRoot": str(project_root)},
             )
 
         # Verify all tasks are included regardless of status
@@ -447,7 +446,7 @@ This feature has corrupted YAML front-matter.
         async with Client(server) as client:
             result = await client.call_tool(
                 "getObject",
-                {"kind": "epic", "id": "test-epic", "projectRoot": str(project_root)},
+                {"id": "E-test-epic", "projectRoot": str(project_root)},
             )
 
         # Verify only valid children are included
@@ -509,7 +508,7 @@ Epic number {i:02d}.
         async with Client(server) as client:
             result = await client.call_tool(
                 "getObject",
-                {"kind": "project", "id": "large-project", "projectRoot": str(project_root)},
+                {"id": "P-large-project", "projectRoot": str(project_root)},
             )
 
         # Verify all epics are included
@@ -664,7 +663,7 @@ Implement reusable button component with variants.
             # Test project → epics
             project_result = await client.call_tool(
                 "getObject",
-                {"kind": "project", "id": "web-app-redesign", "projectRoot": str(project_root)},
+                {"id": "P-web-app-redesign", "projectRoot": str(project_root)},
             )
 
             project_children = project_result.data["children"]
@@ -676,7 +675,7 @@ Implement reusable button component with variants.
             # Test epic → features
             epic_result = await client.call_tool(
                 "getObject",
-                {"kind": "epic", "id": "frontend-redesign", "projectRoot": str(project_root)},
+                {"id": "E-frontend-redesign", "projectRoot": str(project_root)},
             )
 
             epic_children = epic_result.data["children"]
@@ -686,7 +685,7 @@ Implement reusable button component with variants.
             # Test feature → tasks
             feature_result = await client.call_tool(
                 "getObject",
-                {"kind": "feature", "id": "ui-components", "projectRoot": str(project_root)},
+                {"id": "F-ui-components", "projectRoot": str(project_root)},
             )
 
             feature_children = feature_result.data["children"]

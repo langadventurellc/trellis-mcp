@@ -54,7 +54,6 @@ class TestSimpleCrossSystemCycles:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": cycle_data["hierarchy_task_id"],
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": cycle_data["cycle_prereqs"]},
@@ -106,7 +105,6 @@ class TestSimpleCrossSystemCycles:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": standalone_id,
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": [hierarchy_id]},
@@ -145,7 +143,6 @@ class TestSimpleCrossSystemCycles:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": task_id,
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": [task_id]},
@@ -179,7 +176,6 @@ class TestSimpleCrossSystemCycles:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": task_id,
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": [task_id]},
@@ -212,7 +208,6 @@ class TestComplexMultiTaskCycles:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": cycle_data["h1_id"],
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": cycle_data["cycle_prereqs"]},
@@ -243,7 +238,6 @@ class TestComplexMultiTaskCycles:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": cycle_data["h1_id"],
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": cycle_data["cycle_prereqs"]},
@@ -309,7 +303,6 @@ class TestComplexMultiTaskCycles:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": h1_id,
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": [h2_id]},
@@ -342,7 +335,6 @@ class TestNestedCycleDetection:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": cycle_data["h1_id"],
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": cycle_data["cycle_prereqs"]},
@@ -379,7 +371,6 @@ class TestNestedCycleDetection:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": cycle1_data["hierarchy_task_id"],
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": cycle1_data["cycle_prereqs"]},
@@ -395,7 +386,6 @@ class TestNestedCycleDetection:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": cycle2_data["hierarchy_task_id"],
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": cycle2_data["cycle_prereqs"]},
@@ -428,7 +418,6 @@ class TestErrorMessageValidation:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": cycle_data["hierarchy_task_id"],
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": cycle_data["cycle_prereqs"]},
@@ -457,7 +446,6 @@ class TestErrorMessageValidation:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": cycle_data["h1_id"],
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": cycle_data["cycle_prereqs"]},
@@ -486,7 +474,6 @@ class TestErrorMessageValidation:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": cycle_data["hierarchy_task_id"],
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": cycle_data["cycle_prereqs"]},

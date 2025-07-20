@@ -619,8 +619,7 @@ class TestProtectedObjectDeletion:
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
-                    "id": "test-task",
+                    "id": "T-test-task",
                     "projectRoot": str(project_root),
                     "yamlPatch": {"status": "in-progress"},
                 },
@@ -630,8 +629,7 @@ class TestProtectedObjectDeletion:
             result = await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "epic",
-                    "id": "test-epic",
+                    "id": "E-test-epic",
                     "projectRoot": str(project_root),
                     "yamlPatch": {"status": "deleted"},
                     "force": True,

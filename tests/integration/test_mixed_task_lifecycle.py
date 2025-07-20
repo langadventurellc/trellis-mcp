@@ -132,7 +132,6 @@ async def test_comprehensive_review_workflow_mixed_tasks(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": hierarchy_high_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "in-progress"},
@@ -141,7 +140,6 @@ async def test_comprehensive_review_workflow_mixed_tasks(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": hierarchy_high_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "review"},
@@ -154,7 +152,6 @@ async def test_comprehensive_review_workflow_mixed_tasks(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": standalone_normal_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "in-progress"},
@@ -163,7 +160,6 @@ async def test_comprehensive_review_workflow_mixed_tasks(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": standalone_normal_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "review"},
@@ -176,7 +172,6 @@ async def test_comprehensive_review_workflow_mixed_tasks(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": hierarchy_normal_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "in-progress"},
@@ -185,7 +180,6 @@ async def test_comprehensive_review_workflow_mixed_tasks(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": hierarchy_normal_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "review"},
@@ -198,7 +192,6 @@ async def test_comprehensive_review_workflow_mixed_tasks(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": standalone_high_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "in-progress"},
@@ -207,7 +200,6 @@ async def test_comprehensive_review_workflow_mixed_tasks(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": standalone_high_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "review"},
@@ -396,7 +388,6 @@ async def test_comprehensive_task_lifecycle_mixed_environments(temp_dir):
         standalone_initial = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": standalone_task_id,
                 "projectRoot": planning_root,
             },
@@ -408,7 +399,6 @@ async def test_comprehensive_task_lifecycle_mixed_environments(temp_dir):
         hierarchy_initial = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": hierarchy_task_id,
                 "projectRoot": planning_root,
             },
@@ -433,7 +423,6 @@ async def test_comprehensive_task_lifecycle_mixed_environments(temp_dir):
         standalone_claimed = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": standalone_task_id,
                 "projectRoot": planning_root,
             },
@@ -458,7 +447,6 @@ async def test_comprehensive_task_lifecycle_mixed_environments(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": standalone_task_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "review"},
@@ -469,7 +457,6 @@ async def test_comprehensive_task_lifecycle_mixed_environments(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": hierarchy_task_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "review"},
@@ -480,7 +467,6 @@ async def test_comprehensive_task_lifecycle_mixed_environments(temp_dir):
         standalone_review = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": standalone_task_id,
                 "projectRoot": planning_root,
             },
@@ -490,7 +476,6 @@ async def test_comprehensive_task_lifecycle_mixed_environments(temp_dir):
         hierarchy_review = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": hierarchy_task_id,
                 "projectRoot": planning_root,
             },
@@ -528,7 +513,6 @@ async def test_comprehensive_task_lifecycle_mixed_environments(temp_dir):
         standalone_completed = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": standalone_task_id,
                 "projectRoot": planning_root,
             },
@@ -555,7 +539,6 @@ async def test_comprehensive_task_lifecycle_mixed_environments(temp_dir):
         hierarchy_completed = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": hierarchy_task_id,
                 "projectRoot": planning_root,
             },

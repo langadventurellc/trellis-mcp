@@ -96,7 +96,6 @@ class TestCrossSystemPrerequisiteValidation:
             standalone_retrieved = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
                     "id": standalone_task_id,
                     "projectRoot": planning_root,
                 },
@@ -184,7 +183,6 @@ class TestCrossSystemPrerequisiteValidation:
             hierarchy_retrieved = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
                     "id": hierarchy_task_id,
                     "projectRoot": planning_root,
                 },
@@ -311,7 +309,6 @@ class TestCrossSystemPrerequisiteValidation:
             mixed_prereq_retrieved = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
                     "id": mixed_prereq_task_id,
                     "projectRoot": planning_root,
                 },
@@ -418,7 +415,6 @@ class TestCrossSystemPrerequisiteValidation:
             prefix_test_retrieved = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
                     "id": prefix_test_task_id,
                     "projectRoot": planning_root,
                 },
@@ -640,7 +636,6 @@ class TestCrossSystemComplexNetworks:
             hierarchy_b_retrieved = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
                     "id": hierarchy_b_id,
                     "projectRoot": planning_root,
                 },
@@ -649,7 +644,6 @@ class TestCrossSystemComplexNetworks:
             standalone_c_retrieved = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
                     "id": standalone_c_id,
                     "projectRoot": planning_root,
                 },
@@ -658,7 +652,6 @@ class TestCrossSystemComplexNetworks:
             hierarchy_d_retrieved = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
                     "id": hierarchy_d_result.data["id"],
                     "projectRoot": planning_root,
                 },
@@ -809,7 +802,6 @@ class TestCrossSystemComplexNetworks:
             final_task_retrieved = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
                     "id": final_task_result.data["id"],
                     "projectRoot": planning_root,
                 },
@@ -820,7 +812,6 @@ class TestCrossSystemComplexNetworks:
                 task_retrieved = await client.call_tool(
                     "getObject",
                     {
-                        "kind": "task",
                         "id": task_result.data["id"],
                         "projectRoot": planning_root,
                     },
@@ -949,7 +940,6 @@ class TestCrossSystemComplexNetworks:
                 task_retrieved = await client.call_tool(
                     "getObject",
                     {
-                        "kind": "task",
                         "id": result.data["id"],  # type: ignore[attr-defined]
                         "projectRoot": planning_root,
                     },

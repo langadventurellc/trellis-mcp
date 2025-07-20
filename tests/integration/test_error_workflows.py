@@ -311,7 +311,6 @@ async def test_real_world_error_scenario_complex_validation(temp_dir):
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": task_a_id,
                     "projectRoot": planning_root,
                     "yamlPatch": {
@@ -334,7 +333,6 @@ async def test_real_world_error_scenario_complex_validation(temp_dir):
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": task_a_id,
                     "projectRoot": planning_root,
                     "yamlPatch": {
@@ -351,7 +349,6 @@ async def test_real_world_error_scenario_complex_validation(temp_dir):
         task_a_retrieved = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": task_a_id,
                 "projectRoot": planning_root,
             },
@@ -639,7 +636,6 @@ async def test_error_workflow_rollback_and_recovery(temp_dir):
         original_task = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": task_id,
                 "projectRoot": planning_root,
             },
@@ -653,7 +649,6 @@ async def test_error_workflow_rollback_and_recovery(temp_dir):
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": task_id,
                     "projectRoot": planning_root,
                     "yamlPatch": {
@@ -672,7 +667,6 @@ async def test_error_workflow_rollback_and_recovery(temp_dir):
         rolled_back_task = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": task_id,
                 "projectRoot": planning_root,
             },
@@ -687,7 +681,6 @@ async def test_error_workflow_rollback_and_recovery(temp_dir):
         valid_update_result = await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": task_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {
@@ -702,7 +695,6 @@ async def test_error_workflow_rollback_and_recovery(temp_dir):
         updated_task = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": task_id,
                 "projectRoot": planning_root,
             },

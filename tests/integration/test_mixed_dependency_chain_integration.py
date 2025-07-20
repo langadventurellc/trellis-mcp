@@ -135,7 +135,6 @@ class TestMixedDependencyChainIntegration:
                 next_task = await client.call_tool(
                     "getObject",
                     {
-                        "kind": "task",
                         "id": chain_tasks[i + 1],
                         "projectRoot": planning_root,
                     },
@@ -620,7 +619,6 @@ class TestMixedDependencyChainIntegration:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": foundation_id,
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": [hier_id]},
@@ -649,7 +647,6 @@ class TestMixedDependencyChainIntegration:
             retrieved_task = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
                     "id": success_task_result.data["id"],
                     "projectRoot": planning_root,
                 },
@@ -723,7 +720,6 @@ class TestMixedDependencyChainIntegration:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": chain_tasks[0],  # Level 1
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": [chain_tasks[6]]},  # Level 7
@@ -740,7 +736,6 @@ class TestMixedDependencyChainIntegration:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": chain_tasks[2],  # Level 3
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": [chain_tasks[4]]},  # Level 5
@@ -773,7 +768,6 @@ class TestMixedDependencyChainIntegration:
                 task = await client.call_tool(
                     "getObject",
                     {
-                        "kind": "task",
                         "id": task_id,
                         "projectRoot": planning_root,
                     },

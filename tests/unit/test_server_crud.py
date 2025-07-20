@@ -52,13 +52,13 @@ Project created.
         async with Client(server) as client:
             result = await client.call_tool(
                 "getObject",
-                {"kind": "project", "id": "test-project", "projectRoot": str(project_root)},
+                {"id": "P-test-project", "projectRoot": str(project_root)},
             )
 
         # Verify results
         assert result.data["kind"] == "project"
         assert result.data["id"] == "test-project"
-        assert result.data["file_path"] == str(project_file)
+        # file_path no longer included in response
         assert result.data["yaml"]["kind"] == "project"
         assert result.data["yaml"]["title"] == "Test Project"
         assert "This is a test project." in result.data["body"]
@@ -68,7 +68,31 @@ Project created.
         """Test retrieving an epic object."""
         # Create epic structure
         project_root = temp_dir / "planning"
-        epic_dir = project_root / "projects" / "P-test-project" / "epics" / "E-test-epic"
+        project_dir = project_root / "projects" / "P-test-project"
+        epic_dir = project_dir / "epics" / "E-test-epic"
+
+        # Create parent project first
+        project_dir.mkdir(parents=True)
+        project_file = project_dir / "project.md"
+        project_content = """---
+kind: project
+id: P-test-project
+title: Test Project
+status: draft
+priority: normal
+created: 2025-07-13T19:11:00-05:00
+updated: 2025-07-13T19:11:00-05:00
+schema_version: "1.1"
+---
+Parent project for epic test.
+
+### Log
+
+Project created.
+"""
+        project_file.write_text(project_content)
+
+        # Create epic
         epic_dir.mkdir(parents=True)
         epic_file = epic_dir / "epic.md"
 
@@ -99,13 +123,13 @@ Epic created.
         # Test getObject call
         async with Client(server) as client:
             result = await client.call_tool(
-                "getObject", {"kind": "epic", "id": "test-epic", "projectRoot": str(project_root)}
+                "getObject", {"id": "E-test-epic", "projectRoot": str(project_root)}
             )
 
         # Verify results
         assert result.data["kind"] == "epic"
         assert result.data["id"] == "test-epic"
-        assert result.data["file_path"] == str(epic_file)
+        # file_path no longer included in response
         assert result.data["yaml"]["kind"] == "epic"
         assert result.data["yaml"]["title"] == "Test Epic"
         assert "This is a test epic." in result.data["body"]
@@ -115,15 +139,54 @@ Epic created.
         """Test retrieving a feature object."""
         # Create feature structure
         project_root = temp_dir / "planning"
-        feature_dir = (
-            project_root
-            / "projects"
-            / "P-test-project"
-            / "epics"
-            / "E-test-epic"
-            / "features"
-            / "F-test-feature"
-        )
+        project_dir = project_root / "projects" / "P-test-project"
+        epic_dir = project_dir / "epics" / "E-test-epic"
+        feature_dir = epic_dir / "features" / "F-test-feature"
+
+        # Create parent project
+        project_dir.mkdir(parents=True)
+        project_file = project_dir / "project.md"
+        project_content = """---
+kind: project
+id: P-test-project
+title: Test Project
+status: draft
+priority: normal
+created: 2025-07-13T19:10:00-05:00
+updated: 2025-07-13T19:10:00-05:00
+schema_version: "1.1"
+---
+Parent project for feature test.
+
+### Log
+
+Project created.
+"""
+        project_file.write_text(project_content)
+
+        # Create parent epic
+        epic_dir.mkdir(parents=True)
+        epic_file = epic_dir / "epic.md"
+        epic_content = """---
+kind: epic
+id: E-test-epic
+parent: P-test-project
+title: Test Epic
+status: draft
+priority: normal
+created: 2025-07-13T19:11:00-05:00
+updated: 2025-07-13T19:11:00-05:00
+schema_version: "1.1"
+---
+Parent epic for feature test.
+
+### Log
+
+Epic created.
+"""
+        epic_file.write_text(epic_content)
+
+        # Create feature
         feature_dir.mkdir(parents=True)
         feature_file = feature_dir / "feature.md"
 
@@ -155,13 +218,13 @@ Feature created.
         async with Client(server) as client:
             result = await client.call_tool(
                 "getObject",
-                {"kind": "feature", "id": "test-feature", "projectRoot": str(project_root)},
+                {"id": "F-test-feature", "projectRoot": str(project_root)},
             )
 
         # Verify results
         assert result.data["kind"] == "feature"
         assert result.data["id"] == "test-feature"
-        assert result.data["file_path"] == str(feature_file)
+        # file_path no longer included in response
         assert result.data["yaml"]["kind"] == "feature"
         assert result.data["yaml"]["title"] == "Test Feature"
         assert "This is a test feature." in result.data["body"]
@@ -171,16 +234,77 @@ Feature created.
         """Test retrieving a task object from tasks-open."""
         # Create task structure
         project_root = temp_dir / "planning"
-        task_dir = (
-            project_root
-            / "projects"
-            / "P-test-project"
-            / "epics"
-            / "E-test-epic"
-            / "features"
-            / "F-test-feature"
-            / "tasks-open"
-        )
+        project_dir = project_root / "projects" / "P-test-project"
+        epic_dir = project_dir / "epics" / "E-test-epic"
+        feature_dir = epic_dir / "features" / "F-test-feature"
+        task_dir = feature_dir / "tasks-open"
+
+        # Create parent project
+        project_dir.mkdir(parents=True)
+        project_file = project_dir / "project.md"
+        project_content = """---
+kind: project
+id: P-test-project
+title: Test Project
+status: draft
+priority: normal
+created: 2025-07-13T19:09:00-05:00
+updated: 2025-07-13T19:09:00-05:00
+schema_version: "1.1"
+---
+Parent project for task test.
+
+### Log
+
+Project created.
+"""
+        project_file.write_text(project_content)
+
+        # Create parent epic
+        epic_dir.mkdir(parents=True)
+        epic_file = epic_dir / "epic.md"
+        epic_content = """---
+kind: epic
+id: E-test-epic
+parent: P-test-project
+title: Test Epic
+status: draft
+priority: normal
+created: 2025-07-13T19:10:00-05:00
+updated: 2025-07-13T19:10:00-05:00
+schema_version: "1.1"
+---
+Parent epic for task test.
+
+### Log
+
+Epic created.
+"""
+        epic_file.write_text(epic_content)
+
+        # Create parent feature
+        feature_dir.mkdir(parents=True)
+        feature_file = feature_dir / "feature.md"
+        feature_content = """---
+kind: feature
+id: F-test-feature
+parent: E-test-epic
+title: Test Feature
+status: draft
+priority: normal
+created: 2025-07-13T19:11:00-05:00
+updated: 2025-07-13T19:11:00-05:00
+schema_version: "1.1"
+---
+Parent feature for task test.
+
+### Log
+
+Feature created.
+"""
+        feature_file.write_text(feature_content)
+
+        # Create task
         task_dir.mkdir(parents=True)
         task_file = task_dir / "T-test-task.md"
 
@@ -211,13 +335,13 @@ Task created.
         # Test getObject call
         async with Client(server) as client:
             result = await client.call_tool(
-                "getObject", {"kind": "task", "id": "test-task", "projectRoot": str(project_root)}
+                "getObject", {"id": "T-test-task", "projectRoot": str(project_root)}
             )
 
         # Verify results
         assert result.data["kind"] == "task"
         assert result.data["id"] == "test-task"
-        assert result.data["file_path"] == str(task_file)
+        # file_path no longer included in response
         assert result.data["yaml"]["kind"] == "task"
         assert result.data["yaml"]["title"] == "Test Task"
         assert "This is a test task." in result.data["body"]
@@ -227,16 +351,77 @@ Task created.
         """Test retrieving a task object from tasks-done."""
         # Create task structure
         project_root = temp_dir / "planning"
-        task_dir = (
-            project_root
-            / "projects"
-            / "P-test-project"
-            / "epics"
-            / "E-test-epic"
-            / "features"
-            / "F-test-feature"
-            / "tasks-done"
-        )
+        project_dir = project_root / "projects" / "P-test-project"
+        epic_dir = project_dir / "epics" / "E-test-epic"
+        feature_dir = epic_dir / "features" / "F-test-feature"
+        task_dir = feature_dir / "tasks-done"
+
+        # Create parent project
+        project_dir.mkdir(parents=True)
+        project_file = project_dir / "project.md"
+        project_content = """---
+kind: project
+id: P-test-project
+title: Test Project
+status: draft
+priority: normal
+created: 2025-07-13T19:08:00-05:00
+updated: 2025-07-13T19:08:00-05:00
+schema_version: "1.1"
+---
+Parent project for done task test.
+
+### Log
+
+Project created.
+"""
+        project_file.write_text(project_content)
+
+        # Create parent epic
+        epic_dir.mkdir(parents=True)
+        epic_file = epic_dir / "epic.md"
+        epic_content = """---
+kind: epic
+id: E-test-epic
+parent: P-test-project
+title: Test Epic
+status: draft
+priority: normal
+created: 2025-07-13T19:09:00-05:00
+updated: 2025-07-13T19:09:00-05:00
+schema_version: "1.1"
+---
+Parent epic for done task test.
+
+### Log
+
+Epic created.
+"""
+        epic_file.write_text(epic_content)
+
+        # Create parent feature
+        feature_dir.mkdir(parents=True)
+        feature_file = feature_dir / "feature.md"
+        feature_content = """---
+kind: feature
+id: F-test-feature
+parent: E-test-epic
+title: Test Feature
+status: draft
+priority: normal
+created: 2025-07-13T19:10:00-05:00
+updated: 2025-07-13T19:10:00-05:00
+schema_version: "1.1"
+---
+Parent feature for done task test.
+
+### Log
+
+Feature created.
+"""
+        feature_file.write_text(feature_content)
+
+        # Create done task
         task_dir.mkdir(parents=True)
         task_file = task_dir / "2025-07-13T19:12:00-05:00-T-test-task.md"
 
@@ -268,13 +453,13 @@ Task completed.
         # Test getObject call
         async with Client(server) as client:
             result = await client.call_tool(
-                "getObject", {"kind": "task", "id": "test-task", "projectRoot": str(project_root)}
+                "getObject", {"id": "T-test-task", "projectRoot": str(project_root)}
             )
 
         # Verify results
         assert result.data["kind"] == "task"
         assert result.data["id"] == "test-task"
-        assert result.data["file_path"] == str(task_file)
+        # file_path no longer included in response
         assert result.data["yaml"]["kind"] == "task"
         assert result.data["yaml"]["title"] == "Test Task"
         assert "This is a completed test task." in result.data["body"]
@@ -316,7 +501,6 @@ Project created.
             result = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "project",
                     "id": "P-test-project",  # With prefix
                     "projectRoot": str(project_root),
                 },
@@ -325,7 +509,7 @@ Project created.
         # Verify results - should return clean ID
         assert result.data["kind"] == "project"
         assert result.data["id"] == "test-project"  # Clean ID without prefix
-        assert result.data["file_path"] == str(project_file)
+        # file_path no longer included in response
         assert result.data["yaml"]["kind"] == "project"
         assert result.data["yaml"]["title"] == "Test Project"
 
@@ -344,7 +528,7 @@ Project created.
             with pytest.raises(Exception):  # Should raise an exception
                 await client.call_tool(
                     "getObject",
-                    {"kind": "project", "id": "nonexistent", "projectRoot": str(project_root)},
+                    {"id": "P-nonexistent", "projectRoot": str(project_root)},
                 )
 
     @pytest.mark.asyncio
@@ -362,7 +546,7 @@ Project created.
             with pytest.raises(Exception):  # Should raise an exception
                 await client.call_tool(
                     "getObject",
-                    {"kind": "invalid", "id": "test-id", "projectRoot": str(project_root)},
+                    {"id": "invalid-test-id", "projectRoot": str(project_root)},
                 )
 
     @pytest.mark.asyncio
@@ -378,9 +562,7 @@ Project created.
         # Test with empty kind
         async with Client(server) as client:
             with pytest.raises(Exception):  # Should raise an exception
-                await client.call_tool(
-                    "getObject", {"kind": "", "id": "test-id", "projectRoot": str(project_root)}
-                )
+                await client.call_tool("getObject", {"id": "", "projectRoot": str(project_root)})
 
     @pytest.mark.asyncio
     async def test_get_object_malformed_yaml(self, temp_dir):
@@ -420,7 +602,7 @@ Project created.
             with pytest.raises(Exception):  # yaml.YAMLError or similar
                 await client.call_tool(
                     "getObject",
-                    {"kind": "project", "id": "test-project", "projectRoot": str(project_root)},
+                    {"id": "P-test-project", "projectRoot": str(project_root)},
                 )
 
     @pytest.mark.asyncio
@@ -428,18 +610,77 @@ Project created.
         """Test that getObject prefers tasks-open over tasks-done."""
         # Create task structure with both open and done versions
         project_root = temp_dir / "planning"
-        base_dir = (
-            project_root
-            / "projects"
-            / "P-test-project"
-            / "epics"
-            / "E-test-epic"
-            / "features"
-            / "F-test-feature"
-        )
+        project_dir = project_root / "projects" / "P-test-project"
+        epic_dir = project_dir / "epics" / "E-test-epic"
+        feature_dir = epic_dir / "features" / "F-test-feature"
+
+        # Create parent project
+        project_dir.mkdir(parents=True)
+        project_file = project_dir / "project.md"
+        project_content = """---
+kind: project
+id: P-test-project
+title: Test Project
+status: draft
+priority: normal
+created: 2025-07-13T19:07:00-05:00
+updated: 2025-07-13T19:07:00-05:00
+schema_version: "1.1"
+---
+Parent project for prefers open test.
+
+### Log
+
+Project created.
+"""
+        project_file.write_text(project_content)
+
+        # Create parent epic
+        epic_dir.mkdir(parents=True)
+        epic_file = epic_dir / "epic.md"
+        epic_content = """---
+kind: epic
+id: E-test-epic
+parent: P-test-project
+title: Test Epic
+status: draft
+priority: normal
+created: 2025-07-13T19:08:00-05:00
+updated: 2025-07-13T19:08:00-05:00
+schema_version: "1.1"
+---
+Parent epic for prefers open test.
+
+### Log
+
+Epic created.
+"""
+        epic_file.write_text(epic_content)
+
+        # Create parent feature
+        feature_dir.mkdir(parents=True)
+        feature_file = feature_dir / "feature.md"
+        feature_content = """---
+kind: feature
+id: F-test-feature
+parent: E-test-epic
+title: Test Feature
+status: draft
+priority: normal
+created: 2025-07-13T19:09:00-05:00
+updated: 2025-07-13T19:09:00-05:00
+schema_version: "1.1"
+---
+Parent feature for prefers open test.
+
+### Log
+
+Feature created.
+"""
+        feature_file.write_text(feature_content)
 
         # Create task in tasks-open
-        open_dir = base_dir / "tasks-open"
+        open_dir = feature_dir / "tasks-open"
         open_dir.mkdir(parents=True)
         open_file = open_dir / "T-test-task.md"
         open_content = """---
@@ -462,7 +703,7 @@ Task created.
         open_file.write_text(open_content)
 
         # Create task in tasks-done
-        done_dir = base_dir / "tasks-done"
+        done_dir = feature_dir / "tasks-done"
         done_dir.mkdir(parents=True)
         done_file = done_dir / "2025-07-13T19:12:00-05:00-T-test-task.md"
         done_content = """---
@@ -492,11 +733,11 @@ Task completed.
         # Test getObject call - should return open task
         async with Client(server) as client:
             result = await client.call_tool(
-                "getObject", {"kind": "task", "id": "test-task", "projectRoot": str(project_root)}
+                "getObject", {"id": "T-test-task", "projectRoot": str(project_root)}
             )
 
         # Verify it returned the open task, not the done task
-        assert result.data["file_path"] == str(open_file)
+        # file_path no longer included in response
         assert result.data["yaml"]["status"] == "open"
         assert "This is an open task." in result.data["body"]
 
@@ -831,8 +1072,7 @@ class TestUpdateObject:
             result = await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "project",
-                    "id": "test-project",
+                    "id": create_result.data["id"],
                     "projectRoot": str(project_root),
                     "yamlPatch": {"priority": "high"},
                 },
@@ -872,7 +1112,6 @@ class TestUpdateObject:
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": task_id,
                     "projectRoot": str(project_root),
                     "yamlPatch": {"status": "in-progress"},
@@ -883,7 +1122,6 @@ class TestUpdateObject:
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": task_id,
                     "projectRoot": str(project_root),
                     "yamlPatch": {"status": "review"},
@@ -923,7 +1161,6 @@ class TestUpdateObject:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "project",
                         "id": "nonexistent",
                         "projectRoot": str(project_root),
                         "yamlPatch": {"priority": "high"},
