@@ -149,7 +149,6 @@ async def test_mixed_task_types_all_mcp_tools_consistency(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": standalone_task["id"],
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "in-progress"},
@@ -160,7 +159,6 @@ async def test_mixed_task_types_all_mcp_tools_consistency(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": hierarchy_task["id"],
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "in-progress"},
@@ -242,7 +240,6 @@ async def test_mixed_task_types_all_mcp_tools_consistency(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": review_task["id"],
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "in-progress"},
@@ -251,7 +248,6 @@ async def test_mixed_task_types_all_mcp_tools_consistency(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": review_task["id"],
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "review"},
@@ -289,7 +285,6 @@ async def test_mixed_task_types_all_mcp_tools_consistency(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": another_task["id"],
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "in-progress"},
@@ -298,7 +293,6 @@ async def test_mixed_task_types_all_mcp_tools_consistency(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": another_task["id"],
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "review"},
@@ -840,7 +834,6 @@ async def test_comprehensive_integration_all_mcp_operations(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": standalone_unclaimed["id"],
                 "projectRoot": planning_root,
                 "yamlPatch": {"priority": "high"},
@@ -851,7 +844,6 @@ async def test_comprehensive_integration_all_mcp_operations(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": hierarchy_unclaimed["id"],
                 "projectRoot": planning_root,
                 "yamlPatch": {"priority": "high"},
@@ -882,7 +874,6 @@ async def test_comprehensive_integration_all_mcp_operations(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": first_claimed_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "review"},

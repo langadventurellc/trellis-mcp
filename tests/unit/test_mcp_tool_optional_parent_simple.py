@@ -114,7 +114,9 @@ class TestMCPToolOptionalParentSimple:
             content = f.read()
 
         # Verify the yamlPatch parameter has correct type annotation
-        assert "yamlPatch: dict[str, str | list[str] | None]" in content
+        # Updated to match new Annotated type signature
+        assert "yamlPatch: Annotated[" in content
+        assert "dict[str, str | list[str] | None]" in content
 
     def test_get_object_tool_return_type_annotation_correct(self):
         """Test that getObject tool has correct return type annotation."""

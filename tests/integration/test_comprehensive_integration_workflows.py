@@ -155,7 +155,6 @@ class TestComprehensiveIntegrationWorkflows:
                     await client.call_tool(
                         "updateObject",
                         {
-                            "kind": "task",
                             "id": task_id,
                             "projectRoot": planning_root,
                             "yamlPatch": {
@@ -193,7 +192,6 @@ class TestComprehensiveIntegrationWorkflows:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": task_result["id"],
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": [t["id"] for t in prereq_tasks]},
@@ -457,7 +455,6 @@ class TestComprehensiveIntegrationWorkflows:
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": auth_ui_task["id"],
                     "projectRoot": planning_root,
                     "yamlPatch": {
@@ -506,7 +503,6 @@ class TestComprehensiveIntegrationWorkflows:
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": e2e_task["id"],
                     "projectRoot": planning_root,
                     "yamlPatch": {"prerequisites": [t["id"] for t in feature_tasks]},
@@ -1013,7 +1009,6 @@ class TestComprehensiveIntegrationWorkflows:
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": integration_test_task["id"],
                     "projectRoot": planning_root,
                     "yamlPatch": {"prerequisites": all_feature_tasks},
@@ -1046,7 +1041,6 @@ class TestComprehensiveIntegrationWorkflows:
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": security_audit_task["id"],
                     "projectRoot": planning_root,
                     "yamlPatch": {"prerequisites": [integration_test_task["id"]]},
@@ -1082,7 +1076,6 @@ class TestComprehensiveIntegrationWorkflows:
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": verification_task["id"],
                     "projectRoot": planning_root,
                     "yamlPatch": {"prerequisites": [deployment_result.data["id"]]},
@@ -1334,7 +1327,6 @@ class TestComprehensiveIntegrationWorkflows:
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": task_b_result["id"],
                     "projectRoot": planning_root,
                     "yamlPatch": {"prerequisites": [task_a_id]},
@@ -1347,7 +1339,6 @@ class TestComprehensiveIntegrationWorkflows:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "task",
                         "id": task_a_id,
                         "projectRoot": planning_root,
                         "yamlPatch": {"prerequisites": [task_b_id]},
@@ -1445,7 +1436,6 @@ class TestComprehensiveIntegrationWorkflows:
                     await client.call_tool(
                         "updateObject",
                         {
-                            "kind": "task",
                             "id": task_id,
                             "projectRoot": planning_root,
                             "yamlPatch": {"prerequisites": [base_task["id"]]},

@@ -162,7 +162,6 @@ async def update_task_status(
     await client.call_tool(
         "updateObject",
         {
-            "kind": "task",
             "id": task_id,
             "projectRoot": planning_root,
             "yamlPatch": {"status": "in-progress"},
@@ -176,7 +175,6 @@ async def update_task_status(
     await client.call_tool(
         "updateObject",
         {
-            "kind": "task",
             "id": task_id,
             "projectRoot": planning_root,
             "yamlPatch": {"status": "review"},

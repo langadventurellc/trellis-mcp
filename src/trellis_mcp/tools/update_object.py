@@ -5,15 +5,17 @@ body content. Handles cascade deletion, status transitions, and protected object
 """
 
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from ..exceptions.cascade_error import CascadeError
 from ..exceptions.protected_object_error import ProtectedObjectError
 from ..exceptions.validation_error import ValidationError, ValidationErrorCode
 from ..fs_utils import recursive_delete
 from ..graph_utils import DependencyGraph
+from ..inference import KindInferenceEngine
 from ..io_utils import read_markdown, write_markdown
 from ..path_resolver import children_of, id_to_path, resolve_project_roots
 from ..settings import Settings
@@ -71,12 +73,38 @@ def create_update_object_tool(settings: Settings):
 
     @mcp.tool
     def updateObject(
-        kind: str,
-        id: str,
-        projectRoot: str,
-        yamlPatch: dict[str, str | list[str] | None] = {},
-        bodyPatch: str = "",
-        force: bool = False,
+        id: Annotated[
+            str,
+            Field(
+                description="Object ID (P-, E-, F-, T- prefixed)",
+                pattern=r"^(P-|E-|F-|T-).+",
+                min_length=3,
+            ),
+        ],
+        projectRoot: Annotated[
+            str, Field(description="Root directory for planning structure", min_length=1)
+        ],
+        yamlPatch: Annotated[
+            dict[str, str | list[str] | None],
+            Field(
+                description="YAML fields to update/merge",
+                default={},
+            ),
+        ] = {},
+        bodyPatch: Annotated[
+            str,
+            Field(
+                description="New body content to replace existing body",
+                default="",
+            ),
+        ] = "",
+        force: Annotated[
+            bool,
+            Field(
+                description="Bypass safeguards when deleting objects with protected children",
+                default=False,
+            ),
+        ] = False,
     ) -> dict[str, str | dict[str, str | list[str] | bool]]:
         """Update a Trellis MCP object by applying patches to YAML front-matter and/or body content.
 
@@ -91,7 +119,6 @@ def create_update_object_tool(settings: Settings):
         dependencies to maintain graph integrity.
 
         Args:
-            kind: Object type ('project', 'epic', 'feature', or 'task')
             id: Object ID (with or without prefix)
             projectRoot: Root directory for the planning structure
             yamlPatch: Optional dictionary of YAML fields to update/merge. When updating
@@ -107,33 +134,19 @@ def create_update_object_tool(settings: Settings):
             Dictionary containing the updated object information with structure:
             {
                 "id": str,           # Clean object ID
-                "kind": str,         # Object kind
-                "file_path": str,    # Path to the updated file
+                "kind": str,         # Object kind (automatically inferred)
                 "updated": str,      # ISO timestamp of update
                 "changes": dict      # Summary of changes made
             }
 
         Raises:
-            ValueError: If kind is invalid or required parameters are missing
+            ValidationError: If ID is invalid, inference fails, or validation fails
             FileNotFoundError: If object with the given ID cannot be found
             TrellisValidationError: If validation fails (front-matter, status transitions,
                 or acyclic prerequisites)
-            ValidationError: If cross-system prerequisite updates fail, including:
-                - CROSS_SYSTEM_PREREQUISITE_INVALID: Updated prerequisite doesn't exist
-                  in either hierarchical or standalone task systems
-                - CROSS_SYSTEM_REFERENCE_CONFLICT: Invalid cross-system reference patterns
-                - CIRCULAR_DEPENDENCY: Prerequisite updates create cycles spanning both systems
-                - INVALID_STATUS_TRANSITION: Status changes violate cross-system constraints
             OSError: If file cannot be read or written due to permissions or disk space
         """
-        # Basic parameter validation
-        if not kind or not kind.strip():
-            raise ValidationError(
-                errors=["Kind cannot be empty"],
-                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
-                context={"field": "kind"},
-            )
-
+        # Basic parameter validation (Pydantic handles most validation automatically)
         if not id or not id.strip():
             raise ValidationError(
                 errors=["Object ID cannot be empty"],
@@ -158,6 +171,22 @@ def create_update_object_tool(settings: Settings):
 
         # Resolve project roots to get planning directory
         _, planning_root = resolve_project_roots(projectRoot)
+
+        # Initialize kind inference engine and infer object type
+        try:
+            inference_engine = KindInferenceEngine(planning_root)
+            kind = inference_engine.infer_kind(id.strip(), validate=False)
+        except ValidationError as e:
+            # Re-raise inference errors with additional context
+            raise ValidationError(
+                errors=[f"Kind inference failed: {'; '.join(e.errors)}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={
+                    "object_id": id.strip(),
+                    "inference_step": "kind_inference",
+                    "original_errors": e.errors,
+                },
+            ) from e
 
         # Clean the ID (remove prefix if present)
         clean_id = id.strip()
@@ -329,7 +358,6 @@ def create_update_object_tool(settings: Settings):
                 return {
                     "id": clean_id,
                     "kind": kind,
-                    "file_path": str(file_path),
                     "updated": updated_yaml["updated"],
                     "changes": {
                         "status": "deleted",
@@ -413,7 +441,6 @@ def create_update_object_tool(settings: Settings):
         return {
             "id": clean_id,
             "kind": kind,
-            "file_path": str(file_path),
             "updated": updated_yaml["updated"],
             "changes": changes,
         }

@@ -1072,8 +1072,7 @@ class TestUpdateObject:
             result = await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "project",
-                    "id": "test-project",
+                    "id": create_result.data["id"],
                     "projectRoot": str(project_root),
                     "yamlPatch": {"priority": "high"},
                 },
@@ -1113,7 +1112,6 @@ class TestUpdateObject:
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": task_id,
                     "projectRoot": str(project_root),
                     "yamlPatch": {"status": "in-progress"},
@@ -1124,7 +1122,6 @@ class TestUpdateObject:
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": task_id,
                     "projectRoot": str(project_root),
                     "yamlPatch": {"status": "review"},
@@ -1164,7 +1161,6 @@ class TestUpdateObject:
                 await client.call_tool(
                     "updateObject",
                     {
-                        "kind": "project",
                         "id": "nonexistent",
                         "projectRoot": str(project_root),
                         "yamlPatch": {"priority": "high"},

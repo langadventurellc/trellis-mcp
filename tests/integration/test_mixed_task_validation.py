@@ -147,7 +147,6 @@ async def test_mixed_task_types_error_handling(temp_dir):
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": "T-nonexistent-task-id",
                     "projectRoot": planning_root,
                     "yamlPatch": {"priority": "high"},
@@ -161,7 +160,6 @@ async def test_mixed_task_types_error_handling(temp_dir):
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": hierarchy_task_id,
                     "projectRoot": planning_root,
                     "yamlPatch": {"status": "done"},
@@ -433,7 +431,6 @@ async def test_mixed_task_types_security_validation(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": hierarchy_task_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"priority": "high"},
@@ -443,7 +440,6 @@ async def test_mixed_task_types_security_validation(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": standalone_task_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"priority": "low"},
@@ -457,7 +453,6 @@ async def test_mixed_task_types_security_validation(temp_dir):
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": hierarchy_task_id,
                     "projectRoot": planning_root,
                     "yamlPatch": {"malicious_field": "../../etc/passwd"},

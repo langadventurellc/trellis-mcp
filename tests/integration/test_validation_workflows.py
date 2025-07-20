@@ -377,7 +377,6 @@ async def test_validation_workflow_circular_dependency_detection(temp_dir):
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": task_a_id,
                     "projectRoot": planning_root,
                     "yamlPatch": {"prerequisites": [task_c_id]},
@@ -687,7 +686,6 @@ async def test_validation_workflow_status_transitions(temp_dir):
         transition_result = await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": task_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "in-progress"},
@@ -709,7 +707,6 @@ async def test_validation_workflow_status_transitions(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": task_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "review"},
@@ -731,7 +728,6 @@ async def test_validation_workflow_status_transitions(temp_dir):
             await client.call_tool(
                 "updateObject",
                 {
-                    "kind": "task",
                     "id": task_id,
                     "projectRoot": planning_root,
                     "yamlPatch": {"status": "open"},
@@ -844,7 +840,6 @@ async def test_validation_workflow_comprehensive_integration(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": hierarchy_task_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "in-progress"},
@@ -854,7 +849,6 @@ async def test_validation_workflow_comprehensive_integration(temp_dir):
         await client.call_tool(
             "updateObject",
             {
-                "kind": "task",
                 "id": hierarchy_task_id,
                 "projectRoot": planning_root,
                 "yamlPatch": {"status": "review"},
