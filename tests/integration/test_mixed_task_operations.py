@@ -128,7 +128,6 @@ async def test_mixed_task_types_all_mcp_tools_consistency(temp_dir):
             retrieved = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
                     "id": task["id"],
                     "projectRoot": planning_root,
                 },
@@ -172,7 +171,6 @@ async def test_mixed_task_types_all_mcp_tools_consistency(temp_dir):
         updated_standalone = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": standalone_task["id"],
                 "projectRoot": planning_root,
             },
@@ -182,7 +180,6 @@ async def test_mixed_task_types_all_mcp_tools_consistency(temp_dir):
         updated_hierarchy = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": hierarchy_task["id"],
                 "projectRoot": planning_root,
             },
@@ -278,7 +275,6 @@ async def test_mixed_task_types_all_mcp_tools_consistency(temp_dir):
         completed_task = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": review_task["id"],
                 "projectRoot": planning_root,
             },
@@ -747,7 +743,6 @@ async def test_comprehensive_integration_all_mcp_operations(temp_dir):
         project_retrieved = await client.call_tool(
             "getObject",
             {
-                "kind": "project",
                 "id": project_id,
                 "projectRoot": planning_root,
             },
@@ -758,7 +753,6 @@ async def test_comprehensive_integration_all_mcp_operations(temp_dir):
         epic_retrieved = await client.call_tool(
             "getObject",
             {
-                "kind": "epic",
                 "id": epic_id,
                 "projectRoot": planning_root,
             },
@@ -769,7 +763,6 @@ async def test_comprehensive_integration_all_mcp_operations(temp_dir):
         feature_retrieved = await client.call_tool(
             "getObject",
             {
-                "kind": "feature",
                 "id": feature_id,
                 "projectRoot": planning_root,
             },
@@ -781,7 +774,6 @@ async def test_comprehensive_integration_all_mcp_operations(temp_dir):
             task_retrieved = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
                     "id": task_data["id"],
                     "projectRoot": planning_root,
                 },
@@ -870,7 +862,6 @@ async def test_comprehensive_integration_all_mcp_operations(temp_dir):
         standalone_updated = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": standalone_unclaimed["id"],
                 "projectRoot": planning_root,
             },
@@ -880,7 +871,6 @@ async def test_comprehensive_integration_all_mcp_operations(temp_dir):
         hierarchy_updated = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": hierarchy_unclaimed["id"],
                 "projectRoot": planning_root,
             },
@@ -928,7 +918,6 @@ async def test_comprehensive_integration_all_mcp_operations(temp_dir):
         completed_task = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": first_claimed_id,
                 "projectRoot": planning_root,
             },

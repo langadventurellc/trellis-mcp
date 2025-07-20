@@ -1,12 +1,17 @@
 """Get object tool for Trellis MCP server.
 
-Retrieves a Trellis MCP object by kind and ID, resolving the object path and
-reading YAML front-matter and body content from the corresponding markdown file.
+Retrieves a Trellis MCP object by ID with automatic kind inference, resolving the
+object path and reading YAML front-matter and body content from the corresponding
+markdown file.
 """
 
+from typing import Annotated
+
 from fastmcp import FastMCP
+from pydantic import Field
 
 from ..exceptions.validation_error import ValidationError, ValidationErrorCode
+from ..inference import KindInferenceEngine
 from ..io_utils import read_markdown
 from ..path_resolver import discover_immediate_children, id_to_path, resolve_project_roots
 from ..settings import Settings
@@ -25,18 +30,25 @@ def create_get_object_tool(settings: Settings):
 
     @mcp.tool
     def getObject(
-        kind: str,
-        id: str,
-        projectRoot: str,
+        id: Annotated[
+            str,
+            Field(
+                description="Object ID (with or without P-, E-, F-, T- prefix)",
+                min_length=1,
+            ),
+        ],
+        projectRoot: Annotated[
+            str, Field(description="Root directory for planning structure", min_length=1)
+        ],
     ):
-        """Retrieve a Trellis MCP object by kind and ID.
+        """Retrieve a Trellis MCP object by ID with automatic kind inference.
 
-        Resolves the object path and reads the YAML front-matter and body content
-        from the corresponding markdown file.
+        Uses the kind inference engine to automatically determine object type from
+        ID prefix, then resolves the object path and reads YAML front-matter and
+        body content from the corresponding markdown file.
 
         Args:
-            kind: Object type ('project', 'epic', 'feature', or 'task')
-            id: Object ID (with or without prefix)
+            id: Object ID (P-, E-, F-, T- prefixed)
             projectRoot: Root directory for the planning structure
 
         Returns:
@@ -44,8 +56,7 @@ def create_get_object_tool(settings: Settings):
             {
                 "yaml": dict,  # YAML front-matter as dictionary
                 "body": str,   # Markdown body content
-                "file_path": str,  # Path to the object file
-                "kind": str,   # Object kind
+                "kind": str,   # Inferred object kind
                 "id": str,     # Clean object ID
                 "children": list[dict[str, str]]  # Immediate child objects
             }
@@ -56,22 +67,15 @@ def create_get_object_tool(settings: Settings):
             - Features: immediate tasks
             - Tasks: empty array (no children)
 
-            Each child object contains: {id, title, status, kind, created, file_path}
+            Each child object contains: {id, title, status, kind, created}
 
         Raises:
-            ValueError: If kind is invalid or required parameters are missing
+            ValidationError: If ID is invalid, inference fails, or validation fails
             FileNotFoundError: If object with the given ID cannot be found
             OSError: If file cannot be read due to permissions or other IO errors
             yaml.YAMLError: If YAML front-matter is malformed
         """
-        # Basic parameter validation
-        if not kind or not kind.strip():
-            raise ValidationError(
-                errors=["Kind cannot be empty"],
-                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
-                context={"field": "kind"},
-            )
-
+        # Basic parameter validation (Pydantic handles most validation automatically)
         if not id or not id.strip():
             raise ValidationError(
                 errors=["Object ID cannot be empty"],
@@ -88,6 +92,22 @@ def create_get_object_tool(settings: Settings):
 
         # Resolve project roots to get planning directory
         _, planning_root = resolve_project_roots(projectRoot)
+
+        # Initialize kind inference engine and infer object type
+        try:
+            inference_engine = KindInferenceEngine(planning_root)
+            kind = inference_engine.infer_kind(id.strip(), validate=False)
+        except ValidationError as e:
+            # Re-raise inference errors with additional context
+            raise ValidationError(
+                errors=[f"Kind inference failed: {'; '.join(e.errors)}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={
+                    "object_id": id.strip(),
+                    "inference_step": "kind_inference",
+                    "original_errors": e.errors,
+                },
+            ) from e
 
         # Clean the ID (remove prefix if present)
         clean_id = id.strip()
@@ -125,12 +145,11 @@ def create_get_object_tool(settings: Settings):
             # Don't let children discovery errors break getObject functionality
             children_list = []
 
-        # Return the object data
+        # Return the object data with clean response format
         return {
             "yaml": yaml_dict,
             "body": body_str,
-            "file_path": str(file_path),
-            "kind": kind,
+            "kind": kind,  # Now inferred automatically
             "id": clean_id,
             "children": children_list,
         }

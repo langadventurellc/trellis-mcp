@@ -668,7 +668,6 @@ async def test_crud_epic_feature_tasks_workflow_with_yaml_verification(
         retrieved_project = await client.call_tool(
             "getObject",
             {
-                "kind": "project",
                 "id": project_id,
                 "projectRoot": planning_root,
             },
@@ -678,7 +677,6 @@ async def test_crud_epic_feature_tasks_workflow_with_yaml_verification(
         retrieved_epic = await client.call_tool(
             "getObject",
             {
-                "kind": "epic",
                 "id": epic_id,
                 "projectRoot": planning_root,
             },
@@ -688,7 +686,6 @@ async def test_crud_epic_feature_tasks_workflow_with_yaml_verification(
         retrieved_feature = await client.call_tool(
             "getObject",
             {
-                "kind": "feature",
                 "id": feature_id,
                 "projectRoot": planning_root,
             },
@@ -698,7 +695,6 @@ async def test_crud_epic_feature_tasks_workflow_with_yaml_verification(
         retrieved_task1 = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": task1_id,
                 "projectRoot": planning_root,
             },
@@ -2020,7 +2016,6 @@ async def test_cycle_detection_integration_with_updateObject(temp_dir):
         initial_task_a = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": task_a_id,
                 "projectRoot": planning_root,
             },
@@ -2028,7 +2023,6 @@ async def test_cycle_detection_integration_with_updateObject(temp_dir):
         initial_task_b = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": task_b_id,
                 "projectRoot": planning_root,
             },
@@ -2036,7 +2030,6 @@ async def test_cycle_detection_integration_with_updateObject(temp_dir):
         initial_task_c = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": task_c_id,
                 "projectRoot": planning_root,
             },
@@ -2069,7 +2062,6 @@ async def test_cycle_detection_integration_with_updateObject(temp_dir):
         restored_task_a = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": task_a_id,
                 "projectRoot": planning_root,
             },
@@ -2080,7 +2072,6 @@ async def test_cycle_detection_integration_with_updateObject(temp_dir):
         restored_task_b = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": task_b_id,
                 "projectRoot": planning_root,
             },
@@ -2091,7 +2082,6 @@ async def test_cycle_detection_integration_with_updateObject(temp_dir):
         restored_task_c = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": task_c_id,
                 "projectRoot": planning_root,
             },

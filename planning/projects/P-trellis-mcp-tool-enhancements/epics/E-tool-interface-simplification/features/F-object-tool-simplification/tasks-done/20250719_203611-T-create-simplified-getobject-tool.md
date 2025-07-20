@@ -1,14 +1,15 @@
 ---
 kind: task
 id: T-create-simplified-getobject-tool
+parent: F-object-tool-simplification
+status: done
 title: Create simplified getObject tool implementation
-status: open
 priority: high
 prerequisites: []
 created: '2025-07-19T20:22:32.419774'
-updated: '2025-07-19T20:22:32.419774'
+updated: '2025-07-19T20:26:32.445567'
 schema_version: '1.1'
-parent: F-object-tool-simplification
+worktree: null
 ---
 ## Purpose
 
@@ -180,3 +181,6 @@ This implementation establishes the pattern for tool interface simplification th
 
 ### Log
 
+
+**2025-07-20T01:36:11.149586Z** - Implemented simplified getObject tool that removes the kind parameter and uses automatic kind inference from the KindInferenceEngine. The tool now accepts only id and projectRoot parameters, automatically detects object type from ID prefixes, and returns clean response format without file_path. Added comprehensive error handling for inference failures and updated all tests to use the new simplified interface. All quality checks pass including formatting, linting, type checking, and unit tests.
+- filesChanged: ["src/trellis_mcp/tools/get_object.py", "tests/unit/test_get_object_tool.py", "tests/integration/test_children_discovery_integration.py"]

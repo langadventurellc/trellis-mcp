@@ -71,7 +71,7 @@ class TestChildrenDiscoveryIntegration:
             start_time = time.perf_counter()
             project_result = await client.call_tool(
                 "getObject",
-                {"kind": "project", "id": "large-project", "projectRoot": str(project_root)},
+                {"id": "P-large-project", "projectRoot": str(project_root)},
             )
             end_time = time.perf_counter()
             cold_response_time = (end_time - start_time) * 1000
@@ -96,7 +96,7 @@ class TestChildrenDiscoveryIntegration:
                 # Validate metadata consistency with actual file content
                 epic_obj = await client.call_tool(
                     "getObject",
-                    {"kind": "epic", "id": epic["id"], "projectRoot": str(project_root)},
+                    {"id": f"E-{epic['id']}", "projectRoot": str(project_root)},
                 )
                 assert epic["title"] == epic_obj.data["yaml"]["title"]
                 assert epic["status"] == epic_obj.data["yaml"]["status"]
@@ -105,7 +105,7 @@ class TestChildrenDiscoveryIntegration:
             start_time = time.perf_counter()
             project_result_cached = await client.call_tool(
                 "getObject",
-                {"kind": "project", "id": "large-project", "projectRoot": str(project_root)},
+                {"id": "P-large-project", "projectRoot": str(project_root)},
             )
             end_time = time.perf_counter()
             cached_response_time = (end_time - start_time) * 1000
@@ -150,7 +150,7 @@ class TestChildrenDiscoveryIntegration:
             # Test epic level - should include all features
             epic_result = await client.call_tool(
                 "getObject",
-                {"kind": "epic", "id": "user-management", "projectRoot": str(project_root)},
+                {"id": "E-user-management", "projectRoot": str(project_root)},
             )
 
             # Validate epic children discovery
@@ -173,7 +173,7 @@ class TestChildrenDiscoveryIntegration:
                 # Validate parent relationship
                 feature_obj = await client.call_tool(
                     "getObject",
-                    {"kind": "feature", "id": feature["id"], "projectRoot": str(project_root)},
+                    {"id": f"F-{feature['id']}", "projectRoot": str(project_root)},
                 )
                 assert feature_obj.data["yaml"]["parent"] == "E-user-management"
 
@@ -210,7 +210,7 @@ class TestChildrenDiscoveryIntegration:
             # Test feature level - should include all tasks (open and done)
             feature_result = await client.call_tool(
                 "getObject",
-                {"kind": "feature", "id": "user-registration", "projectRoot": str(project_root)},
+                {"id": "F-user-registration", "projectRoot": str(project_root)},
             )
 
             # Validate feature children discovery
@@ -234,7 +234,7 @@ class TestChildrenDiscoveryIntegration:
                 # Validate parent relationship
                 task_obj = await client.call_tool(
                     "getObject",
-                    {"kind": "task", "id": task["id"], "projectRoot": str(project_root)},
+                    {"id": f"T-{task['id']}", "projectRoot": str(project_root)},
                 )
                 assert task_obj.data["yaml"]["parent"] == "F-user-registration"
 
@@ -280,7 +280,7 @@ class TestChildrenDiscoveryIntegration:
             # Test project children discovery in mixed environment
             project_result = await client.call_tool(
                 "getObject",
-                {"kind": "project", "id": "large-project", "projectRoot": str(project_root)},
+                {"id": "P-large-project", "projectRoot": str(project_root)},
             )
 
             # Validate that project children discovery only includes hierarchical epics
@@ -295,14 +295,14 @@ class TestChildrenDiscoveryIntegration:
                 # Verify these are hierarchical epics, not standalone tasks
                 epic_obj = await client.call_tool(
                     "getObject",
-                    {"kind": "epic", "id": epic["id"], "projectRoot": str(project_root)},
+                    {"id": f"E-{epic['id']}", "projectRoot": str(project_root)},
                 )
                 assert epic_obj.data["yaml"]["parent"] == "P-large-project"
 
             # Test epic children discovery in mixed environment
             epic_result = await client.call_tool(
                 "getObject",
-                {"kind": "epic", "id": "user-management", "projectRoot": str(project_root)},
+                {"id": "E-user-management", "projectRoot": str(project_root)},
             )
 
             epic_children = epic_result.data["children"]
@@ -317,14 +317,14 @@ class TestChildrenDiscoveryIntegration:
                 # Verify these are hierarchical features
                 feature_obj = await client.call_tool(
                     "getObject",
-                    {"kind": "feature", "id": feature["id"], "projectRoot": str(project_root)},
+                    {"id": f"F-{feature['id']}", "projectRoot": str(project_root)},
                 )
                 assert feature_obj.data["yaml"]["parent"] == "E-user-management"
 
             # Test feature children discovery with mixed task environment
             feature_result = await client.call_tool(
                 "getObject",
-                {"kind": "feature", "id": "user-registration", "projectRoot": str(project_root)},
+                {"id": "F-user-registration", "projectRoot": str(project_root)},
             )
 
             feature_children = feature_result.data["children"]
@@ -339,7 +339,7 @@ class TestChildrenDiscoveryIntegration:
                 # Verify these are hierarchical tasks with proper parent
                 task_obj = await client.call_tool(
                     "getObject",
-                    {"kind": "task", "id": task["id"], "projectRoot": str(project_root)},
+                    {"id": f"T-{task['id']}", "projectRoot": str(project_root)},
                 )
                 assert task_obj.data["yaml"]["parent"] == "F-user-registration"
 
@@ -347,7 +347,7 @@ class TestChildrenDiscoveryIntegration:
             # (Test by attempting to get a standalone task directly)
             standalone_task_result = await client.call_tool(
                 "getObject",
-                {"kind": "task", "id": "infrastructure-setup", "projectRoot": str(project_root)},
+                {"id": "T-infrastructure-setup", "projectRoot": str(project_root)},
             )
             assert standalone_task_result.data["yaml"]["id"] == "T-infrastructure-setup"
             # Standalone tasks should have no children
@@ -390,7 +390,7 @@ class TestChildrenDiscoveryIntegration:
             # Test empty project (from edge cases in fixture)
             empty_project_result = await client.call_tool(
                 "getObject",
-                {"kind": "project", "id": "empty-project", "projectRoot": str(project_root)},
+                {"id": "P-empty-project", "projectRoot": str(project_root)},
             )
             assert len(empty_project_result.data["children"]) == 0
 
@@ -398,14 +398,14 @@ class TestChildrenDiscoveryIntegration:
             # Note: The "empty-epic" actually contains one empty feature as designed in fixtures
             empty_epic_result = await client.call_tool(
                 "getObject",
-                {"kind": "epic", "id": "empty-epic", "projectRoot": str(project_root)},
+                {"id": "E-empty-epic", "projectRoot": str(project_root)},
             )
             assert len(empty_epic_result.data["children"]) == 1
 
             # Test empty feature (from edge cases in fixture)
             empty_feature_result = await client.call_tool(
                 "getObject",
-                {"kind": "feature", "id": "empty-feature", "projectRoot": str(project_root)},
+                {"id": "F-empty-feature", "projectRoot": str(project_root)},
             )
             assert len(empty_feature_result.data["children"]) == 0
 
@@ -413,8 +413,7 @@ class TestChildrenDiscoveryIntegration:
             task_result = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
-                    "id": "create-registration-form",
+                    "id": "T-create-registration-form",
                     "projectRoot": str(project_root),
                 },
             )
@@ -442,7 +441,7 @@ class TestChildrenDiscoveryIntegration:
             # Test project with corrupted epics (from edge cases in fixture)
             corrupted_project_result = await client.call_tool(
                 "getObject",
-                {"kind": "project", "id": "corrupted-project", "projectRoot": str(project_root)},
+                {"id": "P-corrupted-project", "projectRoot": str(project_root)},
             )
 
             # Should include valid children plus partially corrupted ones that can be parsed
@@ -470,6 +469,6 @@ class TestChildrenDiscoveryIntegration:
             # Verify we can still access the valid epic normally
             valid_epic_result = await client.call_tool(
                 "getObject",
-                {"kind": "epic", "id": "valid-epic", "projectRoot": str(project_root)},
+                {"id": "E-valid-epic", "projectRoot": str(project_root)},
             )
             assert valid_epic_result.data["yaml"]["title"] == "Valid Epic"

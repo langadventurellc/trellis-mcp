@@ -229,7 +229,6 @@ class TestComprehensiveIntegrationWorkflows:
                     task_obj = await client.call_tool(
                         "getObject",
                         {
-                            "kind": "task",
                             "id": task["id"],
                             "projectRoot": planning_root,
                         },
@@ -1364,7 +1363,6 @@ class TestComprehensiveIntegrationWorkflows:
             task_a_check = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
                     "id": task_a_id,
                     "projectRoot": planning_root,
                 },
@@ -1372,7 +1370,6 @@ class TestComprehensiveIntegrationWorkflows:
             task_b_check = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
                     "id": task_b_id,
                     "projectRoot": planning_root,
                 },

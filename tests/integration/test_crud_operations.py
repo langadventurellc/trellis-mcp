@@ -355,7 +355,6 @@ async def test_crud_epic_feature_tasks_workflow_with_yaml_verification(temp_dir)
         retrieved_project = await client.call_tool(
             "getObject",
             {
-                "kind": "project",
                 "id": project_id,
                 "projectRoot": planning_root,
             },
@@ -365,7 +364,6 @@ async def test_crud_epic_feature_tasks_workflow_with_yaml_verification(temp_dir)
         retrieved_epic = await client.call_tool(
             "getObject",
             {
-                "kind": "epic",
                 "id": epic_id,
                 "projectRoot": planning_root,
             },
@@ -375,7 +373,6 @@ async def test_crud_epic_feature_tasks_workflow_with_yaml_verification(temp_dir)
         retrieved_feature = await client.call_tool(
             "getObject",
             {
-                "kind": "feature",
                 "id": feature_id,
                 "projectRoot": planning_root,
             },
@@ -385,7 +382,6 @@ async def test_crud_epic_feature_tasks_workflow_with_yaml_verification(temp_dir)
         retrieved_task1 = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": task1_id,
                 "projectRoot": planning_root,
             },
@@ -617,7 +613,6 @@ async def test_parent_deletion_cascade_integration(temp_dir):
         retrieved_project = await client.call_tool(
             "getObject",
             {
-                "kind": "project",
                 "id": project_id,
                 "projectRoot": planning_root,
             },

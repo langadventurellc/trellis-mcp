@@ -135,7 +135,6 @@ class TestMixedDependencyChainIntegration:
                 next_task = await client.call_tool(
                     "getObject",
                     {
-                        "kind": "task",
                         "id": chain_tasks[i + 1],
                         "projectRoot": planning_root,
                     },
@@ -649,7 +648,6 @@ class TestMixedDependencyChainIntegration:
             retrieved_task = await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
                     "id": success_task_result.data["id"],
                     "projectRoot": planning_root,
                 },
@@ -773,7 +771,6 @@ class TestMixedDependencyChainIntegration:
                 task = await client.call_tool(
                     "getObject",
                     {
-                        "kind": "task",
                         "id": task_id,
                         "projectRoot": planning_root,
                     },

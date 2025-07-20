@@ -135,8 +135,7 @@ async def test_mixed_task_types_error_handling(temp_dir):
             await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
-                    "id": "nonexistent-task-id",
+                    "id": "T-nonexistent-task-id",
                     "projectRoot": planning_root,
                 },
             )
@@ -149,7 +148,7 @@ async def test_mixed_task_types_error_handling(temp_dir):
                 "updateObject",
                 {
                     "kind": "task",
-                    "id": "nonexistent-task-id",
+                    "id": "T-nonexistent-task-id",
                     "projectRoot": planning_root,
                     "yamlPatch": {"priority": "high"},
                 },
@@ -378,7 +377,6 @@ async def test_mixed_task_types_security_validation(temp_dir):
         hierarchy_retrieved = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": hierarchy_task_id,
                 "projectRoot": planning_root,
             },
@@ -388,7 +386,6 @@ async def test_mixed_task_types_security_validation(temp_dir):
         standalone_retrieved = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": standalone_task_id,
                 "projectRoot": planning_root,
             },
@@ -400,7 +397,6 @@ async def test_mixed_task_types_security_validation(temp_dir):
             await client.call_tool(
                 "getObject",
                 {
-                    "kind": "task",
                     "id": "../../../malicious-id",
                     "projectRoot": planning_root,
                 },

@@ -86,7 +86,7 @@ Second epic description.
         async with Client(server) as client:
             result = await client.call_tool(
                 "getObject",
-                {"kind": "project", "id": "test-project", "projectRoot": str(project_root)},
+                {"id": "P-test-project", "projectRoot": str(project_root)},
             )
 
         # Verify basic response structure
@@ -110,7 +110,7 @@ Second epic description.
         assert epic1["status"] == "open"
         assert epic1["kind"] == "epic"
         assert epic1["created"] == "2025-07-19T19:01:00Z"
-        assert epic1["file_path"] == str(epic1_file)
+        # file_path no longer included in response
 
         # Verify second epic
         epic2 = children[1]
@@ -119,15 +119,33 @@ Second epic description.
         assert epic2["status"] == "in-progress"
         assert epic2["kind"] == "epic"
         assert epic2["created"] == "2025-07-19T19:02:00Z"
-        assert epic2["file_path"] == str(epic2_file)
+        # file_path no longer included in response
 
     @pytest.mark.asyncio
     async def test_get_epic_with_features(self, temp_dir):
         """Test retrieving an epic object includes immediate features in children array."""
         # Create epic structure with features
         project_root = temp_dir / "planning"
-        epic_dir = project_root / "projects" / "P-test-project" / "epics" / "E-test-epic"
+        project_dir = project_root / "projects" / "P-test-project"
+        epic_dir = project_dir / "epics" / "E-test-epic"
         features_dir = epic_dir / "features"
+
+        # Create parent project first
+        project_dir.mkdir(parents=True)
+        project_file = project_dir / "project.md"
+        project_content = """---
+kind: project
+id: P-test-project
+title: Test Project
+status: draft
+priority: normal
+created: '2025-07-19T18:59:00Z'
+updated: '2025-07-19T18:59:00Z'
+schema_version: '1.1'
+---
+Parent project for epic test.
+"""
+        project_file.write_text(project_content)
 
         # Create epic
         epic_dir.mkdir(parents=True)
@@ -173,7 +191,7 @@ Test feature description.
         async with Client(server) as client:
             result = await client.call_tool(
                 "getObject",
-                {"kind": "epic", "id": "test-epic", "projectRoot": str(project_root)},
+                {"id": "E-test-epic", "projectRoot": str(project_root)},
             )
 
         # Verify children array contains feature
@@ -187,24 +205,53 @@ Test feature description.
         assert feature["status"] == "open"
         assert feature["kind"] == "feature"
         assert feature["created"] == "2025-07-19T19:01:00Z"
-        assert feature["file_path"] == str(feature_file)
+        # file_path no longer included in response
 
     @pytest.mark.asyncio
     async def test_get_feature_with_tasks(self, temp_dir):
         """Test retrieving a feature object includes immediate tasks in children array."""
         # Create feature structure with tasks
         project_root = temp_dir / "planning"
-        feature_dir = (
-            project_root
-            / "projects"
-            / "P-test-project"
-            / "epics"
-            / "E-test-epic"
-            / "features"
-            / "F-test-feature"
-        )
+        project_dir = project_root / "projects" / "P-test-project"
+        epic_dir = project_dir / "epics" / "E-test-epic"
+        feature_dir = epic_dir / "features" / "F-test-feature"
         tasks_open_dir = feature_dir / "tasks-open"
         tasks_done_dir = feature_dir / "tasks-done"
+
+        # Create parent project
+        project_dir.mkdir(parents=True)
+        project_file = project_dir / "project.md"
+        project_content = """---
+kind: project
+id: P-test-project
+title: Test Project
+status: draft
+priority: normal
+created: '2025-07-19T18:58:00Z'
+updated: '2025-07-19T18:58:00Z'
+schema_version: '1.1'
+---
+Parent project for feature test.
+"""
+        project_file.write_text(project_content)
+
+        # Create parent epic
+        epic_dir.mkdir(parents=True)
+        epic_file = epic_dir / "epic.md"
+        epic_content = """---
+kind: epic
+id: E-test-epic
+parent: P-test-project
+title: Test Epic
+status: in-progress
+priority: normal
+created: '2025-07-19T18:59:00Z'
+updated: '2025-07-19T18:59:00Z'
+schema_version: '1.1'
+---
+Parent epic for feature test.
+"""
+        epic_file.write_text(epic_content)
 
         # Create feature
         feature_dir.mkdir(parents=True)
@@ -267,7 +314,7 @@ Done task description.
         async with Client(server) as client:
             result = await client.call_tool(
                 "getObject",
-                {"kind": "feature", "id": "test-feature", "projectRoot": str(project_root)},
+                {"id": "F-test-feature", "projectRoot": str(project_root)},
             )
 
         # Verify children array contains both tasks
@@ -285,7 +332,7 @@ Done task description.
         assert open_task["status"] == "open"
         assert open_task["kind"] == "task"
         assert open_task["created"] == "2025-07-19T19:01:00Z"
-        assert open_task["file_path"] == str(open_task_file)
+        # file_path no longer included in response
 
         # Verify done task
         done_task = children[1]
@@ -294,23 +341,70 @@ Done task description.
         assert done_task["status"] == "done"
         assert done_task["kind"] == "task"
         assert done_task["created"] == "2025-07-19T19:02:00Z"
-        assert done_task["file_path"] == str(done_task_file)
+        # file_path no longer included in response
 
     @pytest.mark.asyncio
     async def test_get_task_empty_children(self, temp_dir):
         """Test retrieving a task object returns empty children array."""
         # Create task structure
         project_root = temp_dir / "planning"
-        feature_dir = (
-            project_root
-            / "projects"
-            / "P-test-project"
-            / "epics"
-            / "E-test-epic"
-            / "features"
-            / "F-test-feature"
-        )
+        project_dir = project_root / "projects" / "P-test-project"
+        epic_dir = project_dir / "epics" / "E-test-epic"
+        feature_dir = epic_dir / "features" / "F-test-feature"
         tasks_open_dir = feature_dir / "tasks-open"
+
+        # Create parent project
+        project_dir.mkdir(parents=True)
+        project_file = project_dir / "project.md"
+        project_content = """---
+kind: project
+id: P-test-project
+title: Test Project
+status: draft
+priority: normal
+created: '2025-07-19T18:57:00Z'
+updated: '2025-07-19T18:57:00Z'
+schema_version: '1.1'
+---
+Parent project for task test.
+"""
+        project_file.write_text(project_content)
+
+        # Create parent epic
+        epic_dir.mkdir(parents=True)
+        epic_file = epic_dir / "epic.md"
+        epic_content = """---
+kind: epic
+id: E-test-epic
+parent: P-test-project
+title: Test Epic
+status: in-progress
+priority: normal
+created: '2025-07-19T18:58:00Z'
+updated: '2025-07-19T18:58:00Z'
+schema_version: '1.1'
+---
+Parent epic for task test.
+"""
+        epic_file.write_text(epic_content)
+
+        # Create parent feature
+        feature_dir.mkdir(parents=True)
+        feature_file = feature_dir / "feature.md"
+        feature_content = """---
+kind: feature
+id: F-test-feature
+parent: E-test-epic
+title: Test Feature
+status: in-progress
+priority: normal
+created: '2025-07-19T18:59:00Z'
+updated: '2025-07-19T18:59:00Z'
+schema_version: '1.1'
+---
+Parent feature for task test.
+"""
+        feature_file.write_text(feature_content)
 
         # Create task
         tasks_open_dir.mkdir(parents=True)
@@ -337,7 +431,7 @@ This is a test task.
         async with Client(server) as client:
             result = await client.call_tool(
                 "getObject",
-                {"kind": "task", "id": "test-task", "projectRoot": str(project_root)},
+                {"id": "T-test-task", "projectRoot": str(project_root)},
             )
 
         # Verify children array is empty for tasks
@@ -375,7 +469,7 @@ This project has no epics.
         async with Client(server) as client:
             result = await client.call_tool(
                 "getObject",
-                {"kind": "project", "id": "empty-project", "projectRoot": str(project_root)},
+                {"id": "P-empty-project", "projectRoot": str(project_root)},
             )
 
         # Verify children array is empty list, not null
@@ -418,7 +512,7 @@ This is a test project.
             async with Client(server) as client:
                 result = await client.call_tool(
                     "getObject",
-                    {"kind": "project", "id": "test-project", "projectRoot": str(project_root)},
+                    {"id": "P-test-project", "projectRoot": str(project_root)},
                 )
 
         # Verify getObject still works and returns empty children array
@@ -461,20 +555,20 @@ Project created.
         async with Client(server) as client:
             result = await client.call_tool(
                 "getObject",
-                {"kind": "project", "id": "test-project", "projectRoot": str(project_root)},
+                {"id": "P-test-project", "projectRoot": str(project_root)},
             )
 
         # Verify all original fields are present and correct
         assert "yaml" in result.data
         assert "body" in result.data
-        assert "file_path" in result.data
+        # file_path no longer included in response format
         assert "kind" in result.data
         assert "id" in result.data
 
         # Verify field values
         assert result.data["kind"] == "project"
         assert result.data["id"] == "test-project"
-        assert result.data["file_path"] == str(project_file)
+        # file_path no longer included in response format
         assert isinstance(result.data["yaml"], dict)
         assert result.data["yaml"]["title"] == "Test Project"
         assert "This is a test project body." in result.data["body"]
@@ -488,8 +582,26 @@ Project created.
         """Test that children objects contain all required metadata fields."""
         # Create epic structure with feature
         project_root = temp_dir / "planning"
-        epic_dir = project_root / "projects" / "P-test-project" / "epics" / "E-test-epic"
+        project_dir = project_root / "projects" / "P-test-project"
+        epic_dir = project_dir / "epics" / "E-test-epic"
         features_dir = epic_dir / "features"
+
+        # Create parent project
+        project_dir.mkdir(parents=True)
+        project_file = project_dir / "project.md"
+        project_content = """---
+kind: project
+id: P-test-project
+title: Test Project
+status: draft
+priority: normal
+created: '2025-07-19T18:56:00Z'
+updated: '2025-07-19T18:56:00Z'
+schema_version: '1.1'
+---
+Parent project for metadata test.
+"""
+        project_file.write_text(project_content)
 
         # Create epic
         epic_dir.mkdir(parents=True)
@@ -535,7 +647,7 @@ Complete feature with all metadata.
         async with Client(server) as client:
             result = await client.call_tool(
                 "getObject",
-                {"kind": "epic", "id": "test-epic", "projectRoot": str(project_root)},
+                {"id": "E-test-epic", "projectRoot": str(project_root)},
             )
 
         # Verify child metadata completeness
@@ -543,7 +655,7 @@ Complete feature with all metadata.
         assert len(children) == 1
 
         child = children[0]
-        required_fields = ["id", "title", "status", "kind", "created", "file_path"]
+        required_fields = ["id", "title", "status", "kind", "created"]
 
         for field in required_fields:
             assert field in child, f"Missing required field: {field}"
@@ -556,4 +668,4 @@ Complete feature with all metadata.
         assert child["status"] == "review"
         assert child["kind"] == "feature"
         assert child["created"] == "2025-07-19T19:01:00Z"
-        assert child["file_path"] == str(feature_file)
+        # file_path no longer included in child metadata

@@ -392,7 +392,6 @@ async def test_validation_workflow_circular_dependency_detection(temp_dir):
         task_a_retrieved = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": task_a_id,
                 "projectRoot": planning_root,
             },
@@ -700,7 +699,6 @@ async def test_validation_workflow_status_transitions(temp_dir):
         retrieved_task = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": task_id,
                 "projectRoot": planning_root,
             },
@@ -722,7 +720,6 @@ async def test_validation_workflow_status_transitions(temp_dir):
         retrieved_task = await client.call_tool(
             "getObject",
             {
-                "kind": "task",
                 "id": task_id,
                 "projectRoot": planning_root,
             },

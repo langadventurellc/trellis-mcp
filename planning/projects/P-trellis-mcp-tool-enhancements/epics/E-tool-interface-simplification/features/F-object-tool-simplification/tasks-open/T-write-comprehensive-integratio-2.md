@@ -13,7 +13,7 @@ parent: F-object-tool-simplification
 ---
 ## Purpose
 
-Create comprehensive integration tests that verify the simplified getObject and updateObject tools work correctly end-to-end, including kind inference, response format validation, error handling, and compatibility with existing functionality.
+Create comprehensive integration tests that verify the simplified getObject and updateObject tools work correctly end-to-end, including kind inference, response format validation, error handling, and compatibility with existing functionality. Do not write performance tests; focus on functional correctness and integration with the existing system.
 
 ## Context
 
@@ -131,7 +131,6 @@ Ensure simplified tools maintain full compatibility:
 - [ ] **Test Clarity**: Clear, descriptive test names and documentation
 - [ ] **Test Independence**: Tests can run independently without side effects
 - [ ] **Test Reliability**: Tests pass consistently and are not flaky
-- [ ] **Test Performance**: Tests run efficiently without unnecessary delays
 - [ ] **Test Maintainability**: Tests are easy to understand and modify
 
 ### Functional Validation
@@ -139,7 +138,6 @@ Ensure simplified tools maintain full compatibility:
 - [ ] **Response Cleanup**: file_path is removed from all responses
 - [ ] **Error Handling**: Clear, actionable error messages for all failure cases
 - [ ] **Compatibility**: Full compatibility with existing functionality
-- [ ] **Performance**: No performance regression from simplified interface
 
 ### Integration Validation
 - [ ] **Tool Registration**: Tools are correctly registered and discoverable
@@ -207,11 +205,9 @@ def test_dependency_validation_with_simplified_interface():
 - Consistent test data setup and teardown
 - Isolated test environments to prevent interference
 - Test data that covers all edge cases and scenarios
-- Performance test data for load testing
 
 ### Test Configuration
 - Test configuration for different environments
-- Test timeouts and performance thresholds
 - Test logging configuration for debugging
 - Integration with existing test infrastructure
 
@@ -226,20 +222,6 @@ def test_dependency_validation_with_simplified_interface():
 - Test utilities and helper functions
 - Test data setup and management
 - Test configuration and fixtures
-
-## Performance and Load Testing
-
-### Performance Benchmarks
-- Establish baseline performance metrics
-- Test performance with simplified interface
-- Compare performance with original tools
-- Identify any performance regressions
-
-### Load Testing
-- Test simplified tools under concurrent load
-- Verify no memory leaks or resource issues
-- Test error handling under stress conditions
-- Validate system stability with simplified tools
 
 This comprehensive testing ensures that the simplified tools deliver the promised functionality while maintaining all existing system capabilities and reliability guarantees.
 
