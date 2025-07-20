@@ -1,14 +1,15 @@
 ---
 kind: task
 id: T-create-task-id-resolution
+parent: F-direct-task-claiming
+status: done
 title: Create task ID resolution utility for cross-system lookup
-status: open
 priority: high
 prerequisites: []
 created: '2025-07-20T15:18:26.972930'
-updated: '2025-07-20T15:22:00.223773'
+updated: '2025-07-20T15:35:55.105099'
 schema_version: '1.1'
-parent: F-direct-task-claiming
+worktree: null
 ---
 ## Context
 
@@ -79,3 +80,7 @@ Create `tests/test_task_resolver.py` with:
 - Path resolution accuracy tests
 - Performance tests for large task hierarchies
 - Error handling tests for invalid IDs and non-existent tasks
+
+### Log
+**2025-07-20T20:43:12.797256Z** - Implemented comprehensive task ID resolution utility for cross-system lookup functionality. Created task_resolver.py module with three core functions: resolve_task_by_id for locating tasks across both hierarchical and standalone systems, validate_task_id_format for validating T- prefixed and standalone task ID formats, and normalize_task_id for consistent ID cleaning and normalization. Integrated with existing scanner infrastructure and security validation patterns. Added comprehensive unit tests covering cross-system lookup, ID validation, normalization, error handling, and edge cases. All quality checks pass (format, lint, typecheck, tests). This foundational utility enables the direct task claiming feature by providing reliable task ID resolution across both task systems.
+- filesChanged: ["src/trellis_mcp/task_resolver.py", "tests/test_task_resolver.py"]
