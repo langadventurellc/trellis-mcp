@@ -18,7 +18,7 @@ from .path_resolver import children_of, id_to_path, resolve_project_roots
 from .prune_logs import prune_logs
 from .scanner import scan_tasks
 from .server import create_server
-from .valid_kinds import VALID_KINDS
+from .types import VALID_KINDS
 
 
 @click.group(

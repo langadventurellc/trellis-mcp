@@ -10,7 +10,7 @@ from pathlib import Path
 from ..exceptions.validation_error import ValidationError, ValidationErrorCode
 from ..fs_utils import ensure_parent_dirs
 from ..path_resolver import resolve_project_roots
-from ..valid_kinds import VALID_KINDS
+from ..types import VALID_KINDS
 
 
 class PathBuilder:

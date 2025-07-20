@@ -7,7 +7,7 @@ hierarchical project structure (Projects → Epics → Features → Tasks).
 from pathlib import Path
 
 from .fs_utils import find_object_path
-from .valid_kinds import VALID_KINDS
+from .types import VALID_KINDS
 
 
 def resolve_project_roots(project_root: str | Path) -> tuple[Path, Path]:

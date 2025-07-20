@@ -143,7 +143,7 @@ def generate_id(kind: str, title: str, project_root: Path = Path("./planning")) 
     if not title or not title.strip():
         raise ValueError("Title cannot be empty")
 
-    from .valid_kinds import VALID_KINDS
+    from .types import VALID_KINDS
 
     if kind not in VALID_KINDS:
         raise ValueError(f"Invalid kind '{kind}'. Must be one of: {VALID_KINDS}")
