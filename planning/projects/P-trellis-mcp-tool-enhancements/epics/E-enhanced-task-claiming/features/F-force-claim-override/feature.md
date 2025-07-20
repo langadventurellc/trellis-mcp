@@ -2,12 +2,12 @@
 kind: feature
 id: F-force-claim-override
 title: Force Claim Override
-status: in-progress
+status: done
 priority: high
 prerequisites:
 - F-direct-task-claiming
 created: '2025-07-20T13:12:30.624894'
-updated: '2025-07-20T13:12:30.624894'
+updated: '2025-07-20T23:47:36.709823+00:00'
 schema_version: '1.1'
 parent: E-enhanced-task-claiming
 ---
