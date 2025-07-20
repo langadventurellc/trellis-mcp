@@ -121,7 +121,7 @@ Trellis MCP provides a comprehensive set of tools for AI assistants to manage hi
 #### Core MCP Tools
 
 - **`createObject`** - Create projects, epics, features, or tasks with validation
-- **`getObject`** - Retrieve detailed object information by kind and ID
+- **`getObject`** - Retrieve detailed object information with automatic type detection
 - **`updateObject`** - Modify object properties with atomic updates
 - **`listBacklog`** - Query and filter tasks across the project hierarchy
 - **`claimNextTask`** - Automatically claim highest-priority available task
@@ -192,7 +192,6 @@ const claimedTask = await mcp.call('claimNextTask', {
 
 // Update task progress
 await mcp.call('updateObject', {
-  kind: 'task',
   id: 'T-create-user-model',
   projectRoot: '.',
   yamlPatch: {
@@ -251,7 +250,6 @@ const urgentTasks = await mcp.call('listBacklog', {
 
 // Get task details with prerequisites
 const taskDetails = await mcp.call('getObject', {
-  kind: 'task',
   id: 'T-create-user-model',
   projectRoot: '.'
 });

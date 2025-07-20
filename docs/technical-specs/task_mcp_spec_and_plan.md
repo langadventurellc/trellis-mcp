@@ -157,8 +157,8 @@ All methods include an explicit `projectRoot` so one Trellis MCP instance can se
 | Method | Purpose / Side‑effect |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | **createObject** | Write a new Project/Epic/Feature/Task file. |
-| **getObject** | Fetch by kind & ID. |
-| **updateObject** | Patch YAML/body; also used to mark non‑task objects `done`. |
+| **getObject** | Fetch object with automatic kind inference from ID prefix (P-, E-, F-, T-). |
+| **updateObject** | Patch YAML/body with automatic kind inference; also used to mark non‑task objects `done`. |
 | **claimNextTask** | Atomically select highest‑priority `open` task (all prereqs done), set `status=in‑progress`, fill optional `worktree`. |
 | **getNextReviewableTask** | Pure query: return oldest `review` task. |
 | **completeTask** | Move file to *tasks-done/*, set `status=done`, append `filesChanged[]` to `### Log`. |

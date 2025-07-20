@@ -2,12 +2,12 @@
 kind: feature
 id: F-object-tool-simplification
 title: Object Tool Simplification
-status: in-progress
+status: done
 priority: normal
 prerequisites:
 - F-kind-inference-engine
 created: '2025-07-19T14:02:40.405263'
-updated: '2025-07-19T14:02:40.405263'
+updated: '2025-07-20T04:45:19.414018+00:00'
 schema_version: '1.1'
 parent: E-tool-interface-simplification
 ---
