@@ -9,6 +9,7 @@ from fastmcp import Client
 
 from trellis_mcp.claim_next_task import claim_next_task
 from trellis_mcp.exceptions.no_available_task import NoAvailableTask
+from trellis_mcp.exceptions.validation_error import ValidationError, ValidationErrorCode
 from trellis_mcp.models.common import Priority
 from trellis_mcp.schema.kind_enum import KindEnum
 from trellis_mcp.schema.status_enum import StatusEnum
@@ -443,26 +444,26 @@ class TestClaimNextTaskToolInterface:
         server = create_server(settings)
 
         async with Client(server) as client:
-            # Test valid project scope - should get NoAvailableTask, not validation error
+            # Test valid project scope - should get scope validation error since scope doesn't exist
             with pytest.raises(Exception) as exc_info:
                 await client.call_tool(
                     "claimNextTask", {"projectRoot": str(temp_dir), "scope": "P-valid-project"}
                 )
-            assert "No open tasks available" in str(exc_info.value)
+            assert "Scope object not found" in str(exc_info.value)
 
             # Test valid epic scope
             with pytest.raises(Exception) as exc_info:
                 await client.call_tool(
                     "claimNextTask", {"projectRoot": str(temp_dir), "scope": "E-valid-epic"}
                 )
-            assert "No open tasks available" in str(exc_info.value)
+            assert "Scope object not found" in str(exc_info.value)
 
             # Test valid feature scope
             with pytest.raises(Exception) as exc_info:
                 await client.call_tool(
                     "claimNextTask", {"projectRoot": str(temp_dir), "scope": "F-valid-feature"}
                 )
-            assert "No open tasks available" in str(exc_info.value)
+            assert "Scope object not found" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_invalid_scope_parameter_validation(self, temp_dir):
@@ -510,8 +511,8 @@ class TestClaimNextTaskToolInterface:
                     },
                 )
 
-            # Should get NoAvailableTask, not validation error
-            assert "No open tasks available" in str(exc_info.value)
+            # Should get scope validation error since scope doesn't exist
+            assert "Scope object not found" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_missing_project_root_validation(self, temp_dir):
@@ -533,3 +534,88 @@ class TestClaimNextTaskToolInterface:
                     "claimNextTask", {"projectRoot": "   ", "scope": "P-test-project"}
                 )
             assert "Project root cannot be empty" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_scope_parameter_passed_to_core_function(self, temp_dir):
+        """Test that scope parameter is properly passed from tool to core function."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        with patch("trellis_mcp.tools.claim_next_task.claim_next_task") as mock_core:
+            # Mock core function to raise NoAvailableTask to verify it was called with scope
+            mock_core.side_effect = NoAvailableTask("No tasks available")
+
+            async with Client(server) as client:
+                with pytest.raises(Exception) as exc_info:
+                    await client.call_tool(
+                        "claimNextTask", {"projectRoot": str(temp_dir), "scope": "F-test-feature"}
+                    )
+
+                # Verify core function was called with scope parameter
+                mock_core.assert_called_once_with(str(temp_dir), "", "F-test-feature")
+
+                # Should get NoAvailableTask, not validation error
+                assert "No tasks available" in str(exc_info.value)
+
+
+class TestClaimNextTaskScopeFiltering:
+    """Test scope filtering functionality in the core claim_next_task function."""
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task.is_unblocked")
+    @patch("trellis_mcp.claim_next_task.filter_by_scope")
+    @patch("trellis_mcp.claim_next_task.validate_scope_exists")
+    def test_scope_filtering_uses_filter_by_scope(
+        self, mock_validate, mock_filter, mock_unblocked, mock_write
+    ):
+        """Test that providing scope uses filter_by_scope instead of scan_tasks."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        task = create_test_task("T-001", Priority.NORMAL, base_time)
+
+        mock_validate.return_value = None  # Valid scope
+        mock_filter.return_value = [task]
+        mock_unblocked.return_value = True
+
+        result = claim_next_task("/test/project", scope="F-test-feature")
+
+        # Verify scope validation was called
+        mock_validate.assert_called_once_with(Path("/test/project"), "F-test-feature")
+
+        # Verify filter_by_scope was called instead of scan_tasks
+        mock_filter.assert_called_once_with(Path("/test"), "F-test-feature")
+
+        assert result.id == "T-001"
+        assert result.status == StatusEnum.IN_PROGRESS
+
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task.is_unblocked")
+    def test_no_scope_uses_scan_tasks(self, mock_unblocked, mock_write, mock_scan):
+        """Test that no scope parameter maintains existing scan_tasks behavior."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        task = create_test_task("T-001", Priority.NORMAL, base_time)
+
+        mock_scan.return_value = [task]
+        mock_unblocked.return_value = True
+
+        result = claim_next_task("/test/project")  # No scope parameter
+
+        # Verify scan_tasks was called (backward compatibility)
+        mock_scan.assert_called_once_with(Path("/test"))
+
+        assert result.id == "T-001"
+        assert result.status == StatusEnum.IN_PROGRESS
+
+    @patch("trellis_mcp.claim_next_task.validate_scope_exists")
+    def test_invalid_scope_raises_validation_error(self, mock_validate):
+        """Test that invalid scope raises ValidationError with specific message."""
+        mock_validate.side_effect = ValidationError(
+            errors=["Scope object not found: F-nonexistent"],
+            error_codes=[ValidationErrorCode.INVALID_FIELD],
+        )
+
+        with pytest.raises(ValidationError) as exc_info:
+            claim_next_task("/test/project", scope="F-nonexistent")
+
+        assert "Scope object not found: F-nonexistent" in str(exc_info.value)
+        mock_validate.assert_called_once_with(Path("/test/project"), "F-nonexistent")

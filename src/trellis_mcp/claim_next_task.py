@@ -9,6 +9,8 @@ from pathlib import Path
 
 from .dependency_resolver import is_unblocked
 from .exceptions.no_available_task import NoAvailableTask
+from .exceptions.validation_error import ValidationError, ValidationErrorCode
+from .filters import filter_by_scope, validate_scope_exists
 from .object_dumper import write_object
 from .path_resolver import resolve_project_roots
 from .scanner import scan_tasks
@@ -17,7 +19,9 @@ from .schema.task import TaskModel
 from .task_sorter import sort_tasks_by_priority
 
 
-def claim_next_task(project_root: str | Path, worktree_path: str | None = None) -> TaskModel:
+def claim_next_task(
+    project_root: str | Path, worktree_path: str | None = None, scope: str | None = None
+) -> TaskModel:
     """Claim the next highest-priority unblocked task.
 
     Atomically selects the highest-priority open task where all prerequisites
@@ -28,17 +32,21 @@ def claim_next_task(project_root: str | Path, worktree_path: str | None = None) 
     standalone tasks (at the root level). Standalone tasks are prioritized
     over hierarchical tasks when both have the same priority.
 
+    When scope is provided, only tasks within that scope boundary are eligible
+    for claiming. Scope validation uses the kind inference engine.
+
     Args:
         project_root: Root directory of the planning structure
         worktree_path: Optional worktree identifier to stamp on the claimed task
+        scope: Optional scope ID (P-, E-, F-) to filter tasks by parent boundaries
 
     Returns:
         TaskModel: The updated task object with status=in-progress
 
     Raises:
         NoAvailableTask: If no unblocked tasks are available for claiming
+        ValidationError: If scope is invalid or task data is invalid
         OSError: If file operations fail
-        ValidationError: If task data is invalid
 
     Example:
         >>> from pathlib import Path
@@ -50,26 +58,56 @@ def claim_next_task(project_root: str | Path, worktree_path: str | None = None) 
         <StatusEnum.IN_PROGRESS: 'in-progress'>
         >>> task.worktree
         '/workspace/feature-branch'
+
+        >>> # Claim task within specific scope
+        >>> scoped_task = claim_next_task(project_root, scope="F-user-auth")
+        >>> print(f"Claimed within scope: {scoped_task.title}")
+        Claimed within scope: Create login form
     """
     # Resolve project root to planning directory
     scanning_root, planning_root = resolve_project_roots(project_root)
 
-    # Load all tasks from both hierarchical and standalone locations
-    all_tasks = list(scan_tasks(scanning_root))
+    # Validate scope if provided
+    if scope and scope.strip():
+        try:
+            validate_scope_exists(planning_root, scope.strip())
+        except ValidationError:
+            # Re-raise with more specific context for claiming
+            raise ValidationError(
+                errors=[f"Scope object not found: {scope.strip()}"],
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={"scope": scope.strip(), "operation": "claim_next_task"},
+            )
+
+    # Use scope-aware task discovery if scope provided
+    if scope and scope.strip():
+        all_tasks = list(filter_by_scope(scanning_root, scope.strip()))
+    else:
+        # Load all tasks from both hierarchical and standalone locations
+        all_tasks = list(scan_tasks(scanning_root))
 
     # Filter to only open tasks (scanner returns all tasks, so we need to filter)
     open_tasks = [task for task in all_tasks if task.status == StatusEnum.OPEN]
 
     if not open_tasks:
-        raise NoAvailableTask("No open tasks available in backlog")
+        if scope and scope.strip():
+            raise NoAvailableTask(f"No open tasks available within scope: {scope.strip()}")
+        else:
+            raise NoAvailableTask("No open tasks available in backlog")
 
     # Filter to only unblocked tasks (all prerequisites completed)
     unblocked_tasks = [task for task in open_tasks if is_unblocked(task, planning_root)]
 
     if not unblocked_tasks:
-        raise NoAvailableTask(
-            "No unblocked tasks available - all open tasks have incomplete prerequisites"
-        )
+        if scope and scope.strip():
+            raise NoAvailableTask(
+                f"No unblocked tasks available within scope {scope.strip()} - "
+                "all open tasks have incomplete prerequisites"
+            )
+        else:
+            raise NoAvailableTask(
+                "No unblocked tasks available - all open tasks have incomplete prerequisites"
+            )
 
     # Sort by priority (high first) and creation date (older first)
     sorted_tasks = sort_tasks_by_priority(unblocked_tasks)

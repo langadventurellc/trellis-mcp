@@ -74,14 +74,15 @@ def create_claim_next_task_tool(settings: Settings):
             )
 
         # Validate scope parameter format if provided
+        scope_param = None
         if scope and scope.strip():
             from ..models.filter_params import FilterParams
 
             try:
                 # Use FilterParams for consistent scope validation
                 filter_params = FilterParams(scope=scope.strip())
-                # scope_param will be passed to enhanced core logic in future task
-                _ = filter_params.scope  # Validate format, but don't use yet
+                # Use the validated scope value from FilterParams
+                scope_param = filter_params.scope
             except Exception as e:
                 raise ValidationError(
                     errors=[f"Invalid scope parameter: {str(e)}"],
@@ -89,10 +90,9 @@ def create_claim_next_task_tool(settings: Settings):
                     context={"field": "scope", "value": scope},
                 ) from e
 
-        # Call the core claim_next_task function
-        # Note: scope_param will be passed to enhanced core logic in future task
+        # Call the core claim_next_task function with validated scope parameter
         try:
-            claimed_task = claim_next_task(projectRoot, worktree)
+            claimed_task = claim_next_task(projectRoot, worktree, scope_param)
         except NoAvailableTask as e:
             raise ValidationError(
                 errors=[str(e)],

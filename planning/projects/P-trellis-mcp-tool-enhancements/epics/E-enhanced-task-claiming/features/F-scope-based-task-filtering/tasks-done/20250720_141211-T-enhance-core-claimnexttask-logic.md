@@ -1,16 +1,17 @@
 ---
 kind: task
 id: T-enhance-core-claimnexttask-logic
+parent: F-scope-based-task-filtering
+status: done
 title: Enhance core claimNextTask logic with scope filtering
-status: open
 priority: high
 prerequisites:
 - T-add-scope-filtering-capability
 - T-update-claimnexttask-tool
 created: '2025-07-20T13:20:21.191222'
-updated: '2025-07-20T13:20:21.191222'
+updated: '2025-07-20T14:01:32.397883'
 schema_version: '1.1'
-parent: F-scope-based-task-filtering
+worktree: null
 ---
 ## Context
 
@@ -92,3 +93,6 @@ Create unit tests in `tests/test_claim_next_task.py`:
 
 ### Log
 
+
+**2025-07-20T19:12:11.002048Z** - Enhanced the core claim_next_task function to support scope filtering, enabling task claiming within specific hierarchical boundaries (Project, Epic, or Feature). Added optional scope parameter with validation, conditional task discovery using filter_by_scope() when scope is provided, and maintained backward compatibility when no scope specified. Updated tool interface to pass scope parameter to core function. Added comprehensive test coverage including scope validation, task discovery patterns, priority preservation, and error handling. All tests passing and quality checks successful.
+- filesChanged: ["src/trellis_mcp/claim_next_task.py", "src/trellis_mcp/tools/claim_next_task.py", "tests/unit/tools/test_claim_next_task.py"]
