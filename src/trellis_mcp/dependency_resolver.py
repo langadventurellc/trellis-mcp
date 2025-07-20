@@ -7,8 +7,8 @@ by checking the completion status of all its prerequisites.
 from pathlib import Path
 from typing import Any, cast
 
-from .id_utils import clean_prerequisite_id
 from .schema.task import TaskModel
+from .utils.id_utils import clean_prerequisite_id
 from .validation import get_all_objects
 
 

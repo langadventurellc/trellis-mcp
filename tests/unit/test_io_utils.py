@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from trellis_mcp.io_utils import read_markdown, write_markdown
+from trellis_mcp.utils.io_utils import read_markdown, write_markdown
 
 
 class TestReadMarkdown:

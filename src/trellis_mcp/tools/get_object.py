@@ -12,9 +12,9 @@ from pydantic import Field
 
 from ..exceptions.validation_error import ValidationError, ValidationErrorCode
 from ..inference import KindInferenceEngine
-from ..io_utils import read_markdown
 from ..path_resolver import discover_immediate_children, id_to_path, resolve_project_roots
 from ..settings import Settings
+from ..utils.io_utils import read_markdown
 
 
 def create_get_object_tool(settings: Settings):

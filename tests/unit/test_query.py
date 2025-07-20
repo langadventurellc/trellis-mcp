@@ -2,13 +2,13 @@
 
 from datetime import datetime
 
-from trellis_mcp.io_utils import write_markdown
 from trellis_mcp.models.common import Priority
 from trellis_mcp.query import get_oldest_review, is_reviewable
 from trellis_mcp.schema.feature import FeatureModel
 from trellis_mcp.schema.kind_enum import KindEnum
 from trellis_mcp.schema.status_enum import StatusEnum
 from trellis_mcp.schema.task import TaskModel
+from trellis_mcp.utils.io_utils import write_markdown
 
 
 def test_is_reviewable_with_review_status():

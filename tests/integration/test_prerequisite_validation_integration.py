@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from trellis_mcp.exceptions.validation_error import ValidationError, ValidationErrorCode
-from trellis_mcp.io_utils import write_markdown
+from trellis_mcp.utils.io_utils import write_markdown
 from trellis_mcp.validation.enhanced_validation import (
     validate_object_data_enhanced,
     validate_object_data_with_collector,

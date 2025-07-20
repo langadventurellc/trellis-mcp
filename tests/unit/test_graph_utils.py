@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from trellis_mcp.graph_utils import DependencyGraph
+from trellis_mcp.utils.graph_utils import DependencyGraph
 
 
 class TestDependencyGraph:
@@ -39,8 +39,8 @@ class TestDependencyGraph:
         # Original should be unchanged
         assert graph._objects == {"a": {"id": "a"}, "b": {"id": "b"}}
 
-    @patch("trellis_mcp.graph_utils.get_all_objects")
-    @patch("trellis_mcp.graph_utils.build_prerequisites_graph")
+    @patch("trellis_mcp.utils.graph_utils.get_all_objects")
+    @patch("trellis_mcp.utils.graph_utils.build_prerequisites_graph")
     def test_build_success(self, mock_build_graph, mock_get_objects):
         """Test successful graph building."""
         # Mock the dependencies
@@ -65,7 +65,7 @@ class TestDependencyGraph:
         assert graph._objects == mock_objects
         assert graph._graph == mock_graph
 
-    @patch("trellis_mcp.graph_utils.get_all_objects")
+    @patch("trellis_mcp.utils.graph_utils.get_all_objects")
     def test_build_file_not_found_error(self, mock_get_objects):
         """Test that build raises FileNotFoundError when project root doesn't exist."""
         mock_get_objects.side_effect = FileNotFoundError("Project root not found")
@@ -74,7 +74,7 @@ class TestDependencyGraph:
         with pytest.raises(FileNotFoundError, match="Project root not found"):
             graph.build("/nonexistent/path")
 
-    @patch("trellis_mcp.graph_utils.get_all_objects")
+    @patch("trellis_mcp.utils.graph_utils.get_all_objects")
     def test_build_value_error(self, mock_get_objects):
         """Test that build raises ValueError when object parsing fails."""
         mock_get_objects.side_effect = ValueError("Object parsing failed")
@@ -104,8 +104,10 @@ class TestDependencyGraph:
 
     def test_build_accepts_path_object(self):
         """Test that build method accepts Path objects."""
-        with patch("trellis_mcp.graph_utils.get_all_objects") as mock_get_objects:
-            with patch("trellis_mcp.graph_utils.build_prerequisites_graph") as mock_build_graph:
+        with patch("trellis_mcp.utils.graph_utils.get_all_objects") as mock_get_objects:
+            with patch(
+                "trellis_mcp.utils.graph_utils.build_prerequisites_graph"
+            ) as mock_build_graph:
                 mock_get_objects.return_value = {}
                 mock_build_graph.return_value = {}
 
@@ -117,8 +119,10 @@ class TestDependencyGraph:
 
     def test_build_accepts_string_path(self):
         """Test that build method accepts string paths."""
-        with patch("trellis_mcp.graph_utils.get_all_objects") as mock_get_objects:
-            with patch("trellis_mcp.graph_utils.build_prerequisites_graph") as mock_build_graph:
+        with patch("trellis_mcp.utils.graph_utils.get_all_objects") as mock_get_objects:
+            with patch(
+                "trellis_mcp.utils.graph_utils.build_prerequisites_graph"
+            ) as mock_build_graph:
                 mock_get_objects.return_value = {}
                 mock_build_graph.return_value = {}
 

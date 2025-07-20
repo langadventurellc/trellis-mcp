@@ -422,7 +422,7 @@ def validate_standalone_task_path_parameters(task_id: str, status: str | None = 
         >>> validate_standalone_task_path_parameters("valid-task", "invalid-status")
         ['Invalid status parameter for directory resolution']
     """
-    from ..id_utils import validate_id_charset
+    from ..utils.id_utils import validate_id_charset
 
     errors = []
 
@@ -598,7 +598,7 @@ def validate_prerequisite_existence(
         False
     """
     from ..exceptions.validation_error import ValidationErrorCode
-    from ..id_utils import clean_prerequisite_id
+    from ..utils.id_utils import clean_prerequisite_id
     from .object_loader import get_all_objects
 
     if not prerequisites:
@@ -668,7 +668,7 @@ def _validate_prerequisite_id_security(prereq_id: str) -> list[str]:
     Returns:
         List of security validation errors
     """
-    from ..id_utils import validate_id_charset
+    from ..utils.id_utils import validate_id_charset
 
     errors = []
 

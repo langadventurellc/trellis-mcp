@@ -11,11 +11,11 @@ from pathlib import Path
 from .dependency_resolver import is_unblocked
 from .exceptions.invalid_status_for_completion import InvalidStatusForCompletion
 from .exceptions.prerequisites_not_complete import PrerequisitesNotComplete
-from .io_utils import read_markdown, write_markdown
 from .object_parser import parse_object
 from .path_resolver import id_to_path, resolve_path_for_new_object, resolve_project_roots
 from .schema.status_enum import StatusEnum
 from .schema.task import TaskModel
+from .utils.io_utils import read_markdown, write_markdown
 
 
 def complete_task(

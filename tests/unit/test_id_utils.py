@@ -6,7 +6,7 @@ functions for Trellis MCP object IDs.
 
 import pytest
 
-from trellis_mcp.id_utils import (
+from trellis_mcp.utils.id_utils import (
     DuplicateIDError,
     clean_prerequisite_id,
     generate_id,

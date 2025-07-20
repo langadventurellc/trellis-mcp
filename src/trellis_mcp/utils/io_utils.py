@@ -11,7 +11,7 @@ from typing import Any
 
 import yaml
 
-from .markdown_loader import load_markdown
+from ..markdown_loader import load_markdown
 
 
 def read_markdown(path: str | Path) -> tuple[dict[str, Any], str]:
@@ -141,7 +141,7 @@ def _serialize_yaml_dict(yaml_dict: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Dictionary with properly serialized values for YAML
     """
-    from .models.common import Priority
+    from ..models.common import Priority
 
     serialized = {}
 

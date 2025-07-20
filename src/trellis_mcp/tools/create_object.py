@@ -10,12 +10,12 @@ from datetime import datetime
 from fastmcp import FastMCP
 
 from ..exceptions.validation_error import ValidationError, ValidationErrorCode
-from ..fs_utils import ensure_parent_dirs
-from ..graph_utils import DependencyGraph
-from ..id_utils import generate_id
-from ..io_utils import write_markdown
 from ..path_resolver import resolve_path_for_new_object, resolve_project_roots
 from ..settings import Settings
+from ..utils.fs_utils import ensure_parent_dirs
+from ..utils.graph_utils import DependencyGraph
+from ..utils.id_utils import generate_id
+from ..utils.io_utils import write_markdown
 from ..validation import (
     TrellisValidationError,
     validate_front_matter,

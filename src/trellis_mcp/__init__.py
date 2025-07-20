@@ -5,9 +5,9 @@ Projects → Epics → Features → Tasks stored as Markdown files with
 YAML front-matter.
 """
 
-from .id_utils import clean_prerequisite_id
 from .object_dumper import dump_object, write_object
 from .object_parser import parse_object
+from .utils.id_utils import clean_prerequisite_id
 from .validation import (
     CircularDependencyError,
     PerformanceBenchmark,

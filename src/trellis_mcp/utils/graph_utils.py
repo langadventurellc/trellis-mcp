@@ -8,7 +8,7 @@ acyclic prerequisites as required by the Trellis MCP specification.
 from pathlib import Path
 from typing import Any
 
-from .validation import (
+from ..validation import (
     build_prerequisites_graph,
     get_all_objects,
 )

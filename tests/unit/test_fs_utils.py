@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from trellis_mcp.fs_utils import ensure_parent_dirs, recursive_delete
+from trellis_mcp.utils.fs_utils import ensure_parent_dirs, recursive_delete
 
 
 class TestEnsureParentDirs:

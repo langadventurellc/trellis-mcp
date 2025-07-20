@@ -13,12 +13,12 @@ from pydantic import Field
 from ..exceptions.cascade_error import CascadeError
 from ..exceptions.protected_object_error import ProtectedObjectError
 from ..exceptions.validation_error import ValidationError, ValidationErrorCode
-from ..fs_utils import recursive_delete
-from ..graph_utils import DependencyGraph
 from ..inference import KindInferenceEngine
-from ..io_utils import read_markdown, write_markdown
 from ..path_resolver import children_of, id_to_path, resolve_project_roots
 from ..settings import Settings
+from ..utils.fs_utils import recursive_delete
+from ..utils.graph_utils import DependencyGraph
+from ..utils.io_utils import read_markdown, write_markdown
 from ..validation import (
     TrellisValidationError,
     enforce_status_transition,

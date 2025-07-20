@@ -8,9 +8,9 @@ object structures while integrating with existing security validation.
 from pathlib import Path
 
 from ..exceptions.validation_error import ValidationError, ValidationErrorCode
-from ..fs_utils import ensure_parent_dirs
 from ..path_resolver import resolve_project_roots
 from ..types import VALID_KINDS
+from ..utils.fs_utils import ensure_parent_dirs
 
 
 class PathBuilder:

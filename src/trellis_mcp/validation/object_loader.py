@@ -27,8 +27,8 @@ def get_all_objects(project_root: str | Path, include_mtimes: bool = False):
         FileNotFoundError: If the project root doesn't exist
         ValueError: If object parsing fails
     """
-    from ..id_utils import clean_prerequisite_id
     from ..object_parser import parse_object
+    from ..utils.id_utils import clean_prerequisite_id
 
     project_root_path = Path(project_root)
     if not project_root_path.exists():
