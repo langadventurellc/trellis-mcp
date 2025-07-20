@@ -19,10 +19,36 @@ from .schema.task import TaskModel
 from .task_sorter import sort_tasks_by_priority
 
 
+def _find_task_by_id(project_root: Path, task_id: str) -> TaskModel | None:
+    """Find a specific task by ID in the project.
+
+    Searches both hierarchical and standalone tasks for the specified task ID.
+
+    Args:
+        project_root: Root directory of the planning structure
+        task_id: Task ID to search for (T- prefixed or standalone format)
+
+    Returns:
+        TaskModel if found, None otherwise
+    """
+    # Load all tasks from both hierarchical and standalone locations
+    all_tasks = list(scan_tasks(project_root))
+
+    # Search for task with matching ID
+    for task in all_tasks:
+        if task.id == task_id:
+            return task
+
+    return None
+
+
 def claim_next_task(
-    project_root: str | Path, worktree_path: str | None = None, scope: str | None = None
+    project_root: str | Path,
+    worktree_path: str | None = None,
+    scope: str | None = None,
+    task_id: str | None = None,
 ) -> TaskModel:
-    """Claim the next highest-priority unblocked task.
+    """Claim the next highest-priority unblocked task or a specific task by ID.
 
     Atomically selects the highest-priority open task where all prerequisites
     are completed, updates its status to 'in-progress', optionally stamps the
@@ -32,19 +58,21 @@ def claim_next_task(
     standalone tasks (at the root level). Standalone tasks are prioritized
     over hierarchical tasks when both have the same priority.
 
-    When scope is provided, only tasks within that scope boundary are eligible
-    for claiming. Scope validation uses the kind inference engine.
+    When task_id is provided, claims that specific task directly, bypassing
+    priority-based selection. When scope is provided, only tasks within that
+    scope boundary are eligible for claiming.
 
     Args:
         project_root: Root directory of the planning structure
         worktree_path: Optional worktree identifier to stamp on the claimed task
         scope: Optional scope ID (P-, E-, F-) to filter tasks by parent boundaries
+        task_id: Optional task ID to claim directly (T- prefixed or standalone format)
 
     Returns:
         TaskModel: The updated task object with status=in-progress
 
     Raises:
-        NoAvailableTask: If no unblocked tasks are available for claiming
+        NoAvailableTask: If no unblocked tasks are available for claiming or task_id not found
         ValidationError: If scope is invalid or task data is invalid
         OSError: If file operations fail
 
@@ -66,6 +94,36 @@ def claim_next_task(
     """
     # Resolve project root to planning directory
     scanning_root, planning_root = resolve_project_roots(project_root)
+
+    # Handle direct task claiming by ID if task_id is provided
+    if task_id and task_id.strip():
+        task_id = task_id.strip()
+
+        # Find the specific task by ID
+        target_task = _find_task_by_id(scanning_root, task_id)
+        if not target_task:
+            raise NoAvailableTask(f"Task not found: {task_id}")
+
+        # Validate task is in open status
+        if target_task.status != StatusEnum.OPEN:
+            raise NoAvailableTask(
+                f"Task {task_id} is not available for claiming (status: {target_task.status.value})"
+            )
+
+        # Validate task is unblocked (all prerequisites completed)
+        if not is_unblocked(target_task, planning_root):
+            raise NoAvailableTask(f"Task {task_id} cannot be claimed - prerequisites not completed")
+
+        # Update task metadata
+        target_task.status = StatusEnum.IN_PROGRESS
+        target_task.updated = datetime.now()
+        if worktree_path and worktree_path.strip():
+            target_task.worktree = worktree_path
+
+        # Atomically write the updated task to filesystem
+        write_object(target_task, planning_root)
+
+        return target_task
 
     # Validate scope if provided
     if scope and scope.strip():

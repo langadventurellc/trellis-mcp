@@ -118,7 +118,6 @@ def claim_specific_task(project_root: str, task_id: str, worktree: str = ""):
 - Claiming tasks with complex prerequisite chains
 - Handling deleted or moved tasks during claiming
 - Recovery from partial claiming failures
-- Performance with large numbers of tasks
 
 ## Security Considerations
 

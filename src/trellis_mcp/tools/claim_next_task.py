@@ -29,13 +29,17 @@ def create_claim_next_task_tool(settings: Settings):
         projectRoot: str,
         worktree: str = "",
         scope: str = "",
+        taskId: str = "",
     ) -> dict[str, str | dict[str, str]]:
         """Claim the next highest-priority open task with all prerequisites completed.
 
         Enhanced with scope-based task filtering to limit claiming to specific hierarchical
-        boundaries. Atomically selects the highest-priority open task (where all prerequisites
-        have status='done'), sets its status to 'in-progress', and optionally stamps the
-        worktree field.
+        boundaries and direct task claiming by ID. Atomically selects the highest-priority
+        open task (where all prerequisites have status='done'), sets its status to 'in-progress',
+        and optionally stamps the worktree field.
+
+        When taskId is provided, claims the specific task directly, bypassing priority-based
+        selection.
 
         Supports cross-system prerequisite validation, checking prerequisites across
         both hierarchical tasks (within project/epic/feature structure) and standalone
@@ -62,6 +66,9 @@ def create_claim_next_task_tool(settings: Settings):
                 - E-<epic-id>: Claim tasks within epic and its features (hierarchical only)
                 - F-<feature-id>: Claim tasks only within specific feature (hierarchical only)
                 - Empty/omitted: No scope filtering (existing behavior preserved)
+            taskId: Optional task ID to claim directly (T- prefixed or standalone format).
+                If provided, claims specific task instead of priority-based selection.
+                Empty/omitted: Uses priority-based selection (existing behavior preserved)
 
         Usage Examples:
             # Claim any available task (no scope filtering)
@@ -155,9 +162,10 @@ def create_claim_next_task_tool(settings: Settings):
                     context={"field": "scope", "value": scope},
                 ) from e
 
-        # Call the core claim_next_task function with validated scope parameter
+        # Call the core claim_next_task function with validated scope and task_id parameters
+        task_id_param = taskId.strip() if taskId and taskId.strip() else None
         try:
-            claimed_task = claim_next_task(projectRoot, worktree, scope_param)
+            claimed_task = claim_next_task(projectRoot, worktree, scope_param, task_id_param)
         except NoAvailableTask as e:
             raise ValidationError(
                 errors=[str(e)],

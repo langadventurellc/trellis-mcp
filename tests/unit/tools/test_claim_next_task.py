@@ -552,7 +552,7 @@ class TestClaimNextTaskToolInterface:
                     )
 
                 # Verify core function was called with scope parameter
-                mock_core.assert_called_once_with(str(temp_dir), "", "F-test-feature")
+                mock_core.assert_called_once_with(str(temp_dir), "", "F-test-feature", None)
 
                 # Should get NoAvailableTask, not validation error
                 assert "No tasks available" in str(exc_info.value)
@@ -619,3 +619,239 @@ class TestClaimNextTaskScopeFiltering:
 
         assert "Scope object not found: F-nonexistent" in str(exc_info.value)
         mock_validate.assert_called_once_with(Path("/test"), "F-nonexistent")
+
+
+class TestClaimNextTaskDirectClaiming:
+    """Test direct task claiming by ID functionality."""
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task.is_unblocked")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_direct_task_claiming_success(self, mock_find, mock_unblocked, mock_write):
+        """Test successful direct task claiming by ID."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        target_task = create_test_task("T-target", Priority.NORMAL, base_time, title="Target task")
+
+        mock_find.return_value = target_task
+        mock_unblocked.return_value = True
+
+        result = claim_next_task("/test/project", task_id="T-target")
+
+        assert result.id == "T-target"
+        assert result.status == StatusEnum.IN_PROGRESS
+        mock_find.assert_called_once_with(Path("/test"), "T-target")
+        mock_unblocked.assert_called_once_with(target_task, Path("/test/project"))
+        mock_write.assert_called_once_with(result, Path("/test/project"))
+
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_direct_task_claiming_not_found(self, mock_find):
+        """Test direct task claiming when task ID is not found."""
+        mock_find.return_value = None
+
+        with pytest.raises(NoAvailableTask) as exc_info:
+            claim_next_task("/test/project", task_id="T-nonexistent")
+
+        assert "Task not found: T-nonexistent" in str(exc_info.value)
+        mock_find.assert_called_once_with(Path("/test"), "T-nonexistent")
+
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_direct_task_claiming_wrong_status(self, mock_find):
+        """Test direct task claiming when task has wrong status."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        in_progress_task = create_test_task(
+            "T-busy", Priority.NORMAL, base_time, status=StatusEnum.IN_PROGRESS
+        )
+
+        mock_find.return_value = in_progress_task
+
+        with pytest.raises(NoAvailableTask) as exc_info:
+            claim_next_task("/test/project", task_id="T-busy")
+
+        assert "Task T-busy is not available for claiming (status: in-progress)" in str(
+            exc_info.value
+        )
+
+    @patch("trellis_mcp.claim_next_task.is_unblocked")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_direct_task_claiming_blocked_prerequisites(self, mock_find, mock_unblocked):
+        """Test direct task claiming when task has incomplete prerequisites."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        blocked_task = create_test_task(
+            "T-blocked", Priority.NORMAL, base_time, prerequisites=["T-prereq"]
+        )
+
+        mock_find.return_value = blocked_task
+        mock_unblocked.return_value = False
+
+        with pytest.raises(NoAvailableTask) as exc_info:
+            claim_next_task("/test/project", task_id="T-blocked")
+
+        assert "Task T-blocked cannot be claimed - prerequisites not completed" in str(
+            exc_info.value
+        )
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task.is_unblocked")
+    @patch("trellis_mcp.claim_next_task._find_task_by_id")
+    def test_direct_task_claiming_with_worktree(self, mock_find, mock_unblocked, mock_write):
+        """Test direct task claiming with worktree parameter."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        target_task = create_test_task("T-target", Priority.NORMAL, base_time)
+
+        mock_find.return_value = target_task
+        mock_unblocked.return_value = True
+
+        result = claim_next_task(
+            "/test/project", worktree_path="/workspace/feature", task_id="T-target"
+        )
+
+        assert result.id == "T-target"
+        assert result.status == StatusEnum.IN_PROGRESS
+        assert result.worktree == "/workspace/feature"
+
+    @patch("trellis_mcp.claim_next_task.write_object")
+    @patch("trellis_mcp.claim_next_task.is_unblocked")
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_empty_task_id_uses_priority_selection(self, mock_scan, mock_unblocked, mock_write):
+        """Test that empty task_id parameter maintains existing priority-based behavior."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+        # Create fresh task objects for each test to avoid mutation issues
+        def create_fresh_task():
+            return create_test_task("T-001", Priority.NORMAL, base_time)
+
+        mock_unblocked.return_value = True
+
+        # Test with empty string
+        task1 = create_fresh_task()
+        mock_scan.return_value = [task1]
+        result = claim_next_task("/test/project", task_id="")
+        assert result.id == "T-001"
+
+        # Test with None
+        task2 = create_fresh_task()
+        mock_scan.return_value = [task2]
+        result = claim_next_task("/test/project", task_id=None)
+        assert result.id == "T-001"
+
+        # Test with whitespace
+        task3 = create_fresh_task()
+        mock_scan.return_value = [task3]
+        result = claim_next_task("/test/project", task_id="   ")
+        assert result.id == "T-001"
+
+
+class TestClaimNextTaskToolInterfaceTaskId:
+    """Test claimNextTask tool interface with taskId parameter."""
+
+    @pytest.mark.asyncio
+    async def test_empty_task_id_parameter_maintains_existing_behavior(self, temp_dir):
+        """Test that empty taskId parameter maintains existing behavior (backward compatibility)."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Test with empty taskId parameter - should get NoAvailableTask error
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask", {"projectRoot": str(temp_dir), "taskId": ""}
+                )
+
+            # Should get the expected NoAvailableTask error, not a validation error
+            assert "No open tasks available" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_task_id_parameter_passed_to_core_function(self, temp_dir):
+        """Test that taskId parameter is properly passed from tool to core function."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        with patch("trellis_mcp.tools.claim_next_task.claim_next_task") as mock_core:
+            # Mock core function to raise NoAvailableTask to verify it was called with task_id
+            mock_core.side_effect = NoAvailableTask("Task not found")
+
+            async with Client(server) as client:
+                with pytest.raises(Exception) as exc_info:
+                    await client.call_tool(
+                        "claimNextTask", {"projectRoot": str(temp_dir), "taskId": "T-test-task"}
+                    )
+
+                # Verify core function was called with task_id parameter
+                mock_core.assert_called_once_with(str(temp_dir), "", None, "T-test-task")
+
+                # Should get NoAvailableTask, not validation error
+                assert "Task not found" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_task_id_with_scope_and_worktree(self, temp_dir):
+        """Test that taskId parameter works correctly with scope and worktree parameters."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        with patch("trellis_mcp.tools.claim_next_task.claim_next_task") as mock_core:
+            mock_core.side_effect = NoAvailableTask("Task not found")
+
+            async with Client(server) as client:
+                with pytest.raises(Exception):
+                    await client.call_tool(
+                        "claimNextTask",
+                        {
+                            "projectRoot": str(temp_dir),
+                            "taskId": "T-test-task",
+                            "scope": "F-test-feature",
+                            "worktree": "/workspace/feature-branch",
+                        },
+                    )
+
+                # Verify all parameters are passed correctly
+                mock_core.assert_called_once_with(
+                    str(temp_dir), "/workspace/feature-branch", "F-test-feature", "T-test-task"
+                )
+
+
+class TestTaskResolutionFunction:
+    """Test the _find_task_by_id helper function."""
+
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_find_task_by_id_success(self, mock_scan):
+        """Test successful task finding by ID."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        task1 = create_test_task("T-001", Priority.NORMAL, base_time)
+        task2 = create_test_task("T-002", Priority.HIGH, base_time)
+        target_task = create_test_task("T-target", Priority.LOW, base_time)
+
+        mock_scan.return_value = [task1, task2, target_task]
+
+        from trellis_mcp.claim_next_task import _find_task_by_id
+
+        result = _find_task_by_id(Path("/test"), "T-target")
+
+        assert result is target_task
+        assert result is not None
+        assert result.id == "T-target"
+
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_find_task_by_id_not_found(self, mock_scan):
+        """Test task finding when ID doesn't exist."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        task1 = create_test_task("T-001", Priority.NORMAL, base_time)
+        task2 = create_test_task("T-002", Priority.HIGH, base_time)
+
+        mock_scan.return_value = [task1, task2]
+
+        from trellis_mcp.claim_next_task import _find_task_by_id
+
+        result = _find_task_by_id(Path("/test"), "T-nonexistent")
+
+        assert result is None
+
+    @patch("trellis_mcp.claim_next_task.scan_tasks")
+    def test_find_task_by_id_empty_list(self, mock_scan):
+        """Test task finding when no tasks exist."""
+        mock_scan.return_value = []
+
+        from trellis_mcp.claim_next_task import _find_task_by_id
+
+        result = _find_task_by_id(Path("/test"), "T-any")
+
+        assert result is None
