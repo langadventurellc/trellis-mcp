@@ -136,6 +136,7 @@ class TestFilterParams:
         assert data == {
             "status": [StatusEnum.OPEN, StatusEnum.IN_PROGRESS],
             "priority": [Priority.HIGH, Priority.NORMAL],
+            "scope": None,
         }
 
         # Deserialize from dict
@@ -150,3 +151,180 @@ class TestFilterParams:
         filter_params = FilterParams.model_validate(data)
         assert filter_params.status == [StatusEnum.OPEN, StatusEnum.DONE]
         assert filter_params.priority == [Priority.HIGH, Priority.LOW]
+
+    def test_create_filter_params_with_scope_none(self):
+        """Test creating FilterParams with scope=None (default)."""
+        filter_params = FilterParams()
+        assert filter_params.scope is None
+
+    def test_create_filter_params_with_valid_project_scope(self):
+        """Test creating FilterParams with valid project scope ID."""
+        filter_params = FilterParams(scope="P-example-project")
+        assert filter_params.scope == "P-example-project"
+
+    def test_create_filter_params_with_valid_epic_scope(self):
+        """Test creating FilterParams with valid epic scope ID."""
+        filter_params = FilterParams(scope="E-user-authentication")
+        assert filter_params.scope == "E-user-authentication"
+
+    def test_create_filter_params_with_valid_feature_scope(self):
+        """Test creating FilterParams with valid feature scope ID."""
+        filter_params = FilterParams(scope="F-login-form")
+        assert filter_params.scope == "F-login-form"
+
+    def test_create_filter_params_with_scope_containing_numbers(self):
+        """Test creating FilterParams with scope ID containing numbers."""
+        filter_params = FilterParams(scope="P-project123")
+        assert filter_params.scope == "P-project123"
+
+    def test_create_filter_params_with_scope_containing_underscores(self):
+        """Test creating FilterParams with scope ID containing underscores."""
+        filter_params = FilterParams(scope="E-user_auth_system")
+        assert filter_params.scope == "E-user_auth_system"
+
+    def test_create_filter_params_with_scope_containing_hyphens(self):
+        """Test creating FilterParams with scope ID containing hyphens."""
+        filter_params = FilterParams(scope="F-user-login-form")
+        assert filter_params.scope == "F-user-login-form"
+
+    def test_create_filter_params_with_all_fields_including_scope(self):
+        """Test creating FilterParams with status, priority, and scope."""
+        filter_params = FilterParams(
+            status=[StatusEnum.OPEN], priority=[Priority.HIGH], scope="P-example-project"
+        )
+        assert filter_params.status == [StatusEnum.OPEN]
+        assert filter_params.priority == [Priority.HIGH]
+        assert filter_params.scope == "P-example-project"
+
+    def test_invalid_scope_no_prefix(self):
+        """Test validation error with scope ID without prefix."""
+        with pytest.raises(ValidationError) as exc_info:
+            FilterParams(scope="invalid-id")
+
+        # Check that the error mentions scope validation
+        error_details = exc_info.value.errors()
+        assert len(error_details) > 0
+        assert "scope" in str(error_details[0])
+        assert "Invalid scope ID format" in str(error_details[0])
+
+    def test_invalid_scope_wrong_prefix(self):
+        """Test validation error with scope ID having wrong prefix."""
+        with pytest.raises(ValidationError) as exc_info:
+            FilterParams(scope="T-task-id")
+
+        # Check that the error mentions scope validation
+        error_details = exc_info.value.errors()
+        assert len(error_details) > 0
+        assert "scope" in str(error_details[0])
+        assert "Invalid scope ID format" in str(error_details[0])
+
+    def test_invalid_scope_no_suffix(self):
+        """Test validation error with scope ID having only prefix."""
+        with pytest.raises(ValidationError) as exc_info:
+            FilterParams(scope="P-")
+
+        # Check that the error mentions scope validation
+        error_details = exc_info.value.errors()
+        assert len(error_details) > 0
+        assert "scope" in str(error_details[0])
+        assert "Invalid scope ID format" in str(error_details[0])
+
+    def test_invalid_scope_special_characters(self):
+        """Test validation error with scope ID containing invalid special characters."""
+        with pytest.raises(ValidationError) as exc_info:
+            FilterParams(scope="P-project@name")
+
+        # Check that the error mentions scope validation
+        error_details = exc_info.value.errors()
+        assert len(error_details) > 0
+        assert "scope" in str(error_details[0])
+        assert "Invalid scope ID format" in str(error_details[0])
+
+    def test_invalid_scope_spaces(self):
+        """Test validation error with scope ID containing spaces."""
+        with pytest.raises(ValidationError) as exc_info:
+            FilterParams(scope="P-project name")
+
+        # Check that the error mentions scope validation
+        error_details = exc_info.value.errors()
+        assert len(error_details) > 0
+        assert "scope" in str(error_details[0])
+        assert "Invalid scope ID format" in str(error_details[0])
+
+    def test_invalid_scope_lowercase_prefix(self):
+        """Test validation error with scope ID having lowercase prefix."""
+        with pytest.raises(ValidationError) as exc_info:
+            FilterParams(scope="p-project-name")
+
+        # Check that the error mentions scope validation
+        error_details = exc_info.value.errors()
+        assert len(error_details) > 0
+        assert "scope" in str(error_details[0])
+        assert "Invalid scope ID format" in str(error_details[0])
+
+    def test_scope_error_message_clarity(self):
+        """Test that scope validation error messages are clear and include the invalid value."""
+        invalid_scope = "invalid-scope-id"
+        with pytest.raises(ValidationError) as exc_info:
+            FilterParams(scope=invalid_scope)
+
+        # Check that the error message includes the invalid value
+        error_details = exc_info.value.errors()
+        assert len(error_details) > 0
+        error_message = str(error_details[0])
+        assert invalid_scope in error_message
+        assert "Invalid scope ID format" in error_message
+
+    def test_model_serialization_with_scope(self):
+        """Test that FilterParams with scope can be serialized and deserialized."""
+        original = FilterParams(
+            status=[StatusEnum.OPEN, StatusEnum.IN_PROGRESS],
+            priority=[Priority.HIGH, Priority.NORMAL],
+            scope="P-example-project",
+        )
+
+        # Serialize to dict
+        data = original.model_dump()
+        assert data == {
+            "status": [StatusEnum.OPEN, StatusEnum.IN_PROGRESS],
+            "priority": [Priority.HIGH, Priority.NORMAL],
+            "scope": "P-example-project",
+        }
+
+        # Deserialize from dict
+        restored = FilterParams.model_validate(data)
+        assert restored.status == original.status
+        assert restored.priority == original.priority
+        assert restored.scope == original.scope
+
+    def test_model_validation_with_dict_including_scope(self):
+        """Test creating FilterParams from dictionary including scope."""
+        data = {"status": ["open", "done"], "priority": ["high", "low"], "scope": "E-user-auth"}
+
+        filter_params = FilterParams.model_validate(data)
+        assert filter_params.status == [StatusEnum.OPEN, StatusEnum.DONE]
+        assert filter_params.priority == [Priority.HIGH, Priority.LOW]
+        assert filter_params.scope == "E-user-auth"
+
+    def test_backward_compatibility_without_scope(self):
+        """Test that existing usage without scope parameter continues to work."""
+        # This should work exactly as before without any scope field
+        filter_params = FilterParams(status=[StatusEnum.OPEN], priority=[Priority.HIGH])
+        assert filter_params.status == [StatusEnum.OPEN]
+        assert filter_params.priority == [Priority.HIGH]
+        assert filter_params.scope is None
+
+    def test_valid_scope_edge_cases(self):
+        """Test valid scope formats that are at the boundaries of the regex pattern."""
+        valid_scopes = [
+            "P-a",  # Minimum length after prefix
+            "E-A",  # Single uppercase letter
+            "F-1",  # Single number
+            "P-a1b2c3",  # Mixed alphanumeric
+            "E-test_project-123",  # Mixed with underscores and hyphens
+            "F-UPPERCASE_PROJECT",  # All uppercase
+        ]
+
+        for scope in valid_scopes:
+            filter_params = FilterParams(scope=scope)
+            assert filter_params.scope == scope

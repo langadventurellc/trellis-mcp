@@ -1,14 +1,15 @@
 ---
 kind: task
 id: T-extend-filterparams-model-to
+parent: F-scope-based-task-filtering
+status: done
 title: Extend FilterParams model to support scope parameter validation
-status: open
 priority: high
 prerequisites: []
 created: '2025-07-20T13:19:30.378115'
-updated: '2025-07-20T13:19:30.378115'
+updated: '2025-07-20T13:22:56.487797'
 schema_version: '1.1'
-parent: F-scope-based-task-filtering
+worktree: null
 ---
 ## Context
 
@@ -66,3 +67,6 @@ None - this is foundational validation that other tasks will build upon.
 
 ### Log
 
+
+**2025-07-20T18:26:56.926032Z** - Extended FilterParams model with scope parameter validation for hierarchical boundaries. Added optional scope field with regex validation for P-, E-, F- prefixed IDs. Implemented comprehensive field validator following existing patterns. Added 20 unit tests covering valid formats, invalid formats, error handling, serialization, and backward compatibility. All quality checks pass with 100% test coverage.
+- filesChanged: ["src/trellis_mcp/models/filter_params.py", "tests/unit/test_filter_params.py"]

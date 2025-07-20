@@ -4,6 +4,7 @@ Defines the FilterParams model used to filter tasks in listBacklog operations
 based on status and priority criteria.
 """
 
+import re
 from typing import Sequence
 
 from pydantic import Field, field_validator
@@ -22,6 +23,7 @@ class FilterParams(TrellisBaseModel):
     Attributes:
         status: List of status values to filter by (empty = no status filtering)
         priority: List of priority values to filter by (empty = no priority filtering)
+        scope: Optional scope ID to filter by hierarchical boundaries (P-, E-, F- prefixed)
     """
 
     status: Sequence[StatusEnum | str] = Field(
@@ -32,6 +34,11 @@ class FilterParams(TrellisBaseModel):
     priority: Sequence[Priority | str] = Field(
         default=[],
         description="List of priority values to filter by (empty = no priority filtering)",
+    )
+
+    scope: str | None = Field(
+        default=None,
+        description="Optional scope ID to filter by hierarchical boundaries (P-, E-, F- prefixed)",
     )
 
     @field_validator("status", mode="before")
@@ -65,3 +72,23 @@ class FilterParams(TrellisBaseModel):
             else:
                 result.append(item)
         return result
+
+    @field_validator("scope")
+    @classmethod
+    def validate_scope_format(cls, v: str | None) -> str | None:
+        """Validate that scope ID follows P-, E-, F- prefix pattern.
+
+        Args:
+            v: The scope ID value to validate
+
+        Returns:
+            The validated scope ID or None
+
+        Raises:
+            ValueError: If scope ID format is invalid
+        """
+        if v is None:
+            return v
+        if not re.match(r"^[PEF]-[A-Za-z0-9_-]+$", v):
+            raise ValueError(f"Invalid scope ID format: {v}")
+        return v
