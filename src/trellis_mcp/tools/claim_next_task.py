@@ -28,6 +28,7 @@ def create_claim_next_task_tool(settings: Settings):
     def claimNextTask(
         projectRoot: str,
         worktree: str = "",
+        scope: str = "",
     ) -> dict[str, str | dict[str, str]]:
         """Claim the next highest-priority open task with all prerequisites completed.
 
@@ -47,6 +48,9 @@ def create_claim_next_task_tool(settings: Settings):
         Args:
             projectRoot: Root directory for the planning structure
             worktree: Optional worktree identifier to stamp on the claimed task
+            scope: Optional scope ID to filter tasks by parent (project/epic/feature ID).
+                Supports cross-system scoping - can filter by hierarchical parents or
+                show standalone tasks by omitting scope filter.
 
         Returns:
             Dictionary containing the claimed task data and file path, or error info.
@@ -69,7 +73,24 @@ def create_claim_next_task_tool(settings: Settings):
                 context={"field": "projectRoot"},
             )
 
+        # Validate scope parameter format if provided
+        if scope and scope.strip():
+            from ..models.filter_params import FilterParams
+
+            try:
+                # Use FilterParams for consistent scope validation
+                filter_params = FilterParams(scope=scope.strip())
+                # scope_param will be passed to enhanced core logic in future task
+                _ = filter_params.scope  # Validate format, but don't use yet
+            except Exception as e:
+                raise ValidationError(
+                    errors=[f"Invalid scope parameter: {str(e)}"],
+                    error_codes=[ValidationErrorCode.INVALID_FIELD],
+                    context={"field": "scope", "value": scope},
+                ) from e
+
         # Call the core claim_next_task function
+        # Note: scope_param will be passed to enhanced core logic in future task
         try:
             claimed_task = claim_next_task(projectRoot, worktree)
         except NoAvailableTask as e:

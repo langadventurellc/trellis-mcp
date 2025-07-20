@@ -1,15 +1,16 @@
 ---
 kind: task
 id: T-update-claimnexttask-tool
+parent: F-scope-based-task-filtering
+status: done
 title: Update claimNextTask tool interface to accept scope parameter
-status: open
 priority: high
 prerequisites:
 - T-extend-filterparams-model-to
 created: '2025-07-20T13:20:03.015535'
-updated: '2025-07-20T13:20:03.015535'
+updated: '2025-07-20T13:47:37.411101'
 schema_version: '1.1'
-parent: F-scope-based-task-filtering
+worktree: null
 ---
 ## Context
 
@@ -82,3 +83,6 @@ Create integration tests in `tests/tools/test_claim_next_task.py`:
 
 ### Log
 
+
+**2025-07-20T18:59:11.777489Z** - Successfully updated claimNextTask tool interface to accept optional scope parameter with comprehensive validation and backward compatibility. Added scope parameter with format validation using existing FilterParams patterns (P-, E-, F- prefixed IDs). Implemented proper error handling with informative messages for invalid scope formats. Maintained full backward compatibility - empty scope parameter preserves existing behavior. Added comprehensive test coverage including scope validation, backward compatibility, parameter combinations, and error scenarios. All quality checks pass with zero linting or type errors.
+- filesChanged: ["src/trellis_mcp/tools/claim_next_task.py", "tests/unit/tools/test_claim_next_task.py"]

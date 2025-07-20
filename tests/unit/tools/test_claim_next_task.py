@@ -1,10 +1,11 @@
-"""Tests for claim_next_task core functionality."""
+"""Tests for claim_next_task core functionality and tool interface."""
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from fastmcp import Client
 
 from trellis_mcp.claim_next_task import claim_next_task
 from trellis_mcp.exceptions.no_available_task import NoAvailableTask
@@ -12,6 +13,8 @@ from trellis_mcp.models.common import Priority
 from trellis_mcp.schema.kind_enum import KindEnum
 from trellis_mcp.schema.status_enum import StatusEnum
 from trellis_mcp.schema.task import TaskModel
+from trellis_mcp.server import create_server
+from trellis_mcp.settings import Settings
 
 
 def create_test_task(
@@ -412,3 +415,121 @@ class TestClaimNextTaskEdgeCases:
         mock_scan.assert_called_once_with(Path("/test"))
         mock_unblocked.assert_called_once_with(task, Path("/test/project"))
         mock_write.assert_called_once_with(result, Path("/test/project"))
+
+
+class TestClaimNextTaskToolInterface:
+    """Test claimNextTask tool interface, specifically scope parameter functionality."""
+
+    @pytest.mark.asyncio
+    async def test_empty_scope_parameter_maintains_existing_behavior(self, temp_dir):
+        """Test that empty scope parameter maintains existing behavior (backward compatibility)."""
+        # Create server and client
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Test with empty scope parameter - should get NoAvailableTask error
+            # This verifies that validation passes and the function is called
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool("claimNextTask", {"projectRoot": str(temp_dir), "scope": ""})
+
+            # Should get the expected NoAvailableTask error, not a validation error
+            assert "No open tasks available" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_valid_scope_parameter_validation(self, temp_dir):
+        """Test that valid scope parameters are accepted and validated."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Test valid project scope - should get NoAvailableTask, not validation error
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask", {"projectRoot": str(temp_dir), "scope": "P-valid-project"}
+                )
+            assert "No open tasks available" in str(exc_info.value)
+
+            # Test valid epic scope
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask", {"projectRoot": str(temp_dir), "scope": "E-valid-epic"}
+                )
+            assert "No open tasks available" in str(exc_info.value)
+
+            # Test valid feature scope
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask", {"projectRoot": str(temp_dir), "scope": "F-valid-feature"}
+                )
+            assert "No open tasks available" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_invalid_scope_parameter_validation(self, temp_dir):
+        """Test that invalid scope parameters are rejected with proper error messages."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Test invalid scope format (no prefix)
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask", {"projectRoot": str(temp_dir), "scope": "invalid-scope"}
+                )
+            assert "Invalid scope parameter" in str(exc_info.value)
+
+            # Test invalid scope format (wrong prefix)
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask", {"projectRoot": str(temp_dir), "scope": "T-task-scope"}
+                )
+            assert "Invalid scope parameter" in str(exc_info.value)
+
+            # Test invalid scope format (special characters)
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask", {"projectRoot": str(temp_dir), "scope": "P-invalid@scope"}
+                )
+            assert "Invalid scope parameter" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_scope_parameter_with_worktree(self, temp_dir):
+        """Test that scope parameter works correctly with worktree parameter."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Test that both scope and worktree parameters are accepted
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask",
+                    {
+                        "projectRoot": str(temp_dir),
+                        "scope": "P-test-project",
+                        "worktree": "/workspace/feature-branch",
+                    },
+                )
+
+            # Should get NoAvailableTask, not validation error
+            assert "No open tasks available" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_missing_project_root_validation(self, temp_dir):
+        """Test that missing projectRoot parameter is properly validated."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Test empty projectRoot
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask", {"projectRoot": "", "scope": "P-test-project"}
+                )
+            assert "Project root cannot be empty" in str(exc_info.value)
+
+            # Test whitespace-only projectRoot
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask", {"projectRoot": "   ", "scope": "P-test-project"}
+                )
+            assert "Project root cannot be empty" in str(exc_info.value)
