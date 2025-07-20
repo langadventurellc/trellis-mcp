@@ -2,11 +2,11 @@
 kind: feature
 id: F-scope-based-task-filtering
 title: Scope-Based Task Filtering
-status: in-progress
+status: done
 priority: high
 prerequisites: []
 created: '2025-07-20T13:10:36.133254'
-updated: '2025-07-20T13:10:36.133254'
+updated: '2025-07-20T20:02:45.862136+00:00'
 schema_version: '1.1'
 parent: E-enhanced-task-claiming
 ---

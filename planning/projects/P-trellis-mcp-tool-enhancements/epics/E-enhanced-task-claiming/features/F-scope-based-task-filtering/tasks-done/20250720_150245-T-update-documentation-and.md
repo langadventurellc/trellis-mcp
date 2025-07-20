@@ -1,15 +1,16 @@
 ---
 kind: task
 id: T-update-documentation-and
+parent: F-scope-based-task-filtering
+status: done
 title: Update documentation and examples for scope-based task claiming
-status: open
 priority: low
 prerequisites:
 - T-add-comprehensive-integration
 created: '2025-07-20T13:20:56.438377'
-updated: '2025-07-20T13:20:56.438377'
+updated: '2025-07-20T14:57:21.883409'
 schema_version: '1.1'
-parent: F-scope-based-task-filtering
+worktree: null
 ---
 ## Context
 
@@ -87,3 +88,6 @@ Examples:
 
 ### Log
 
+
+**2025-07-20T20:02:45.855596Z** - Enhanced documentation and examples for scope-based task claiming functionality. Updated claimNextTask tool docstring with comprehensive scope parameter documentation including usage examples, error scenarios, scope boundary behavior, and performance considerations. Created dedicated scope-based-task-claiming.md guide with detailed usage patterns, troubleshooting, and integration examples. Enhanced README.md with scope filtering examples in task management workflow and added dedicated scope claiming section. All documentation follows project standards and passes quality checks.
+- filesChanged: ["src/trellis_mcp/tools/claim_next_task.py", "docs/scope-based-task-claiming.md", "README.md"]
