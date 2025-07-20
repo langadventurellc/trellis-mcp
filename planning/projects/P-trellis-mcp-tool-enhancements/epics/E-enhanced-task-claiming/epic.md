@@ -15,14 +15,13 @@ parent: P-trellis-mcp-tool-enhancements
 
 ## Purpose and Goals
 
-Enhance the claimNextTask tool with flexible filtering capabilities and direct task claiming options. This epic adds scope-based filtering to claim tasks within specific project boundaries and implements force-claim functionality for direct task acquisition, providing more control and flexibility in task management workflows.
+Enhance the claimNextTask tool with flexible filtering capabilities and direct task claiming options. This epic adds scope-based filtering to claim tasks within specific project boundaries and implements force-claim functionality for direct task acquisition, providing more control and flexibility in task management workflows. Do not write any performance requirements or testing in the features for this epic.
 
 ## Major Components and Deliverables
 
 ### 1. Scope-Based Task Filtering
 - **Hierarchical scope filtering** to limit task claiming to specific project/epic/feature boundaries
 - **Cross-system compatibility** with both hierarchical and standalone task systems
-- **Performance optimized scanning** for large project hierarchies
 - **Validation and error handling** for invalid scope parameters
 
 ### 2. Direct Task Claiming
@@ -43,7 +42,6 @@ Enhance the claimNextTask tool with flexible filtering capabilities and direct t
 - [ ] **Scope Parameter Validation**: Accept P-, E-, F- prefixed IDs only for scope filtering
 - [ ] **Hierarchical Task Discovery**: Only return tasks that are children (direct or indirect) of scope object
 - [ ] **Cross-System Support**: Work with both hierarchical and standalone tasks (scope filter won't apply to standalone)
-- [ ] **Performance Requirements**: Complete scope filtering in < 100ms for typical project hierarchies
 - [ ] **Error Handling**: Return meaningful errors for invalid scope IDs with clear guidance
 
 ### Direct Task Claiming
@@ -107,7 +105,6 @@ graph TD
 - **Error Handling**: Consistent error message formats across all enhanced tools
 
 ### With Discovery Tools Epic
-- **Performance Sharing**: Optimized task scanning logic benefits both claiming and discovery
 - **Cross-System Support**: Shared infrastructure for handling hierarchical and standalone tasks
 - **Data Consistency**: Ensures claiming operations don't interfere with discovery tools
 
@@ -121,7 +118,6 @@ graph TD
 ### As a Developer Working on Large Projects
 - I want to claim tasks only within my assigned epic so that I stay focused on my work area
 - I want to claim tasks within a specific feature scope so that I can work on related functionality together
-- I want performance to remain fast even when filtering large project hierarchies
 
 ### As a Project Manager
 - I want to be able to force-claim specific tasks so that I can reassign work when priorities change
@@ -134,18 +130,6 @@ graph TD
 - I want atomic operations so that concurrent systems don't interfere with each other
 
 ## Non-Functional Requirements
-
-### Performance Standards
-- **Scope-based claiming**: Complete in < 100ms for typical project hierarchies (up to 1000+ tasks)
-- **Direct task claiming**: Complete in < 50ms for specific task claim operations
-- **Cross-system scanning**: Efficient performance across both hierarchical and standalone tasks
-- **Memory optimization**: Reasonable memory footprint for scanning operations even in large projects
-
-### Scalability Considerations
-- **Large hierarchies**: Maintain performance with 1000+ tasks per project
-- **Concurrent access**: Handle multiple simultaneous claiming attempts across different users/systems
-- **Cross-system performance**: Optimize for mixed hierarchical and standalone task environments
-- **Caching strategy**: Implement appropriate caching for frequently accessed project structures
 
 ### Reliability Requirements
 - **Atomic claiming**: Either complete successfully or fail cleanly with no partial state
@@ -211,7 +195,6 @@ graph LR
 ### Integration Testing
 - **Cross-system claiming**: Test scope filtering across hierarchical and standalone tasks
 - **Concurrent operations**: Simulate multiple clients claiming tasks simultaneously
-- **Performance validation**: Measure actual response times under realistic load conditions
 - **Data consistency**: Verify system integrity after various claiming operations
 
 ### End-to-End Testing
@@ -224,7 +207,6 @@ graph LR
 
 ### Functional Success
 - [ ] **Enhanced claiming capabilities**: Users can efficiently filter and claim tasks using scope and direct methods
-- [ ] **Performance targets met**: All claiming operations complete within specified time limits
 - [ ] **Conflict resolution**: Robust handling of concurrent claiming attempts
 - [ ] **Parameter flexibility**: Intuitive parameter combinations with clear validation
 
