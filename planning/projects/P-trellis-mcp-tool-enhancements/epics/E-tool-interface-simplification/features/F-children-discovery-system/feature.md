@@ -2,7 +2,7 @@
 kind: feature
 id: F-children-discovery-system
 title: Children Discovery System
-status: in-progress
+status: done
 priority: normal
 prerequisites:
 - F-kind-inference-engine
