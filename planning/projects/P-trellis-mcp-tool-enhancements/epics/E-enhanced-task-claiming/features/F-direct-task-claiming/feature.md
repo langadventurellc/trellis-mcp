@@ -2,11 +2,11 @@
 kind: feature
 id: F-direct-task-claiming
 title: Direct Task Claiming
-status: in-progress
+status: done
 priority: high
 prerequisites: []
 created: '2025-07-20T13:11:12.443914'
-updated: '2025-07-20T13:11:12.443914'
+updated: '2025-07-20T22:03:18.869066+00:00'
 schema_version: '1.1'
 parent: E-enhanced-task-claiming
 ---
