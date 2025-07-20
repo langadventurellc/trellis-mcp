@@ -126,7 +126,6 @@ Trellis MCP provides a comprehensive set of tools for AI assistants to manage hi
 - **`listBacklog`** - Query and filter tasks across the project hierarchy
 - **`claimNextTask`** - Automatically claim highest-priority available task
 - **`completeTask`** - Mark tasks complete with logging and file tracking
-- **`getNextReviewableTask`** - Find tasks ready for code review
 
 #### Creating Project Hierarchies
 
@@ -221,11 +220,6 @@ await mcp.call('createObject', {
   priority: 'high',
   prerequisites: ['T-auth-implementation', 'T-validation-update'],
   // No parent - this is a standalone task
-});
-
-// Check if tasks are ready to claim (prerequisites completed)
-const reviewableTask = await mcp.call('getNextReviewableTask', {
-  projectRoot: '.'
 });
 ```
 

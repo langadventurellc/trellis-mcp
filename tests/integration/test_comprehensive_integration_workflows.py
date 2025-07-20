@@ -671,7 +671,6 @@ class TestComprehensiveIntegrationWorkflows:
 
         Simulates realistic team development patterns with:
         - Multiple developers claiming tasks concurrently
-        - Review workflow across different team members
         - Realistic task completion patterns
         - Cross-system coordination in team environment
         """
@@ -766,36 +765,8 @@ class TestComprehensiveIntegrationWorkflows:
                         },
                     )
 
-            # Developer 3: Move first task to review (simulating PR workflow)
-            dev3 = next(d for d in developers if d["name"] == "dev3")
-            if dev3["claimed_tasks"]:
-                await update_task_status(client, planning_root, dev3["claimed_tasks"][0], "review")
-
             # Developer 4: Still working (keep in in-progress)
             # No action needed - tasks remain in-progress
-
-            # Phase 3: Simulate review workflow
-
-            # Get next reviewable task (should be dev3's task)
-            review_result = await client.call_tool(
-                "getNextReviewableTask", {"projectRoot": planning_root}
-            )
-
-            if review_result.data["task"]:
-                reviewable_task = review_result.data["task"]
-                assert reviewable_task["id"] == dev3["claimed_tasks"][0]
-                assert reviewable_task["status"] == "review"
-
-                # Complete the review (simulate approval)
-                await client.call_tool(
-                    "completeTask",
-                    {
-                        "projectRoot": planning_root,
-                        "taskId": reviewable_task["id"],
-                        "summary": "Review completed and approved",
-                        "filesChanged": [f"reviewed-{reviewable_task['id']}.py"],
-                    },
-                )
 
             # Phase 4: Simulate task handoff and continued development
 
@@ -822,8 +793,6 @@ class TestComprehensiveIntegrationWorkflows:
                     )
                     remaining_task_id = claim_result.data["task"]["id"]
 
-                    # Move to review and complete
-                    await update_task_status(client, planning_root, remaining_task_id, "review")
                     await client.call_tool(
                         "completeTask",
                         {
@@ -847,9 +816,6 @@ class TestComprehensiveIntegrationWorkflows:
             in_progress_tasks = [t for t in remaining_tasks if t["status"] == "in-progress"]
 
             for task in in_progress_tasks:
-                # Move to review first
-                await update_task_status(client, planning_root, task["id"], "review")
-
                 # Complete the task
                 await client.call_tool(
                     "completeTask",
@@ -873,12 +839,6 @@ class TestComprehensiveIntegrationWorkflows:
             # All tasks should be completed
             for task in final_tasks:
                 assert task["status"] == "done"
-
-            # Verify no reviewable tasks remain
-            final_review = await client.call_tool(
-                "getNextReviewableTask", {"projectRoot": planning_root}
-            )
-            assert final_review.data["task"] is None
 
             # Verify no claimable tasks remain
             try:

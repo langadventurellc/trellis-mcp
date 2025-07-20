@@ -13,7 +13,6 @@ from .settings import Settings
 from .tools.claim_next_task import create_claim_next_task_tool
 from .tools.complete_task import create_complete_task_tool
 from .tools.create_object import create_create_object_tool
-from .tools.get_next_reviewable_task import create_get_next_reviewable_task_tool
 from .tools.get_object import create_get_object_tool
 from .tools.health_check import create_health_check_tool
 from .tools.list_backlog import create_list_backlog_tool
@@ -72,10 +71,6 @@ def create_server(settings: Settings) -> FastMCP:
     # Create and register completeTask tool
     complete_task_tool = create_complete_task_tool(settings)
     server.add_tool(complete_task_tool)
-
-    # Create and register getNextReviewableTask tool
-    get_next_reviewable_task_tool = create_get_next_reviewable_task_tool(settings)
-    server.add_tool(get_next_reviewable_task_tool)
 
     @server.resource("info://server")
     def server_info() -> dict[str, str | int | bool]:

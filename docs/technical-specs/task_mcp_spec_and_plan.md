@@ -160,7 +160,6 @@ All methods include an explicit `projectRoot` so one Trellis MCP instance can se
 | **getObject** | Fetch object with automatic kind inference from ID prefix (P-, E-, F-, T-). |
 | **updateObject** | Patch YAML/body with automatic kind inference; also used to mark non‑task objects `done`. |
 | **claimNextTask** | Atomically select highest‑priority `open` task (all prereqs done), set `status=in‑progress`, fill optional `worktree`. |
-| **getNextReviewableTask** | Pure query: return oldest `review` task. |
 | **completeTask** | Move file to *tasks-done/*, set `status=done`, append `filesChanged[]` to `### Log`. |
 | **listBacklog** | List tasks filtered by scope (feature/epic/project) & optional status/priority filters. |
 
@@ -206,7 +205,6 @@ The MVP is broken into **12 features** comprising **44 atomic tasks**. Each task
 | **F‑05** | **Priority Handling** | Map enum → sortable int, expose helper. | PR‑01 enum definition · PR‑02 sort util · PR‑03 unit tests |
 | **F‑06** | **Task Claim Logic** | Select next task, enforce prereqs. | CL‑01 build dependency graph for tasks · CL‑02 select highest‑priority open task w/ prereqs done · CL‑03 mutate status → in‑progress & write file · CL‑04 optionally stamp `worktree` · CL‑05 integration test (two competing tasks) |
 | **F‑07** | **Task Completion Flow** | Move to *tasks-done/* and log summary. | CO‑01 timestamp‑prefix move util · CO‑02 append `filesChanged[]` to `### Log` · CO‑03 set status=done · CO‑04 integration test |
-| **F‑08** | **Review Query** | Surface tasks in `review`. | R‑01 `getNextReviewableTask` impl · R‑02 unit test |
 | **F‑09** | **Backlog Listing** | Filtered task listing for planners. | B‑01 `listBacklog` with scope param · B‑02 support status & priority filters · B‑03 unit tests |
 | **F‑10** | **Acyclic Validation** | Enforce no cycles in prerequisites. | A‑01 graph builder · A‑02 DFS cycle detect · A‑03 hook into create/update · A‑04 unit tests |
 | **F‑11** | **Parent Deletion Cascade** | Recursive delete to avoid orphans. | DPC‑01 `deleteObject` RPC (projects+epics+features) · DPC‑02 recursive file removal util · DPC‑03 unit tests |
@@ -246,7 +244,6 @@ The MVP is broken into **12 features** comprising **44 atomic tasks**. Each task
 | CO‑02 | Append `filesChanged[]` to `### Log`. | XS |
 | CO‑03 | Set `status=done`, touch `updated`. | XS |
 | CO‑04 | Integration test complete path. | S |
-| R‑01 | Implement `getNextReviewableTask`. | XS |
 | R‑02 | Unit test review query. | XS |
 | B‑01 | Implement `listBacklog` scoped by feature/epic/project. | M |
 | B‑02 | Add status & priority filters. | XS |

@@ -1,14 +1,14 @@
 ---
 kind: task
 id: T-remove-server-registration-and
+parent: F-core-tool-removal-and
+status: in-progress
 title: Remove Server Registration and Imports for getNextReviewableTask Tool
-status: open
 priority: high
 prerequisites: []
 created: '2025-07-20T11:30:49.786010'
-updated: '2025-07-20T11:30:49.786010'
+updated: '2025-07-20T11:35:51.928801'
 schema_version: '1.1'
-parent: F-core-tool-removal-and
 ---
 # Remove Server Registration and Imports for getNextReviewableTask Tool
 

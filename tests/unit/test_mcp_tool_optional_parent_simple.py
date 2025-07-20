@@ -75,21 +75,6 @@ class TestMCPToolOptionalParentSimple:
         assert '"parent": str | None' in content
         assert "None for standalone tasks" in content
 
-    def test_get_next_reviewable_task_documentation_updated(self):
-        """Test that getNextReviewableTask documentation reflects optional parent fields."""
-        # Get the project root directory
-        project_root = Path(__file__).parent.parent.parent
-        get_next_reviewable_task_path = (
-            project_root / "src" / "trellis_mcp" / "tools" / "get_next_reviewable_task.py"
-        )
-
-        with open(get_next_reviewable_task_path, "r") as f:
-            content = f.read()
-
-        # Verify the documentation was updated to show optional parent
-        assert '"parent": str | None' in content
-        assert "None for standalone tasks" in content
-
     def test_create_object_tool_documentation_correct(self):
         """Test that createObject tool documentation is correct for optional parent."""
         # Get the project root directory
