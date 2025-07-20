@@ -578,8 +578,8 @@ class TestClaimNextTaskScopeFiltering:
 
         result = claim_next_task("/test/project", scope="F-test-feature")
 
-        # Verify scope validation was called
-        mock_validate.assert_called_once_with(Path("/test/project"), "F-test-feature")
+        # Verify scope validation was called with scanning_root
+        mock_validate.assert_called_once_with(Path("/test"), "F-test-feature")
 
         # Verify filter_by_scope was called instead of scan_tasks
         mock_filter.assert_called_once_with(Path("/test"), "F-test-feature")
@@ -618,4 +618,4 @@ class TestClaimNextTaskScopeFiltering:
             claim_next_task("/test/project", scope="F-nonexistent")
 
         assert "Scope object not found: F-nonexistent" in str(exc_info.value)
-        mock_validate.assert_called_once_with(Path("/test/project"), "F-nonexistent")
+        mock_validate.assert_called_once_with(Path("/test"), "F-nonexistent")

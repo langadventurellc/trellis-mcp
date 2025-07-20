@@ -1,15 +1,16 @@
 ---
 kind: task
 id: T-add-comprehensive-integration
+parent: F-scope-based-task-filtering
+status: done
 title: Add comprehensive integration tests for scope-based claiming workflow
-status: open
 priority: normal
 prerequisites:
 - T-enhance-core-claimnexttask-logic
 created: '2025-07-20T13:20:39.740817'
-updated: '2025-07-20T13:20:39.740817'
+updated: '2025-07-20T14:16:29.673298'
 schema_version: '1.1'
-parent: F-scope-based-task-filtering
+worktree: null
 ---
 ## Context
 
@@ -97,3 +98,6 @@ class TestScopeClaimingWorkflow:
 
 ### Log
 
+
+**2025-07-20T19:45:25.938080Z** - Completed comprehensive integration tests for scope-based claiming workflow. Fixed all failing tests by resolving planning directory initialization, scope validation path issues, task completion status validation, nonexistent prerequisite handling, and test error message assertions. All 15 integration tests now pass with full quality check compliance (lint, format, type check). The test suite thoroughly validates scope-based claiming across project/epic/feature scopes, cross-system compatibility, error conditions, and edge cases.
+- filesChanged: ["tests/integration/test_helpers.py", "src/trellis_mcp/claim_next_task.py", "tests/fixtures/scope_test_data.py", "tests/integration/test_scope_claiming_workflow.py"]

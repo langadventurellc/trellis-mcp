@@ -70,7 +70,7 @@ def claim_next_task(
     # Validate scope if provided
     if scope and scope.strip():
         try:
-            validate_scope_exists(planning_root, scope.strip())
+            validate_scope_exists(scanning_root, scope.strip())
         except ValidationError:
             # Re-raise with more specific context for claiming
             raise ValidationError(

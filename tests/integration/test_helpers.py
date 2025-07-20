@@ -255,13 +255,21 @@ def create_test_server(temp_dir: Path) -> tuple[FastMCP, str]:
     Returns:
         tuple: (server, planning_root_str)
     """
+    # Create planning directory structure
+    planning_dir = temp_dir / "planning"
+    planning_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create projects directory (required for scope validation)
+    projects_dir = planning_dir / "projects"
+    projects_dir.mkdir(parents=True, exist_ok=True)
+
     settings = Settings(
-        planning_root=temp_dir / "planning",
+        planning_root=planning_dir,
         debug_mode=True,
         log_level="DEBUG",
     )
     server = create_server(settings)
-    planning_root = str(temp_dir / "planning")
+    planning_root = str(planning_dir)
 
     return server, planning_root
 
