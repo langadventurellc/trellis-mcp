@@ -695,6 +695,15 @@ def discover_immediate_children(kind: str, obj_id: str, project_root: Path) -> l
     # At this point, parent_path is guaranteed to be a Path object
     assert parent_path is not None, "parent_path should not be None at this point"
 
+    # Check cache before file system scanning
+    from .children.cache import get_children_cache
+
+    cache = get_children_cache()
+    cached_children = cache.get_children(parent_path)
+    if cached_children is not None:
+        return cached_children
+
+    # Cache miss - proceed with file system scan
     # Get the parent directory containing the children
     parent_dir = parent_path.parent
     children_metadata = []
@@ -735,6 +744,17 @@ def discover_immediate_children(kind: str, obj_id: str, project_root: Path) -> l
 
     # Sort results by creation date (oldest first) for consistent ordering
     children_metadata.sort(key=lambda child: child.get("created", ""))
+
+    # Store results in cache after successful discovery
+    try:
+        cache.set_children(parent_path, children_metadata)
+    except Exception as e:
+        # Cache storage failure should not break children discovery
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Failed to cache children for {parent_path}: {e}")
+
     return children_metadata
 
 

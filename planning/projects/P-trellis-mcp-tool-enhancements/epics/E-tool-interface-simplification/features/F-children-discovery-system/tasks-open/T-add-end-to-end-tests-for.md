@@ -14,7 +14,7 @@ parent: F-children-discovery-system
 # Add End-to-End Tests for getObject Enhancement
 
 ## Context
-Create comprehensive end-to-end tests that validate the complete getObject enhancement workflow from MCP tool calls through children array validation, ensuring the entire system works correctly in realistic usage scenarios.
+Create comprehensive end-to-end tests that validate the complete getObject enhancement workflow from MCP tool calls through children array validation, ensuring the entire system works correctly in realistic usage scenarios. Do not write performance tests; focus on end-to-end testing patterns and workflows.
 
 ## Technical Approach
 Implement end-to-end tests that:
@@ -109,16 +109,6 @@ e2e_test_scenarios = [
             "error_type": "object_not_found",
             "error_message_contains": "Project with ID 'nonexistent' not found"
         }
-    },
-    
-    # Performance scenarios
-    {
-        "name": "large_project_workflow",
-        "request": {"kind": "project", "id": "large-project", "projectRoot": "/test/path"},
-        "performance_validation": {
-            "max_response_time_ms": 200,
-            "max_memory_usage_mb": 50
-        }
     }
 ]
 ```
@@ -136,9 +126,6 @@ class ResponseValidator:
         
     def validate_parent_child_consistency(self, parent: dict, children: list[dict]) -> bool:
         """Validate parent-child relationships are logically consistent."""
-        
-    def validate_performance_metrics(self, response_time: float, memory_usage: float) -> bool:
-        """Validate response meets performance requirements."""
 ```
 
 ## Detailed Acceptance Criteria
@@ -164,12 +151,6 @@ class ResponseValidator:
 - [ ] **Type Safety**: All objects have correct type information and formatting
 - [ ] **Timestamp Consistency**: Creation dates and ordering are accurate
 
-### Performance End-to-End
-- [ ] **Response Times**: Complete workflows meet performance targets
-- [ ] **Memory Usage**: End-to-end memory consumption within acceptable limits
-- [ ] **Cache Effectiveness**: Cache improves performance in realistic usage patterns
-- [ ] **Scalability**: Performance remains acceptable with increasing load
-
 ## Testing Requirements
 
 ### End-to-End Test Infrastructure
@@ -181,19 +162,12 @@ async def mcp_server_with_test_project(tmp_path):
     # Create test project structure
     # Initialize MCP server with getObject tool
     # Return configured server instance
-    
-@pytest.fixture
-def performance_monitor():
-    """Monitor performance metrics during E2E tests."""
-    # Track response times, memory usage
-    # Provide performance validation methods
 ```
 
 ### Realistic Test Data
 - **Production-Like Projects**: Test data mirrors real-world project complexity
 - **Edge Case Projects**: Empty projects, single-child projects, deeply nested projects
 - **Error Scenario Projects**: Projects with missing files, permission issues, corrupted data
-- **Large Scale Projects**: Projects with hundreds of objects for performance testing
 
 ### Client Simulation
 ```python
@@ -205,12 +179,6 @@ class MockMCPClient:
         # Navigation workflows: project → epic → feature → task
         # Repeated queries with caching
         # Error handling and recovery
-        
-    async def simulate_concurrent_usage(self, server, client_count: int):
-        """Simulate multiple concurrent clients."""
-        # Multiple simultaneous getObject calls
-        # Mixed parent types and children discovery
-        # Performance under concurrent load
 ```
 
 ### Validation Scenarios
@@ -221,7 +189,6 @@ validation_matrix = {
     "children_scenarios": ["none", "single", "multiple", "many"],
     "client_patterns": ["single_call", "navigation_sequence", "repeated_calls"],
     "error_conditions": ["missing_object", "corrupted_data", "permission_denied"],
-    "performance_loads": ["light", "moderate", "heavy"],
 }
 ```
 
@@ -259,29 +226,6 @@ async def test_complete_navigation_workflow(self, mcp_server):
     validate_task_response_no_children(task_response)
 ```
 
-### Performance Monitoring
-```python
-class E2EPerformanceMonitor:
-    """Monitor performance during end-to-end tests."""
-    
-    def __init__(self):
-        self.response_times = []
-        self.memory_snapshots = []
-        
-    async def monitor_tool_call(self, server, tool_name, arguments):
-        """Monitor performance of tool call."""
-        start_time = time.perf_counter()
-        start_memory = get_memory_usage()
-        
-        result = await server.call_tool(tool_name, arguments)
-        
-        end_time = time.perf_counter()
-        end_memory = get_memory_usage()
-        
-        self.record_metrics(end_time - start_time, end_memory - start_memory)
-        return result
-```
-
 ### Error Scenario Testing
 - **Network Simulation**: Simulate network delays and failures
 - **Resource Constraints**: Test under memory and CPU pressure
@@ -291,7 +235,6 @@ class E2EPerformanceMonitor:
 ## Documentation Requirements
 - [ ] **E2E Test Guide**: How to run and interpret end-to-end tests
 - [ ] **Client Integration Examples**: Sample code showing proper getObject usage
-- [ ] **Performance Expectations**: Document expected performance in various scenarios
 - [ ] **Troubleshooting Guide**: Common E2E test failures and resolution steps
 
 ### Example Client Usage Documentation
@@ -337,7 +280,6 @@ async def navigate_project_hierarchy(mcp_client, project_id):
 - Successful completion of T-write-comprehensive-integratio-1 (integration tests)
 - FastMCP framework for MCP tool testing
 - Test project structures and fixtures from integration tests
-- Performance monitoring infrastructure from benchmark implementation
 
 ### Log
 
