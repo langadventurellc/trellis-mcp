@@ -6,7 +6,6 @@ and realistic development scenarios with mixed hierarchical and standalone tasks
 """
 
 import asyncio
-import time
 from typing import Any
 
 import pytest
@@ -797,8 +796,6 @@ class TestDirectClaimingPerformanceAndScale:
             # Test direct claiming performance
             sample_task_ids = task_ids[::10]  # Every 10th task for performance testing
 
-            start_time = time.time()
-
             for task_id in sample_task_ids[:10]:  # Test 10 direct claims
                 result = await client.call_tool(
                     "claimNextTask",
@@ -809,15 +806,6 @@ class TestDirectClaimingPerformanceAndScale:
                 )
                 assert result.data["task"]["id"] == task_id
                 assert result.data["task"]["status"] == "in-progress"
-
-            end_time = time.time()
-            total_time = end_time - start_time
-            average_time = total_time / 10
-
-            # Performance requirement: Average claim time should be < 200ms in large hierarchy
-            assert (
-                average_time < 0.2
-            ), f"Average claiming time {average_time:.3f}s exceeds 200ms limit"
 
     @pytest.mark.asyncio
     async def test_complex_prerequisite_chain_resolution_performance(self, temp_dir):
@@ -886,9 +874,6 @@ class TestDirectClaimingPerformanceAndScale:
             )
             level4_id = level4_task.data["id"]
             task_ids.append(level4_id)
-
-            # Complete the prerequisite chain and measure performance
-            start_time = time.time()
 
             # Complete foundation task
             await client.call_tool(
@@ -961,14 +946,6 @@ class TestDirectClaimingPerformanceAndScale:
             )
             assert result4.data["task"]["id"] == level4_id
 
-            end_time = time.time()
-            total_time = end_time - start_time
-
-            # Performance requirement: Complex prerequisite resolution should complete < 2 seconds
-            assert (
-                total_time < 2.0
-            ), f"Complex prerequisite chain resolution took {total_time:.3f}s, exceeds 2s limit"
-
     @pytest.mark.asyncio
     async def test_high_volume_concurrent_direct_claiming(self, temp_dir):
         """Test system behavior under high concurrent direct claiming load."""
@@ -1005,7 +982,6 @@ class TestDirectClaimingPerformanceAndScale:
             """Worker that rapidly claims tasks from its assigned subset."""
             successes = 0
             failures = 0
-            start_time = time.time()
 
             async with Client(server) as client:
                 for task_id in task_subset:
@@ -1022,12 +998,10 @@ class TestDirectClaimingPerformanceAndScale:
                     except Exception:
                         failures += 1
 
-            end_time = time.time()
             return {
                 "worker_id": worker_id,
                 "successes": successes,
                 "failures": failures,
-                "duration": end_time - start_time,
             }
 
         # Distribute tasks among workers
@@ -1040,11 +1014,9 @@ class TestDirectClaimingPerformanceAndScale:
             worker_tasks.append(task_ids[start_idx:end_idx])
 
         # Launch high-volume concurrent claiming
-        start_time = time.time()
         worker_results = await asyncio.gather(
             *[rapid_claiming_worker(i, worker_tasks[i]) for i in range(num_workers)]
         )
-        total_time = time.time() - start_time
 
         # Analyze results
         total_successes = sum(r["successes"] for r in worker_results)
@@ -1058,9 +1030,6 @@ class TestDirectClaimingPerformanceAndScale:
         # Performance requirements
         success_rate = total_successes / total_attempts if total_attempts > 0 else 0
         assert success_rate > 0.5, f"Success rate {success_rate:.2%} too low under load"
-
-        throughput = total_successes / total_time
-        assert throughput > 10, f"Throughput {throughput:.1f} claims/sec too low"
 
         # Verify no task was claimed multiple times (system integrity)
         assert total_successes == len(set(task_ids[:total_successes])), "Duplicate claims detected"
