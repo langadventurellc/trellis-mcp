@@ -17,7 +17,7 @@ parent relationships, enabling both traditional hierarchy-based tasks and
 standalone tasks that exist independently of the project structure.
 """
 
-from typing import Any, Callable, Literal, TypeGuard, TypeVar
+from typing import Any, Callable, Final, Literal, TypeGuard, TypeVar
 
 from .schema.kind_enum import KindEnum
 
@@ -32,6 +32,7 @@ ProjectKind = Literal["project"]
 EpicKind = Literal["epic"]
 FeatureKind = Literal["feature"]
 ObjectKind = Literal["task", "project", "epic", "feature"]
+VALID_KINDS: Final[set[str]] = {"project", "epic", "feature", "task"}
 
 # Generic type for parent relationships
 ParentType = TypeVar("ParentType", bound=str | None)

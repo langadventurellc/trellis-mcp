@@ -54,7 +54,7 @@ def check_prereq_cycles_in_memory(
 
         if cycle:
             # Get all objects for enhanced error context
-            from ..id_utils import clean_prerequisite_id
+            from ..utils.id_utils import clean_prerequisite_id
 
             # Load existing objects and add proposed object for context
             existing_objects = get_all_objects(project_root)

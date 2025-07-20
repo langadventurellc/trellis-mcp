@@ -5,12 +5,9 @@ hierarchical project structure (Projects → Epics → Features → Tasks).
 """
 
 from pathlib import Path
-from typing import Final
 
-from .fs_utils import find_object_path
-
-# Valid object kinds in the Trellis MCP hierarchy
-VALID_KINDS: Final[set[str]] = {"project", "epic", "feature", "task"}
+from .types import VALID_KINDS
+from .utils.fs_utils import find_object_path
 
 
 def resolve_project_roots(project_root: str | Path) -> tuple[Path, Path]:
@@ -997,7 +994,7 @@ def ensure_standalone_task_directory(project_root: str | Path, status: str | Non
     task_dir = path_resolution_root / task_dir_name
 
     # Use existing utility to ensure directory exists
-    from .fs_utils import ensure_parent_dirs
+    from .utils.fs_utils import ensure_parent_dirs
 
     ensure_parent_dirs(task_dir / "dummy.md")  # Create the directory structure
     return task_dir

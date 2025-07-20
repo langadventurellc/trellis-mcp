@@ -11,9 +11,9 @@ With schema v1.1, tasks can have optional parent relationships, supporting both:
 import os
 from pathlib import Path
 
-from ..id_utils import clean_prerequisite_id
 from ..path_resolver import id_to_path
 from ..schema.kind_enum import KindEnum
+from ..utils.id_utils import clean_prerequisite_id
 from .task_utils import is_standalone_task
 
 

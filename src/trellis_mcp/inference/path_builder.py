@@ -6,11 +6,11 @@ object structures while integrating with existing security validation.
 """
 
 from pathlib import Path
-from typing import Final
 
 from ..exceptions.validation_error import ValidationError, ValidationErrorCode
-from ..fs_utils import ensure_parent_dirs
 from ..path_resolver import resolve_project_roots
+from ..types import VALID_KINDS
+from ..utils.fs_utils import ensure_parent_dirs
 
 
 class PathBuilder:
@@ -40,9 +40,6 @@ class PathBuilder:
         - Integration with existing security validation patterns
         - Safe directory creation using existing fs_utils
     """
-
-    # Valid object kinds supported by the builder
-    _VALID_KINDS: Final[set[str]] = {"project", "epic", "feature", "task"}
 
     def __init__(self, project_root: str | Path):
         """Initialize PathBuilder with project root.
@@ -90,8 +87,8 @@ class PathBuilder:
             ValueError: If kind is invalid or object_id is empty
         """
         # Validate kind
-        if not kind or kind not in self._VALID_KINDS:
-            raise ValueError(f"Invalid kind '{kind}'. Must be one of: {self._VALID_KINDS}")
+        if not kind or kind not in VALID_KINDS:
+            raise ValueError(f"Invalid kind '{kind}'. Must be one of: {VALID_KINDS}")
 
         # Validate object_id
         if not object_id or not object_id.strip():

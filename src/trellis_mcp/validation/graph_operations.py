@@ -27,7 +27,7 @@ def build_prerequisites_graph(
     Returns:
         Dictionary mapping object IDs to lists of their prerequisites
     """
-    from ..id_utils import clean_prerequisite_id
+    from ..utils.id_utils import clean_prerequisite_id
 
     if benchmark:
         benchmark.start("build_prerequisites_graph")
@@ -138,7 +138,7 @@ def build_dependency_graph_in_memory(
         FileNotFoundError: If the project root doesn't exist
         ValueError: If object parsing fails or invalid operation type
     """
-    from ..id_utils import clean_prerequisite_id
+    from ..utils.id_utils import clean_prerequisite_id
 
     if benchmark:
         benchmark.start("build_dependency_graph_in_memory")

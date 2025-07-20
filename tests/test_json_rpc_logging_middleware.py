@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastmcp.server.middleware import MiddlewareContext
 
-from trellis_mcp.json_rpc_logging_middleware import JsonRpcLoggingMiddleware
+from trellis_mcp.logging.json_rpc_logging_middleware import JsonRpcLoggingMiddleware
 
 
 class TestJsonRpcLoggingMiddleware:
@@ -45,7 +45,7 @@ class TestJsonRpcLoggingMiddleware:
         call_next = AsyncMock(return_value={"result": "success"})
 
         # Mock settings and logger to use temp directory
-        with patch("trellis_mcp.json_rpc_logging_middleware.write_event") as mock_write:
+        with patch("trellis_mcp.logging.json_rpc_logging_middleware.write_event") as mock_write:
             # Execute the middleware
             result = await middleware.on_call_tool(mock_context, call_next)
 
@@ -77,7 +77,7 @@ class TestJsonRpcLoggingMiddleware:
         call_next = AsyncMock(side_effect=test_exception)
 
         # Mock settings and logger to use temp directory
-        with patch("trellis_mcp.json_rpc_logging_middleware.write_event") as mock_write:
+        with patch("trellis_mcp.logging.json_rpc_logging_middleware.write_event") as mock_write:
             # Execute the middleware and expect the exception to be re-raised
             with pytest.raises(ValueError, match="Test error"):
                 await middleware.on_call_tool(mock_context, call_next)
@@ -109,7 +109,7 @@ class TestJsonRpcLoggingMiddleware:
             await asyncio.sleep(0.1)  # 100ms delay
             return "result"
 
-        with patch("trellis_mcp.json_rpc_logging_middleware.write_event") as mock_write:
+        with patch("trellis_mcp.logging.json_rpc_logging_middleware.write_event") as mock_write:
             await middleware.on_call_tool(mock_context, delayed_call_next)
 
             # Get the logged duration
@@ -141,7 +141,8 @@ class TestJsonRpcLoggingMiddleware:
             logged_calls.append({"level": level, "msg": msg, **fields})
 
         with patch(
-            "trellis_mcp.json_rpc_logging_middleware.write_event", side_effect=capture_log_call
+            "trellis_mcp.logging.json_rpc_logging_middleware.write_event",
+            side_effect=capture_log_call,
         ):
             # Execute multiple calls concurrently
             tasks = []
@@ -193,7 +194,8 @@ class TestJsonRpcLoggingMiddleware:
             logged_calls.append({"level": level, "msg": msg, **fields})
 
         with patch(
-            "trellis_mcp.json_rpc_logging_middleware.write_event", side_effect=capture_log_call
+            "trellis_mcp.logging.json_rpc_logging_middleware.write_event",
+            side_effect=capture_log_call,
         ):
             # Execute successful call
             result = await middleware.on_call_tool(success_context, success_call_next)
@@ -241,7 +243,8 @@ class TestJsonRpcLoggingMiddleware:
             logged_calls.append({"level": level, "msg": msg, **fields})
 
         with patch(
-            "trellis_mcp.json_rpc_logging_middleware.write_event", side_effect=capture_log_call
+            "trellis_mcp.logging.json_rpc_logging_middleware.write_event",
+            side_effect=capture_log_call,
         ):
             # Run the middleware call in a thread pool
             with ThreadPoolExecutor(max_workers=1) as executor:

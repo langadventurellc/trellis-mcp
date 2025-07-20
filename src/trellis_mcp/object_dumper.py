@@ -8,9 +8,9 @@ from typing import Any
 
 import yaml
 
-from trellis_mcp.fs_utils import ensure_parent_dirs
 from trellis_mcp.object_parser import TrellisObjectModel
 from trellis_mcp.path_resolver import id_to_path
+from trellis_mcp.utils.fs_utils import ensure_parent_dirs
 
 
 def dump_object(model: TrellisObjectModel) -> str:
@@ -222,7 +222,7 @@ def write_object(model: TrellisObjectModel, project_root: Path) -> None:
     existing_body = ""
     if target_path.exists():
         try:
-            from .io_utils import read_markdown
+            from .utils.io_utils import read_markdown
 
             _, existing_body = read_markdown(target_path)
         except Exception:

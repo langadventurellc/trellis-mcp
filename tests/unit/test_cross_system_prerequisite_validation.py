@@ -236,7 +236,7 @@ class TestValidatePrerequisiteIdSecurity:
         errors = _validate_prerequisite_id_security(long_id)
         assert any("filesystem name limits" in error for error in errors)
 
-    @patch("trellis_mcp.id_utils.validate_id_charset")
+    @patch("trellis_mcp.utils.id_utils.validate_id_charset")
     def test_invalid_charset_detection(self, mock_validate_charset):
         """Test detection of invalid character sets."""
         mock_validate_charset.return_value = False
@@ -249,7 +249,7 @@ class TestValidatePrerequisiteIdSecurity:
         """Test handling of empty prerequisite IDs."""
         # Empty IDs should be caught by the main validation function,
         # but security validation should handle them gracefully
-        with patch("trellis_mcp.id_utils.validate_id_charset") as mock_validate:
+        with patch("trellis_mcp.utils.id_utils.validate_id_charset") as mock_validate:
             mock_validate.return_value = True  # Assume charset validation passes for empty
             errors = _validate_prerequisite_id_security("")
             # Should not crash, may or may not have errors depending on charset validation
