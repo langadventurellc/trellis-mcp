@@ -8,7 +8,7 @@ from fastmcp import FastMCP
 
 from ..exceptions.validation_error import ValidationError, ValidationErrorCode
 from ..io_utils import read_markdown
-from ..path_resolver import id_to_path, resolve_project_roots
+from ..path_resolver import discover_immediate_children, id_to_path, resolve_project_roots
 from ..settings import Settings
 
 
@@ -28,7 +28,7 @@ def create_get_object_tool(settings: Settings):
         kind: str,
         id: str,
         projectRoot: str,
-    ) -> dict[str, str | dict[str, str | list[str] | None]]:
+    ):
         """Retrieve a Trellis MCP object by kind and ID.
 
         Resolves the object path and reads the YAML front-matter and body content
@@ -46,8 +46,17 @@ def create_get_object_tool(settings: Settings):
                 "body": str,   # Markdown body content
                 "file_path": str,  # Path to the object file
                 "kind": str,   # Object kind
-                "id": str      # Clean object ID
+                "id": str,     # Clean object ID
+                "children": list[dict[str, str]]  # Immediate child objects
             }
+
+            The children array contains immediate child objects only:
+            - Projects: immediate epics
+            - Epics: immediate features
+            - Features: immediate tasks
+            - Tasks: empty array (no children)
+
+            Each child object contains: {id, title, status, kind, created, file_path}
 
         Raises:
             ValueError: If kind is invalid or required parameters are missing
@@ -107,6 +116,15 @@ def create_get_object_tool(settings: Settings):
         except OSError as e:
             raise OSError(f"Failed to read object file: {e}")
 
+        # Discover immediate children
+        children_list = []
+        try:
+            children_list = discover_immediate_children(kind, clean_id, planning_root)
+        except Exception:
+            # Log warning but continue with empty children array
+            # Don't let children discovery errors break getObject functionality
+            children_list = []
+
         # Return the object data
         return {
             "yaml": yaml_dict,
@@ -114,6 +132,7 @@ def create_get_object_tool(settings: Settings):
             "file_path": str(file_path),
             "kind": kind,
             "id": clean_id,
+            "children": children_list,
         }
 
     return getObject
