@@ -124,7 +124,7 @@ Trellis MCP provides a comprehensive set of tools for AI assistants to manage hi
 - **`getObject`** - Retrieve detailed object information with automatic type detection
 - **`updateObject`** - Modify object properties with atomic updates
 - **`listBacklog`** - Query and filter tasks across the project hierarchy
-- **`claimNextTask`** - Automatically claim highest-priority available task
+- **`claimNextTask`** - Automatically claim highest-priority available task with optional scope filtering
 - **`completeTask`** - Mark tasks complete with logging and file tracking
 
 #### Creating Project Hierarchies
@@ -183,10 +183,31 @@ const backlog = await mcp.call('listBacklog', {
   sortByPriority: true
 });
 
-// Claim the next highest-priority task
+// Claim the next highest-priority task (any scope)
 const claimedTask = await mcp.call('claimNextTask', {
   projectRoot: '.',
   worktree: 'feature/user-auth'
+});
+
+// Claim task within specific project scope
+const projectTask = await mcp.call('claimNextTask', {
+  projectRoot: '.',
+  scope: 'P-ecommerce-platform',
+  worktree: 'feature/ecommerce'
+});
+
+// Claim task within specific epic scope
+const epicTask = await mcp.call('claimNextTask', {
+  projectRoot: '.',
+  scope: 'E-user-authentication',
+  worktree: 'feature/auth'
+});
+
+// Claim task within specific feature scope
+const featureTask = await mcp.call('claimNextTask', {
+  projectRoot: '.',
+  scope: 'F-login-functionality',
+  worktree: 'feature/login'
 });
 
 // Update task progress
@@ -255,8 +276,35 @@ When using Trellis MCP with AI coding assistants, you can request natural langua
 
 - "Create a new project for inventory management and break it down into epics"
 - "Claim the next highest priority task and implement it"
+- "Claim a task from the user authentication epic"
 - "Show me all open tasks that are ready to work on"
+- "Show me tasks in the frontend development epic"
 - "Complete the current task and provide a summary of what was implemented"
+- "Claim a task from the login feature specifically"
+
+#### Natural Language Scope Claiming
+
+AI assistants can interpret scope-focused requests:
+
+```javascript
+// "Work on user authentication epic"
+const authTask = await mcp.call('claimNextTask', {
+  projectRoot: './planning',
+  scope: 'E-user-authentication'
+});
+
+// "Focus on login functionality feature"
+const loginTask = await mcp.call('claimNextTask', {
+  projectRoot: './planning', 
+  scope: 'F-login-functionality'
+});
+
+// "Claim any task from the mobile app project"
+const mobileTask = await mcp.call('claimNextTask', {
+  projectRoot: './planning',
+  scope: 'P-mobile-app-redesign'
+});
+```
 
 ### Sample Commands
 
