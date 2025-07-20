@@ -1,15 +1,16 @@
 ---
 kind: task
 id: T-implement-direct-task-claiming
+parent: F-direct-task-claiming
+status: done
 title: Implement direct task claiming logic in core claim module
-status: open
 priority: high
 prerequisites:
 - T-create-task-id-resolution
 created: '2025-07-20T15:18:44.367417'
-updated: '2025-07-20T15:22:19.647321'
+updated: '2025-07-20T16:10:21.888835'
 schema_version: '1.1'
-parent: F-direct-task-claiming
+worktree: null
 ---
 ## Context
 
@@ -89,3 +90,7 @@ Create `tests/test_direct_claim_next_task.py` with:
 - Atomic operation tests (verify status updates)
 - Error handling tests for all failure scenarios
 - Integration tests with both hierarchical and standalone tasks
+
+### Log
+**2025-07-20T21:20:02.017519Z** - Implemented direct task claiming logic in core claim module with separate claim_specific_task() function and comprehensive unit tests. The new function enables users to claim specific tasks by ID through the claimNextTask tool, bypassing priority-based selection. Created dedicated test file tests/test_direct_claim_next_task.py with 19 comprehensive test cases covering all claiming scenarios including success, validation, status checks, prerequisites, atomic operations, cross-system support, and edge cases. Modified main claim_next_task() function to route to the new specific claiming function when task_id is provided. All quality checks pass (format, lint, type check, tests) with no regressions.
+- filesChanged: ["src/trellis_mcp/claim_next_task.py", "tests/test_direct_claim_next_task.py"]
