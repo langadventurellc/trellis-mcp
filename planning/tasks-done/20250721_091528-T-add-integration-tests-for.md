@@ -1,15 +1,16 @@
 ---
 kind: task
 id: T-add-integration-tests-for
+status: done
 title: Add integration tests for planning subdirectory auto-creation
-status: open
 priority: normal
 prerequisites:
 - T-update-all-mcp-tools-to-use
 - T-update-resolve-path-for-new
 created: '2025-07-21T01:01:51.390879'
-updated: '2025-07-21T01:01:51.390879'
+updated: '2025-07-21T09:06:52.521481'
 schema_version: '1.1'
+worktree: null
 ---
 ## Context
 
@@ -132,3 +133,6 @@ Update relevant documentation to reflect the new behavior:
 
 ### Log
 
+
+**2025-07-21T14:15:28.726775Z** - Implemented comprehensive integration tests for planning subdirectory auto-creation functionality. Created a complete test suite with 12 test scenarios that verify MCP tools automatically create planning subdirectories when they don't exist, while CLI commands maintain backward compatibility. Tests cover all three planning directory scenarios: no planning directory (MCP auto-creates), existing planning subdirectory (both systems use), and planning directory as project root (both use directly). Also includes mixed usage scenarios, comprehensive MCP tool coverage, and edge case handling. All tests pass and meet quality standards (format, lint, type check).
+- filesChanged: ["tests/integration/test_planning_subdir_auto_creation.py"]
