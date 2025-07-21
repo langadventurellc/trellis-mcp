@@ -213,7 +213,7 @@ def create_claim_next_task_tool(settings: Settings):
             )
 
         # Convert TaskModel to the expected dictionary format
-        _, planning_root = resolve_project_roots(projectRoot)
+        _, planning_root = resolve_project_roots(projectRoot, ensure_planning_subdir=True)
         task_file_path = id_to_path(planning_root, "task", claimed_task.id)
 
         # Build task dictionary in the format expected by the API

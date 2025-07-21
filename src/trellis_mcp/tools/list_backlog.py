@@ -91,7 +91,9 @@ def create_list_backlog_tool(settings: Settings):
             )
 
         # Resolve project roots using centralized utility
-        scanning_root, path_resolution_root = resolve_project_roots(projectRoot)
+        scanning_root, path_resolution_root = resolve_project_roots(
+            projectRoot, ensure_planning_subdir=True
+        )
 
         # Create FilterParams from individual parameters, handling validation gracefully
         try:

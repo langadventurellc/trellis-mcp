@@ -10,7 +10,9 @@ from .types import VALID_KINDS
 from .utils.fs_utils import find_object_path
 
 
-def resolve_project_roots(project_root: str | Path) -> tuple[Path, Path]:
+def resolve_project_roots(
+    project_root: str | Path, ensure_planning_subdir: bool = False
+) -> tuple[Path, Path]:
     """Resolve scanning root and path resolution root from project root.
 
     Handles two different project structure scenarios:
@@ -21,6 +23,9 @@ def resolve_project_roots(project_root: str | Path) -> tuple[Path, Path]:
 
     Args:
         project_root: Root directory path (either containing planning/ or being the planning dir)
+        ensure_planning_subdir: If True, always create/use planning/ subdirectory
+                               unless project_root already ends with "planning"
+                               If False, use existing logic (for CLI compatibility)
 
     Returns:
         tuple[Path, Path]: (scanning_root, path_resolution_root) where:
@@ -35,19 +40,41 @@ def resolve_project_roots(project_root: str | Path) -> tuple[Path, Path]:
         >>> # Case 2: project_root IS the planning directory
         >>> resolve_project_roots("/project/root/planning")
         (Path('/project/root'), Path('/project/root/planning'))
+
+        >>> # Case 3: ensure planning subdirectory from project root
+        >>> resolve_project_roots("/project/root", ensure_planning_subdir=True)
+        (Path('/project/root'), Path('/project/root/planning'))
+
+        >>> # Case 4: ensure planning subdirectory from planning root
+        >>> resolve_project_roots("/project/root/planning", ensure_planning_subdir=True)
+        (Path('/project/root'), Path('/project/root/planning'))
     """
     project_root_path = Path(project_root)
 
-    if (project_root_path / "planning").exists():
-        # projectRoot contains planning directory
-        scanning_root = project_root_path
-        path_resolution_root = project_root_path / "planning"
+    if ensure_planning_subdir:
+        # Check if the supplied path already ends with "planning"
+        if project_root_path.name == "planning":
+            # Use the supplied planning directory directly
+            planning_dir = project_root_path
+            planning_dir.mkdir(parents=True, exist_ok=True)
+            return project_root_path.parent, planning_dir
+        else:
+            # Create/use project_root/planning/ subdirectory
+            planning_dir = project_root_path / "planning"
+            planning_dir.mkdir(parents=True, exist_ok=True)
+            return project_root_path, planning_dir
     else:
-        # projectRoot IS the planning directory
-        scanning_root = project_root_path.parent
-        path_resolution_root = project_root_path
+        # Existing logic for CLI compatibility
+        if (project_root_path / "planning").exists():
+            # projectRoot contains planning directory
+            scanning_root = project_root_path
+            path_resolution_root = project_root_path / "planning"
+        else:
+            # projectRoot IS the planning directory
+            scanning_root = project_root_path.parent
+            path_resolution_root = project_root_path
 
-    return scanning_root, path_resolution_root
+        return scanning_root, path_resolution_root
 
 
 def id_to_path(project_root: Path, kind: str, obj_id: str) -> Path:
@@ -169,7 +196,12 @@ def id_to_path(project_root: Path, kind: str, obj_id: str) -> Path:
 
 
 def resolve_path_for_new_object(
-    kind: str, obj_id: str, parent_id: str | None, project_root: Path, status: str | None = None
+    kind: str,
+    obj_id: str,
+    parent_id: str | None,
+    project_root: Path,
+    status: str | None = None,
+    ensure_planning_subdir: bool = False,
 ) -> Path:
     """Resolve the filesystem path for a new Trellis MCP object.
 
@@ -185,6 +217,9 @@ def resolve_path_for_new_object(
             support standalone tasks; use empty string or None for no parent)
         project_root: Root directory of the planning structure
         status: Object status (affects task directory and filename, optional)
+        ensure_planning_subdir: If True, always create/use planning/ subdirectory
+            unless project_root already ends with "planning". If False, use existing
+            logic for backward compatibility (default: False)
 
     Returns:
         Path object pointing to where the new object file should be created:
@@ -241,7 +276,7 @@ def resolve_path_for_new_object(
         clean_id = clean_id[2:]
 
     # Get the correct path resolution root
-    _, path_resolution_root = resolve_project_roots(project_root)
+    _, path_resolution_root = resolve_project_roots(project_root, ensure_planning_subdir)
 
     # Build path based on kind
     if kind == "project":
@@ -268,7 +303,7 @@ def resolve_path_for_new_object(
         parent_clean = parent_id.replace("E-", "") if parent_id.startswith("E-") else parent_id
         # Find the parent epic's path to determine the project
         try:
-            epic_path = id_to_path(project_root, "epic", parent_clean)
+            epic_path = id_to_path(path_resolution_root, "epic", parent_clean)
             # Extract project directory from epic path
             project_dir = epic_path.parts[epic_path.parts.index("projects") + 1]
             return (
@@ -310,7 +345,7 @@ def resolve_path_for_new_object(
         parent_clean = parent_id.replace("F-", "") if parent_id.startswith("F-") else parent_id
         # Find the parent feature's path to determine the project and epic
         try:
-            feature_path = id_to_path(project_root, "feature", parent_clean)
+            feature_path = id_to_path(path_resolution_root, "feature", parent_clean)
             # Extract project and epic directories from feature path
             project_dir = feature_path.parts[feature_path.parts.index("projects") + 1]
             epic_dir = feature_path.parts[feature_path.parts.index("epics") + 1]

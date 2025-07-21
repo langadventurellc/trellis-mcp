@@ -16,6 +16,7 @@ Trellis MCP transforms project management by providing:
 ## Why not?
 
 - Currently only suited to single-user projects. You probably can set the project root to a shared directory, but this is not tested.
+- Not intended to replace full-fledged project management tools like Jira or Asana. Trellis MCP is focused on software development workflows and AI assistant integration.
 
 ## Features
 

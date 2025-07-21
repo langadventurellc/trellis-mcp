@@ -41,11 +41,13 @@ class PathBuilder:
         - Safe directory creation using existing fs_utils
     """
 
-    def __init__(self, project_root: str | Path):
+    def __init__(self, project_root: str | Path, ensure_planning_subdir: bool = False):
         """Initialize PathBuilder with project root.
 
         Args:
             project_root: Root directory for the planning structure
+            ensure_planning_subdir: If True, always create/use planning/ subdirectory
+                unless project_root already ends with "planning"
 
         Raises:
             ValueError: If project_root is empty or invalid
@@ -57,7 +59,9 @@ class PathBuilder:
         # Convert to Path and resolve project roots using existing utility
         self._project_root = Path(project_root)
         try:
-            self._scanning_root, self._resolution_root = resolve_project_roots(self._project_root)
+            self._scanning_root, self._resolution_root = resolve_project_roots(
+                self._project_root, ensure_planning_subdir
+            )
         except Exception as e:
             raise ValidationError(
                 errors=[f"Invalid project root: {e}"],

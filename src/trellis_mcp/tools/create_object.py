@@ -108,7 +108,7 @@ def create_create_object_tool(settings: Settings):
             )
 
         # Resolve project roots to get planning directory
-        _, planning_root = resolve_project_roots(projectRoot)
+        _, planning_root = resolve_project_roots(projectRoot, ensure_planning_subdir=True)
 
         # Generate ID if not provided
         if not id or not id.strip():
@@ -195,7 +195,9 @@ def create_create_object_tool(settings: Settings):
 
         # Determine file path using centralized path logic
         try:
-            file_path = resolve_path_for_new_object(kind, id, parent, planning_root, status)
+            file_path = resolve_path_for_new_object(
+                kind, id, parent, planning_root, status, ensure_planning_subdir=True
+            )
         except ValueError as e:
             raise ValidationError(
                 errors=[str(e)],

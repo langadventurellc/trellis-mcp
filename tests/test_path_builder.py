@@ -34,6 +34,42 @@ class TestPathBuilderInitialization:
         with pytest.raises(ValueError, match="Project root cannot be empty"):
             PathBuilder(None)  # type: ignore
 
+    def test_init_default_ensure_planning_subdir(self, temp_planning_dir):
+        """Test that ensure_planning_subdir defaults to False."""
+        builder = PathBuilder(temp_planning_dir)
+        assert builder._project_root == Path(temp_planning_dir)
+        assert builder._resolution_root is not None
+        assert builder._scanning_root is not None
+
+    def test_init_with_ensure_planning_subdir_false(self, temp_planning_dir):
+        """Test initialization with ensure_planning_subdir=False."""
+        builder = PathBuilder(temp_planning_dir, ensure_planning_subdir=False)
+        assert builder._project_root == Path(temp_planning_dir)
+        assert builder._resolution_root is not None
+        assert builder._scanning_root is not None
+
+    def test_init_with_ensure_planning_subdir_true_project_root(self, temp_planning_dir):
+        """Test initialization with ensure_planning_subdir=True using project root."""
+        builder = PathBuilder(temp_planning_dir, ensure_planning_subdir=True)
+        assert builder._project_root == Path(temp_planning_dir)
+        assert builder._resolution_root is not None
+        assert builder._scanning_root is not None
+        # Should use planning subdirectory
+        expected_planning = Path(temp_planning_dir) / "planning"
+        assert builder._resolution_root == expected_planning
+
+    def test_init_with_ensure_planning_subdir_true_planning_root(self, temp_planning_dir):
+        """Test initialization with ensure_planning_subdir=True using planning root."""
+        planning_dir = Path(temp_planning_dir) / "planning"
+        planning_dir.mkdir()
+
+        builder = PathBuilder(planning_dir, ensure_planning_subdir=True)
+        assert builder._project_root == planning_dir
+        assert builder._resolution_root is not None
+        assert builder._scanning_root is not None
+        # Should use existing planning directory, not create subdirectory
+        assert builder._resolution_root == planning_dir
+
 
 class TestPathBuilderConfiguration:
     """Test PathBuilder fluent configuration methods."""
@@ -477,6 +513,149 @@ class TestIntegrationWithFilesystem:
         # Directory should now exist
         assert path.parent.exists()
         assert path.parent.is_dir()
+
+
+class TestEnsurePlanningSubdirPathBuilding:
+    """Test path building with ensure_planning_subdir parameter."""
+
+    def test_project_path_with_ensure_planning_subdir_false(self, temp_planning_dir):
+        """Test project path building with ensure_planning_subdir=False."""
+        builder = PathBuilder(temp_planning_dir, ensure_planning_subdir=False)
+        path = builder.for_object("project", "test-project").build_path()
+
+        # Should match the existing behavior
+        expected = Path(temp_planning_dir) / "projects" / "P-test-project" / "project.md"
+        assert path == expected
+
+    def test_project_path_with_ensure_planning_subdir_true(self, temp_planning_dir):
+        """Test project path building with ensure_planning_subdir=True."""
+        builder = PathBuilder(temp_planning_dir, ensure_planning_subdir=True)
+        path = builder.for_object("project", "test-project").build_path()
+
+        # Should use planning subdirectory
+        expected = (
+            Path(temp_planning_dir) / "planning" / "projects" / "P-test-project" / "project.md"
+        )
+        assert path == expected
+
+    def test_project_path_with_planning_root_ensure_planning_subdir_true(self, temp_planning_dir):
+        """Test project path building with planning root and ensure_planning_subdir=True."""
+        planning_dir = Path(temp_planning_dir) / "planning"
+        planning_dir.mkdir()
+
+        builder = PathBuilder(planning_dir, ensure_planning_subdir=True)
+        path = builder.for_object("project", "test-project").build_path()
+
+        # Should use existing planning directory, not create subdirectory
+        expected = planning_dir / "projects" / "P-test-project" / "project.md"
+        assert path == expected
+
+    @patch("src.trellis_mcp.path_resolver.get_standalone_task_filename")
+    @patch("src.trellis_mcp.validation.field_validation.validate_standalone_task_path_parameters")
+    @patch("src.trellis_mcp.validation.security.validate_standalone_task_path_security")
+    def test_standalone_task_path_with_ensure_planning_subdir_modes(
+        self, mock_security, mock_params, mock_filename, temp_planning_dir
+    ):
+        """Test standalone task path building with both ensure_planning_subdir modes."""
+        mock_params.return_value = []
+        mock_security.return_value = []
+        mock_filename.return_value = "T-test-task.md"
+
+        # Test with ensure_planning_subdir=False (default behavior)
+        builder_false = PathBuilder(temp_planning_dir, ensure_planning_subdir=False)
+        path_false = builder_false.for_object("task", "test-task").with_status("open").build_path()
+
+        expected_false = Path(temp_planning_dir) / "tasks-open" / "T-test-task.md"
+        assert path_false == expected_false
+
+        # Test with ensure_planning_subdir=True (should use planning subdirectory)
+        builder_true = PathBuilder(temp_planning_dir, ensure_planning_subdir=True)
+        path_true = builder_true.for_object("task", "test-task").with_status("open").build_path()
+
+        expected_true = Path(temp_planning_dir) / "planning" / "tasks-open" / "T-test-task.md"
+        assert path_true == expected_true
+
+    @patch("src.trellis_mcp.path_resolver.id_to_path")
+    @patch("src.trellis_mcp.path_resolver.get_standalone_task_filename")
+    @patch("src.trellis_mcp.validation.field_validation.validate_standalone_task_path_parameters")
+    @patch("src.trellis_mcp.validation.security.validate_standalone_task_path_security")
+    def test_hierarchical_task_path_with_ensure_planning_subdir_modes(
+        self, mock_security, mock_params, mock_filename, mock_id_to_path, temp_planning_dir
+    ):
+        """Test hierarchical task path building with both ensure_planning_subdir modes."""
+        mock_params.return_value = []
+        mock_security.return_value = []
+        mock_filename.return_value = "T-test-task.md"
+
+        # Mock feature path for ensure_planning_subdir=False
+        mock_feature_path_false = (
+            Path(temp_planning_dir)
+            / "projects"
+            / "P-test-project"
+            / "epics"
+            / "E-test-epic"
+            / "features"
+            / "F-test-feature"
+            / "feature.md"
+        )
+
+        # Mock feature path for ensure_planning_subdir=True
+        mock_feature_path_true = (
+            Path(temp_planning_dir)
+            / "planning"
+            / "projects"
+            / "P-test-project"
+            / "epics"
+            / "E-test-epic"
+            / "features"
+            / "F-test-feature"
+            / "feature.md"
+        )
+
+        # Test with ensure_planning_subdir=False
+        mock_id_to_path.return_value = mock_feature_path_false
+        builder_false = PathBuilder(temp_planning_dir, ensure_planning_subdir=False)
+        path_false = (
+            builder_false.for_object("task", "test-task", "F-test-feature")
+            .with_status("open")
+            .build_path()
+        )
+
+        expected_false = (
+            Path(temp_planning_dir)
+            / "projects"
+            / "P-test-project"
+            / "epics"
+            / "E-test-epic"
+            / "features"
+            / "F-test-feature"
+            / "tasks-open"
+            / "T-test-task.md"
+        )
+        assert path_false == expected_false
+
+        # Test with ensure_planning_subdir=True
+        mock_id_to_path.return_value = mock_feature_path_true
+        builder_true = PathBuilder(temp_planning_dir, ensure_planning_subdir=True)
+        path_true = (
+            builder_true.for_object("task", "test-task", "F-test-feature")
+            .with_status("open")
+            .build_path()
+        )
+
+        expected_true = (
+            Path(temp_planning_dir)
+            / "planning"
+            / "projects"
+            / "P-test-project"
+            / "epics"
+            / "E-test-epic"
+            / "features"
+            / "F-test-feature"
+            / "tasks-open"
+            / "T-test-task.md"
+        )
+        assert path_true == expected_true
 
 
 class TestPerformanceRequirements:
