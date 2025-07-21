@@ -552,7 +552,7 @@ class TestClaimNextTaskToolInterface:
                     )
 
                 # Verify core function was called with scope parameter
-                mock_core.assert_called_once_with(str(temp_dir), "", "F-test-feature", None)
+                mock_core.assert_called_once_with(str(temp_dir), "", "F-test-feature", None, False)
 
                 # Should get NoAvailableTask, not validation error
                 assert "No tasks available" in str(exc_info.value)
@@ -777,7 +777,7 @@ class TestClaimNextTaskToolInterfaceTaskId:
                     )
 
                 # Verify core function was called with task_id parameter
-                mock_core.assert_called_once_with(str(temp_dir), "", None, "T-test-task")
+                mock_core.assert_called_once_with(str(temp_dir), "", None, "T-test-task", False)
 
                 # Should get NoAvailableTask, not validation error
                 assert "Task not found" in str(exc_info.value)
@@ -805,7 +805,11 @@ class TestClaimNextTaskToolInterfaceTaskId:
 
                 # Verify all parameters are passed correctly
                 mock_core.assert_called_once_with(
-                    str(temp_dir), "/workspace/feature-branch", "F-test-feature", "T-test-task"
+                    str(temp_dir),
+                    "/workspace/feature-branch",
+                    "F-test-feature",
+                    "T-test-task",
+                    False,
                 )
 
 
@@ -855,3 +859,319 @@ class TestTaskResolutionFunction:
         result = _find_task_by_id(Path("/test"), "T-any")
 
         assert result is None
+
+
+class TestClaimNextTaskForceClaimParameter:
+    """Test force_claim parameter functionality in claimNextTask tool interface."""
+
+    @pytest.mark.asyncio
+    async def test_force_claim_false_maintains_existing_behavior(self, temp_dir):
+        """Test that force_claim=False maintains existing behavior (backward compatibility)."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Test with force_claim=False - should get NoAvailableTask error
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask", {"projectRoot": str(temp_dir), "force_claim": False}
+                )
+
+            # Should get the expected NoAvailableTask error, not a validation error
+            assert "No open tasks available" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_force_claim_requires_task_id(self, temp_dir):
+        """Test that force_claim=True requires taskId to be specified."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Test force_claim=True without taskId
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask", {"projectRoot": str(temp_dir), "force_claim": True}
+                )
+            assert "force_claim parameter requires taskId to be specified" in str(exc_info.value)
+
+            # Test force_claim=True with empty taskId
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask",
+                    {"projectRoot": str(temp_dir), "force_claim": True, "taskId": ""},
+                )
+            assert "force_claim parameter requires taskId to be specified" in str(exc_info.value)
+
+            # Test force_claim=True with whitespace-only taskId
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask",
+                    {"projectRoot": str(temp_dir), "force_claim": True, "taskId": "   "},
+                )
+            assert "force_claim parameter requires taskId to be specified" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_force_claim_incompatible_with_scope(self, temp_dir):
+        """Test that force_claim=True is incompatible with scope parameter."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Test force_claim=True with project scope
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask",
+                    {
+                        "projectRoot": str(temp_dir),
+                        "force_claim": True,
+                        "taskId": "T-test-task",
+                        "scope": "P-test-project",
+                    },
+                )
+            assert "force_claim parameter is incompatible with scope parameter" in str(
+                exc_info.value
+            )
+
+            # Test force_claim=True with epic scope
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask",
+                    {
+                        "projectRoot": str(temp_dir),
+                        "force_claim": True,
+                        "taskId": "T-test-task",
+                        "scope": "E-test-epic",
+                    },
+                )
+            assert "force_claim parameter is incompatible with scope parameter" in str(
+                exc_info.value
+            )
+
+            # Test force_claim=True with feature scope
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask",
+                    {
+                        "projectRoot": str(temp_dir),
+                        "force_claim": True,
+                        "taskId": "T-test-task",
+                        "scope": "F-test-feature",
+                    },
+                )
+            assert "force_claim parameter is incompatible with scope parameter" in str(
+                exc_info.value
+            )
+
+    @pytest.mark.asyncio
+    async def test_force_claim_valid_with_task_id_only(self, temp_dir):
+        """Test that force_claim=True with taskId (and no scope) passes validation."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        with patch("trellis_mcp.tools.claim_next_task.claim_next_task") as mock_core:
+            # Mock core function to raise NoAvailableTask to verify it was called
+            mock_core.side_effect = NoAvailableTask("Task not found")
+
+            async with Client(server) as client:
+                with pytest.raises(Exception) as exc_info:
+                    await client.call_tool(
+                        "claimNextTask",
+                        {
+                            "projectRoot": str(temp_dir),
+                            "force_claim": True,
+                            "taskId": "T-test-task",
+                        },
+                    )
+
+                # Should get NoAvailableTask from core function, not validation error
+                assert "Task not found" in str(exc_info.value)
+                # Verify core function was called (validation passed)
+                mock_core.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_force_claim_with_worktree(self, temp_dir):
+        """Test that force_claim works correctly with worktree parameter."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        with patch("trellis_mcp.tools.claim_next_task.claim_next_task") as mock_core:
+            mock_core.side_effect = NoAvailableTask("Task not found")
+
+            async with Client(server) as client:
+                with pytest.raises(Exception) as exc_info:
+                    await client.call_tool(
+                        "claimNextTask",
+                        {
+                            "projectRoot": str(temp_dir),
+                            "force_claim": True,
+                            "taskId": "T-test-task",
+                            "worktree": "/workspace/hotfix",
+                        },
+                    )
+
+                # Should pass validation and call core function
+                assert "Task not found" in str(exc_info.value)
+                mock_core.assert_called_once_with(
+                    str(temp_dir), "/workspace/hotfix", None, "T-test-task", True
+                )
+
+    @pytest.mark.asyncio
+    async def test_force_claim_parameter_passed_to_core_function(self, temp_dir):
+        """Test that force_claim parameter validation allows call to core function."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        with patch("trellis_mcp.tools.claim_next_task.claim_next_task") as mock_core:
+            # Mock core function to verify it was called with correct parameters
+            mock_core.side_effect = NoAvailableTask("Task not found")
+
+            async with Client(server) as client:
+                with pytest.raises(Exception) as exc_info:
+                    await client.call_tool(
+                        "claimNextTask",
+                        {
+                            "projectRoot": str(temp_dir),
+                            "force_claim": True,
+                            "taskId": "T-urgent-task",
+                            "worktree": "/workspace/emergency",
+                        },
+                    )
+
+                # Verify validation passed and core function was called
+                # Verify force_claim parameter is properly passed to core function
+                mock_core.assert_called_once_with(
+                    str(temp_dir), "/workspace/emergency", None, "T-urgent-task", True
+                )
+                assert "Task not found" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_force_claim_validation_error_context(self, temp_dir):
+        """Test that force_claim validation errors include proper context."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Test validation error context for missing taskId
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask", {"projectRoot": str(temp_dir), "force_claim": True}
+                )
+
+            error_message = str(exc_info.value)
+            assert "force_claim parameter requires taskId to be specified" in error_message
+
+            # Test validation error context for scope incompatibility
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask",
+                    {
+                        "projectRoot": str(temp_dir),
+                        "force_claim": True,
+                        "taskId": "T-test",
+                        "scope": "F-test",
+                    },
+                )
+
+            error_message = str(exc_info.value)
+            assert "force_claim parameter is incompatible with scope parameter" in error_message
+
+
+class TestClaimNextTaskForceClaimImplementation:
+    """Test force_claim parameter implementation and integration with core logic."""
+
+    @pytest.mark.asyncio
+    async def test_force_claim_parameter_passed_to_core_function(self, temp_dir):
+        """Test that force_claim parameter is properly passed to core claiming logic."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        with patch("trellis_mcp.tools.claim_next_task.claim_next_task") as mock_core:
+            # Mock core function to verify it receives force_claim parameter
+            mock_core.side_effect = NoAvailableTask("Task not found")
+
+            async with Client(server) as client:
+                with pytest.raises(Exception) as exc_info:
+                    await client.call_tool(
+                        "claimNextTask",
+                        {
+                            "projectRoot": str(temp_dir),
+                            "taskId": "T-test-task",
+                            "force_claim": True,
+                            "worktree": "/workspace/test",
+                        },
+                    )
+
+                # Verify core function was called with force_claim=True
+                mock_core.assert_called_once_with(
+                    str(temp_dir), "/workspace/test", None, "T-test-task", True
+                )
+                assert "Task not found" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_force_claim_false_passed_to_core_function(self, temp_dir):
+        """Test that force_claim=False is properly passed to core claiming logic."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        with patch("trellis_mcp.tools.claim_next_task.claim_next_task") as mock_core:
+            mock_core.side_effect = NoAvailableTask("No tasks available")
+
+            async with Client(server) as client:
+                with pytest.raises(Exception):
+                    await client.call_tool(
+                        "claimNextTask",
+                        {
+                            "projectRoot": str(temp_dir),
+                            "taskId": "T-test-task",
+                            "force_claim": False,
+                        },
+                    )
+
+                # Verify core function was called with force_claim=False
+                mock_core.assert_called_once_with(str(temp_dir), "", None, "T-test-task", False)
+
+    @pytest.mark.asyncio
+    async def test_force_claim_default_false_passed_to_core_function(self, temp_dir):
+        """Test that omitted force_claim parameter defaults to False in core function."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        with patch("trellis_mcp.tools.claim_next_task.claim_next_task") as mock_core:
+            mock_core.side_effect = NoAvailableTask("No tasks available")
+
+            async with Client(server) as client:
+                with pytest.raises(Exception):
+                    await client.call_tool(
+                        "claimNextTask",
+                        {
+                            "projectRoot": str(temp_dir),
+                            "taskId": "T-test-task",
+                            # force_claim omitted - should default to False
+                        },
+                    )
+
+                # Verify core function was called with force_claim=False (default)
+                mock_core.assert_called_once_with(str(temp_dir), "", None, "T-test-task", False)
+
+    @pytest.mark.asyncio
+    async def test_force_claim_with_priority_claiming_still_passes_false(self, temp_dir):
+        """Test that force_claim=False is passed to core function for priority-based claiming."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        with patch("trellis_mcp.tools.claim_next_task.claim_next_task") as mock_core:
+            mock_core.side_effect = NoAvailableTask("No tasks available")
+
+            async with Client(server) as client:
+                with pytest.raises(Exception):
+                    await client.call_tool(
+                        "claimNextTask",
+                        {
+                            "projectRoot": str(temp_dir),
+                            "force_claim": False,
+                            # No taskId - should use priority-based claiming
+                        },
+                    )
+
+                # Verify core function was called with force_claim=False for priority claiming
+                mock_core.assert_called_once_with(str(temp_dir), "", None, None, False)
