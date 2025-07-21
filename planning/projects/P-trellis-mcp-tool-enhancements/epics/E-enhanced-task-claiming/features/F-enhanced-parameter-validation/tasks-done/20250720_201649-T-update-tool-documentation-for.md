@@ -1,15 +1,16 @@
 ---
 kind: task
 id: T-update-tool-documentation-for
+parent: F-enhanced-parameter-validation
+status: done
 title: Update tool documentation for enhanced parameter validation
-status: open
 priority: normal
 prerequisites:
 - T-create-comprehensive-parameter
 created: '2025-07-20T19:14:07.183213'
-updated: '2025-07-20T19:14:07.183213'
+updated: '2025-07-20T20:12:10.501981'
 schema_version: '1.1'
-parent: F-enhanced-parameter-validation
+worktree: null
 ---
 ## Update Tool Documentation for Enhanced Parameter Validation
 
@@ -108,3 +109,6 @@ Update claimNextTask tool documentation to reflect the enhanced parameter valida
 
 ### Log
 
+
+**2025-07-21T01:16:49.170005Z** - Updated claimNextTask tool documentation with comprehensive enhanced parameter validation section, including parameter combination rules, mutual exclusivity validation, force_claim parameter documentation, expanded error handling with validation scenarios, and migration guide. Added detailed examples for valid/invalid parameter combinations, comprehensive error reference table with error codes and solutions, force claiming examples and security considerations, and backward compatibility guidance. Documentation now covers all parameter validation behaviors implemented in ClaimingParams model including scope/taskId mutual exclusivity, force_claim requirements, format validation, and cross-system validation errors. Added migration strategies for adopting enhanced parameters while maintaining full backward compatibility.
+- filesChanged: ["docs/tools/claim-next-task.md"]
