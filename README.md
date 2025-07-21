@@ -28,32 +28,6 @@ Trellis MCP transforms project management by providing:
 
 ## Installation
 
-### Using uv (Fast Python Package Manager)
-
-```bash
-# Install with uv
-uv add task-trellis-mcp
-
-# Or run directly without installation
-uvx task-trellis-mcp serve
-```
-
-### Development Installation
-
-For development or to install from source:
-
-```bash
-# Clone the repository
-git clone https://github.com/langadventurellc/trellis-mcp.git
-cd trellis-mcp
-
-# Install development dependencies
-uv sync
-
-# Install in editable mode
-uv pip install -e .
-```
-
 ### Claude Code Configuration
 
 Add Trellis MCP to your Claude Code MCP configuration:
@@ -345,6 +319,32 @@ For examples of how to create comprehensive AI assistant commands that leverage 
 
 You can also use Trellis MCP directly from the command line for manual operations:
 
+### Using uv (Fast Python Package Manager)
+
+```bash
+# Install with uv
+uv add task-trellis-mcp
+
+# Or run directly without installation
+uvx task-trellis-mcp serve
+```
+
+### Development Installation
+
+For development or to install from source:
+
+```bash
+# Clone the repository
+git clone https://github.com/langadventurellc/trellis-mcp.git
+cd trellis-mcp
+
+# Install development dependencies
+uv sync
+
+# Install in editable mode
+uv pip install -e .
+```
+
 ```bash
 # Initialize a new project structure
 task-trellis-mcp init
@@ -361,16 +361,13 @@ task-trellis-mcp serve
 
 ## Developer Guidelines
 
-### Code Quality Standards
-
-This project follows strict quality standards enforced by automated tools. All changes must pass the quality gate before being committed.
-
 #### Quality Gate
 
 Run **all** checks before committing - any failure blocks the commit:
 
 ```bash
-uv run poe quality   # flake8, black, pyright, unit tests
+uv run poe quality # flake8, black, pyright
+uv run pytest # unit tests
 ```
 
 #### Code Style
@@ -477,41 +474,6 @@ uv run task-trellis-mcp complete T-task-id \
   --files-changed src/module.py,tests/test_module.py
 ```
 
-### Contributing Guidelines
-
-#### Before Starting
-
-- Check existing issues and discussions
-- Understand the Trellis MCP specification
-- Review existing code patterns
-- Set up development environment properly
-
-#### Making Changes
-
-- Create feature branch from `main`
-- Ensure all quality checks pass
-- Keep commits focused and atomic
-
-#### Pull Request Process
-
-- Provide clear description of changes
-- Include test coverage information
-- Document any breaking changes
-- Link to relevant issues or discussions
-- Ensure CI passes completely
-
-### Performance Considerations
-
-- **File Operations**: Use efficient file I/O patterns
-- **Validation**: Cache validation results when appropriate
-- **Dependencies**: Minimize external dependencies
-- **Memory Usage**: Clean up resources properly
-- **Cross-System Operations**: Optimize for common access patterns
-
 ## License
 
 MIT License - See LICENSE file for details.
-
-## Repository
-
-[https://github.com/langadventurellc/trellis-mcp](https://github.com/langadventurellc/trellis-mcp)
