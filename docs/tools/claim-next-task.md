@@ -15,7 +15,7 @@ The `claimNextTask` tool provides three claiming modes:
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `projectRoot` | string | Yes | Root directory for the planning structure |
-| `worktree` | string | No | Optional worktree identifier to stamp on claimed task |
+| `worktree` | string | No | Optional worktree identifier to stamp on claimed task (currently informational only) |
 | `scope` | string | No | Hierarchical scope for task filtering (P-, E-, F- prefixed) |
 | `taskId` | string | No | Specific task ID to claim directly |
 | `force_claim` | boolean | No | Bypass validation when claiming specific task (only with `taskId`) |

@@ -1,13 +1,14 @@
 ---
 kind: task
 id: T-add-medium-priority-validation
+status: done
 title: Add medium priority support to createObject validation
-status: open
 priority: low
 prerequisites: []
 created: '2025-07-20T17:49:45.639234'
-updated: '2025-07-20T17:49:45.639234'
+updated: '2025-07-20T22:13:37.057299'
 schema_version: '1.1'
+worktree: null
 ---
 Update the createObject tool validation to accept "medium" as a valid priority value that gets internally converted to "normal" for consistency with the rest of the system.
 
@@ -61,3 +62,6 @@ The createObject tool in `src/trellis_mcp/tools/create_object.py` accepts priori
 
 ### Log
 
+
+**2025-07-21T03:20:26.059522Z** - Successfully implemented medium priority support for the createObject validation system. Users can now specify priority="medium" when creating objects, which gets automatically converted to "normal" for consistent internal storage. Enhanced Priority enum to accept "medium" as case-insensitive alias for "normal", added normalization logic to createObject tool, updated error messages to include "medium" as valid option, and added comprehensive test coverage. All quality checks pass and backward compatibility is maintained.
+- filesChanged: ["src/trellis_mcp/models/common.py", "src/trellis_mcp/tools/create_object.py", "src/trellis_mcp/validation/field_validation.py", "tests/unit/test_field_validation.py", "tests/integration/test_medium_priority_support.py"]

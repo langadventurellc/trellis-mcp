@@ -122,6 +122,10 @@ def create_create_object_tool(settings: Settings):
         if not priority or not priority.strip():
             priority = "normal"
 
+        # Normalize priority: convert "medium" to "normal" for consistent storage
+        if priority.lower() == "medium":
+            priority = "normal"
+
         # Set default prerequisites
         if not prerequisites:
             prerequisites = []
