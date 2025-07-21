@@ -22,8 +22,16 @@ class Priority(IntEnum):
 
     @classmethod
     def _missing_(cls, value):
-        """Support string values for Pydantic schema compatibility."""
+        """Support string values for Pydantic schema compatibility.
+
+        Also supports 'medium' as an alias for 'normal' priority.
+        """
         if isinstance(value, str):
+            # Handle 'medium' as alias for 'normal'
+            if value.lower() == "medium":
+                return cls.NORMAL
+
+            # Standard name matching for other values
             for member in cls:
                 if member.name.lower() == value.lower():
                     return member

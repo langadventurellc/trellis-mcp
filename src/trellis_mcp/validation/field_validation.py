@@ -146,7 +146,7 @@ def validate_enum_membership(data: dict[str, Any]) -> list[str]:
                         f"Invalid status '{input_value}'. Must be one of: {valid_statuses}"
                     )
                 elif "priority" in str(field):
-                    valid_priorities = [str(p) for p in Priority]
+                    valid_priorities = [str(p) for p in Priority] + ["medium"]
                     errors.append(
                         f"Invalid priority '{input_value}'. Must be one of: {valid_priorities}"
                     )
@@ -183,7 +183,7 @@ def _validate_enum_membership_manual(data: dict[str, Any]) -> list[str]:
         try:
             Priority(data["priority"])
         except ValueError:
-            valid_priorities = [str(p) for p in Priority]
+            valid_priorities = [str(p) for p in Priority] + ["medium"]
             errors.append(
                 f"Invalid priority '{data['priority']}'. Must be one of: {valid_priorities}"
             )
@@ -214,7 +214,7 @@ def validate_priority_field(data: dict[str, Any]) -> list[str]:
     try:
         Priority(priority_value)
     except ValueError:
-        valid_priorities = [str(p) for p in Priority]
+        valid_priorities = [str(p) for p in Priority] + ["medium"]
         errors.append(f"Invalid priority '{priority_value}'. Must be one of: {valid_priorities}")
 
     return errors
@@ -353,7 +353,7 @@ def validate_front_matter(yaml_dict: dict[str, Any], kind: str | KindEnum) -> li
                 elif "priority" in str(field):
                     # Skip priority errors if they were already handled by explicit validation
                     if not priority_errors:
-                        valid_priorities = [str(p) for p in Priority]
+                        valid_priorities = [str(p) for p in Priority] + ["medium"]
                         errors.append(
                             f"Invalid priority '{input_value}'. Must be one of: {valid_priorities}"
                         )

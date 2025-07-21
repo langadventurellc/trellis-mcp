@@ -6,6 +6,7 @@ enum membership validation, and status validation for different object kinds.
 
 import pytest
 
+from trellis_mcp.models.common import Priority
 from trellis_mcp.schema.kind_enum import KindEnum
 from trellis_mcp.schema.status_enum import StatusEnum
 from trellis_mcp.validation import (
@@ -466,3 +467,57 @@ class TestBadEnumFailures:
         assert "Invalid kind" in error_text
         assert "Invalid status" in error_text
         assert "Invalid priority" in error_text
+
+
+class TestPriorityMediumSupport:
+    """Test medium priority support in Priority enum and validation."""
+
+    def test_priority_enum_medium_alias(self):
+        """Test Priority enum accepts 'medium' and returns NORMAL."""
+        # Test case-insensitive medium support
+        medium_variations = ["medium", "Medium", "MEDIUM", "MeDiUm"]
+
+        for variation in medium_variations:
+            priority = Priority(variation)
+            assert priority == Priority.NORMAL
+            assert str(priority) == "normal"  # String representation should be "normal"
+
+    def test_priority_enum_standard_values_unchanged(self):
+        """Test existing priority values still work correctly."""
+        test_cases = [
+            ("high", Priority.HIGH),
+            ("normal", Priority.NORMAL),
+            ("low", Priority.LOW),
+            ("High", Priority.HIGH),
+            ("Normal", Priority.NORMAL),
+            ("Low", Priority.LOW),
+        ]
+
+        for input_value, expected in test_cases:
+            priority = Priority(input_value)
+            assert priority == expected
+
+    def test_validate_enum_membership_medium_priority(self):
+        """Test enum validation accepts 'medium' priority."""
+        data = {"kind": "project", "status": "draft", "priority": "medium"}
+
+        errors = validate_enum_membership(data)
+        assert errors == []  # Should have no validation errors
+
+    def test_validate_enum_membership_invalid_priority_includes_medium(self):
+        """Test error message for invalid priority includes 'medium' option."""
+        data = {"kind": "project", "status": "draft", "priority": "invalid_priority"}
+
+        errors = validate_enum_membership(data)
+        assert len(errors) == 1
+        assert "Invalid priority" in errors[0]
+        assert "medium" in errors[0]  # Should include medium in valid options
+        assert "['high', 'normal', 'low', 'medium']" in errors[0]
+
+    def test_priority_enum_invalid_values_still_fail(self):
+        """Test Priority enum still rejects invalid values."""
+        invalid_values = ["extra", "urgent", "critical", "", None, 123]
+
+        for invalid_value in invalid_values:
+            with pytest.raises((ValueError, TypeError)):
+                Priority(invalid_value)
