@@ -1,14 +1,15 @@
 ---
 kind: task
 id: T-update-pathbuilder-class-to
+status: done
 title: Update PathBuilder class to support ensure_planning_subdir parameter
-status: open
 priority: normal
 prerequisites:
 - T-add-ensure-planning-subdir
 created: '2025-07-21T01:02:06.856332'
-updated: '2025-07-21T01:02:06.856332'
+updated: '2025-07-21T09:17:31.368544'
 schema_version: '1.1'
+worktree: null
 ---
 ## Context
 
@@ -80,3 +81,6 @@ Write unit tests in `tests/test_path_builder.py` to verify:
 
 ### Log
 
+
+**2025-07-21T14:21:58.724260Z** - Updated PathBuilder class to support the new ensure_planning_subdir parameter that was added to resolve_project_roots(). The constructor now accepts an optional ensure_planning_subdir: bool = False parameter and passes it through to the path resolution logic. Updated KindInferenceEngine to use ensure_planning_subdir=True since it's used by MCP tools that need this behavior. Added comprehensive test coverage verifying the parameter works correctly with both project root and planning root scenarios across all path building operations. Maintained full backward compatibility with the default False value.
+- filesChanged: ["src/trellis_mcp/inference/path_builder.py", "src/trellis_mcp/inference/engine.py", "tests/test_path_builder.py"]

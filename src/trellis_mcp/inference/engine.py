@@ -180,7 +180,7 @@ class KindInferenceEngine:
 
         # Initialize components in dependency order
         self.pattern_matcher = PatternMatcher()
-        self.path_builder = PathBuilder(self.project_root)
+        self.path_builder = PathBuilder(self.project_root, ensure_planning_subdir=True)
         self.validator = FileSystemValidator(self.path_builder)
         self.cache = InferenceCache(cache_size, self.path_builder)
 
