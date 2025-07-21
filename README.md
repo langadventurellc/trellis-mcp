@@ -13,7 +13,9 @@ Trellis MCP transforms project management by providing:
 - **Human-Readable**: All data stored as Markdown files with YAML front-matter - no proprietary formats
 - **Flexible Architecture**: Support both hierarchical tasks (within project structure) and standalone tasks for urgent work
 
-Perfect for teams who want to maintain project structure while enabling AI assistants to understand context, claim tasks, and track progress automatically.
+## Why not?
+
+- Currently only suited to single-user projects. You probably can set the project root to a shared directory, but this is not tested.
 
 ## Features
 
