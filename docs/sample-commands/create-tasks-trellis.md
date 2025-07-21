@@ -68,9 +68,13 @@ Use this structured approach:
 
 Key areas to clarify:
 - **Implementation Details**: Specific technical approaches or patterns?
+  - Include unit testing in the tasks for the implementation.
 - **Task Boundaries**: What constitutes a complete, testable task?
 - **Dependencies**: Which tasks must complete before others?
 - **Testing Approach**: Unit tests, integration tests, or both?
+  - Do not create separate tasks just for unit tests. Unit tests should always be included in the same task as the changes to the production code.
+  - Do create separate tasks for integration tests.
+  - If specifically requested, do create separate tasks for performance tests. But, do not add tasks for performance tests unless specifically requested by the user.
 - **Security Implementation**: How to handle validation and authorization?
 
 **Example questioning approach:**
@@ -232,7 +236,7 @@ Performance & Integration:
 Ensure tasks are:
 - **Atomic**: Completable in one sitting (1-2 hours)
 - **Specific**: Clear implementation path
-- **Testable**: Defined acceptance criteria
+- **Testable**: Defined acceptance criteria. Include instructions for writing unit tests in the same tasks as writing the production code. Integration tests should be in separate tasks.
 - **Independent**: Minimal coupling where possible
 - **Secure**: Include necessary validations
 
@@ -299,5 +303,4 @@ Assign priorities based on:
   <important>Add security validation with tests where applicable</important>
   <important>Configure dependencies to enable parallel work</important>
   <important>Follow project patterns identified in feature</important>
-  <important>Prefer flat task structure - only create sub-tasks when necessary</important>
 </rules>

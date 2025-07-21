@@ -22,6 +22,8 @@ This hierarchy enables parallel development, clear dependencies, and manageable 
 
 Analyze an epic's comprehensive specification to create well-structured features that represent implementable functionality, ensuring complete coverage of the epic's scope and enabling effective task decomposition.
 
+**IMPORTANT**: Features must include actual changes, implementations, or deliverables. Do not create features that are purely research tasks or analysis tasks without any tangible output. Since all features and tasks are executed independently without context from other features or tasks, purely analytical work provides no value.
+
 ## Process
 
 ### 1. Identify Target Epic
@@ -216,6 +218,7 @@ When creating features, follow these guidelines:
 - **NO feature creep** - Stick to the specified epic requirements
 - **NO complex dependencies** - Keep feature relationships simple and clear
 - **NO unnecessary abstractions** - Choose direct, maintainable approaches
+- **NO pure research/analysis features** - Every feature must produce actual code, configuration, or tangible deliverables
 
 ### Modular Architecture:
 - **Clear boundaries** - Each feature should have distinct, well-defined responsibilities

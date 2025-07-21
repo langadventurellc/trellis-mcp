@@ -290,6 +290,8 @@ Note: Your completed task has unblocked dependent tasks!
 
 **STOP!** - Do not proceed. Complete one task and one task only. Do not implement another task.
 
+**Note**: It is okay to call the claim next task tool while in plan mode to gather task information for planning purposes, but do not proceed with implementation until explicitly instructed.
+
 ## Error Handling
 
 ## Problem-Solving Framework
