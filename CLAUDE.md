@@ -81,7 +81,7 @@ See [docs/api/cli-commands.md](docs/api/cli-commands.md) for a full list of CLI 
 | **Explicit is better than implicit** | Is the code self‑documenting? If not, add comments. |
 | **Fail fast** | Does the code handle errors gracefully? If not, add error handling. |
 
-## 2  Architecture Heuristics
+### 2  Architecture Heuristics
 
 #### 2.1 File‑ & package‑level
 * **≤ 400 LOC per file** (logical lines).
