@@ -33,8 +33,9 @@ class PathBuilder:
         """Initialize PathBuilder with project root.
         
         Args:
-            project_root: Project root directory path
+            project_root: Project root directory path  
             ensure_planning_subdir: If True, always create/use planning/ subdirectory
+                unless project_root already ends with "planning"
         """
         self._project_root = Path(project_root)
         self._scanning_root, self._resolution_root = resolve_project_roots(
@@ -66,9 +67,10 @@ Identify all callers of `PathBuilder` and determine if any need to be updated:
 
 Write unit tests in `tests/test_path_builder.py` to verify:
 - Default behavior (`ensure_planning_subdir=False`) matches existing logic
-- New behavior (`ensure_planning_subdir=True`) uses planning subdirectory
-- PathBuilder methods work correctly with both modes
-- All path building operations produce correct results
+- New behavior with project root (`ensure_planning_subdir=True`) uses planning subdirectory
+- New behavior with planning root (`ensure_planning_subdir=True`) uses existing planning directory
+- PathBuilder methods work correctly with both modes and both path scenarios
+- All path building operations produce correct results for both input path patterns
 
 ## Files to Modify
 

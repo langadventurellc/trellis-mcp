@@ -25,26 +25,35 @@ Create integration tests that verify the end-to-end behavior of the planning sub
 ### Test Scenarios to Cover
 
 1. **MCP Operations with No Planning Directory**
-   - Start with empty project root
+   - Start with empty project root (`/project/root`)
    - Call MCP tools (createObject, listBacklog, claimNextTask, etc.)
-   - Verify planning subdirectory is created automatically
+   - Verify planning subdirectory is created automatically (`/project/root/planning`)
    - Verify objects are created in correct locations
 
 2. **MCP Operations with Existing Planning Directory**
-   - Start with project root containing planning subdirectory
+   - Start with project root containing planning subdirectory (`/project/root/planning`)
    - Call MCP tools
    - Verify existing planning directory is used
    - Verify no duplicate directories are created
 
-3. **CLI Operations Remain Unchanged**
-   - Test CLI commands with both planning directory scenarios
+3. **MCP Operations with Planning Directory as Project Root**
+   - Start with planning directory supplied as project root (`/project/root/planning`)
+   - Call MCP tools (createObject, listBacklog, claimNextTask, etc.)
+   - Verify the planning directory is used directly (no additional `planning/` subfolder)
+   - Verify objects are created in correct locations within the planning directory
+
+4. **CLI Operations Remain Unchanged**
+   - Test CLI commands with all three planning directory scenarios:
+     - No planning directory
+     - Planning as subdirectory  
+     - Planning as project root
    - Verify CLI behavior is exactly the same as before
    - Verify no unexpected directory creation
 
-4. **Mixed Usage Scenarios**
-   - Test CLI followed by MCP operations
-   - Test MCP followed by CLI operations
-   - Verify both systems work harmoniously
+5. **Mixed Usage Scenarios**
+   - Test CLI followed by MCP operations (all three scenarios)
+   - Test MCP followed by CLI operations (all three scenarios)
+   - Verify both systems work harmoniously in all combinations
 
 ## Technical Approach
 
@@ -58,17 +67,29 @@ class TestPlanningSubdirAutoCreation:
     def test_mcp_uses_existing_planning_subdir(self, temp_dir):
         """Test that MCP tools use existing planning subdir."""
         
+    def test_mcp_uses_planning_dir_as_project_root(self, temp_dir):
+        """Test that MCP tools use planning directory directly when supplied as project root."""
+        
     def test_cli_behavior_unchanged_with_planning_subdir(self, temp_dir):
         """Test that CLI commands work the same with planning subdir."""
         
     def test_cli_behavior_unchanged_without_planning_subdir(self, temp_dir):
         """Test that CLI commands work the same without planning subdir."""
         
-    def test_mixed_usage_cli_then_mcp(self, temp_dir):
-        """Test CLI operations followed by MCP operations."""
+    def test_cli_behavior_unchanged_with_planning_as_project_root(self, temp_dir):
+        """Test that CLI commands work the same when planning dir is supplied as project root."""
         
-    def test_mixed_usage_mcp_then_cli(self, temp_dir):
-        """Test MCP operations followed by CLI operations."""
+    def test_mixed_usage_cli_then_mcp_no_planning(self, temp_dir):
+        """Test CLI operations followed by MCP operations (no planning dir)."""
+        
+    def test_mixed_usage_cli_then_mcp_with_planning(self, temp_dir):
+        """Test CLI operations followed by MCP operations (with planning subdir)."""
+        
+    def test_mixed_usage_cli_then_mcp_planning_as_root(self, temp_dir):
+        """Test CLI operations followed by MCP operations (planning as project root)."""
+        
+    def test_mixed_usage_mcp_then_cli_all_scenarios(self, temp_dir):
+        """Test MCP operations followed by CLI operations (all scenarios)."""
 ```
 
 ### Test Implementation Strategy

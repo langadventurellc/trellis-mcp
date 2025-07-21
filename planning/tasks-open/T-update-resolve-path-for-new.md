@@ -43,11 +43,15 @@ def resolve_path_for_new_object(
         project_root: Project root directory path
         status: Object status (for tasks, determines subdirectory)
         ensure_planning_subdir: If True, always create/use planning/ subdirectory
+            unless project_root already ends with "planning"
     
     Returns:
         Path: Complete filesystem path for the new object
     """
     # Pass ensure_planning_subdir to resolve_project_roots
+    # This will handle both cases:
+    # - /project/root → /project/root/planning
+    # - /project/root/planning → /project/root/planning (no change)
     _, path_resolution_root = resolve_project_roots(project_root, ensure_planning_subdir)
     
     # Rest of function logic remains the same...
@@ -73,9 +77,10 @@ After updating `resolve_path_for_new_object()`, update its callers in MCP tools:
 
 Write unit tests in `tests/unit/test_resolve_path_for_new_object.py` to verify:
 - Default behavior (`ensure_planning_subdir=False`) matches existing logic
-- New behavior (`ensure_planning_subdir=True`) uses planning subdirectory
-- All object types (project, epic, feature, task) work correctly with new parameter
-- Path resolution is correct for both modes
+- New behavior with project root (`ensure_planning_subdir=True`) uses planning subdirectory
+- New behavior with planning root (`ensure_planning_subdir=True`) uses existing planning directory
+- All object types (project, epic, feature, task) work correctly with new parameter and both path scenarios
+- Path resolution is correct for both modes and both input path patterns
 
 ## Files to Modify
 
