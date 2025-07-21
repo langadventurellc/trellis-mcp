@@ -196,7 +196,12 @@ def id_to_path(project_root: Path, kind: str, obj_id: str) -> Path:
 
 
 def resolve_path_for_new_object(
-    kind: str, obj_id: str, parent_id: str | None, project_root: Path, status: str | None = None
+    kind: str,
+    obj_id: str,
+    parent_id: str | None,
+    project_root: Path,
+    status: str | None = None,
+    ensure_planning_subdir: bool = False,
 ) -> Path:
     """Resolve the filesystem path for a new Trellis MCP object.
 
@@ -212,6 +217,9 @@ def resolve_path_for_new_object(
             support standalone tasks; use empty string or None for no parent)
         project_root: Root directory of the planning structure
         status: Object status (affects task directory and filename, optional)
+        ensure_planning_subdir: If True, always create/use planning/ subdirectory
+            unless project_root already ends with "planning". If False, use existing
+            logic for backward compatibility (default: False)
 
     Returns:
         Path object pointing to where the new object file should be created:
@@ -268,7 +276,7 @@ def resolve_path_for_new_object(
         clean_id = clean_id[2:]
 
     # Get the correct path resolution root
-    _, path_resolution_root = resolve_project_roots(project_root)
+    _, path_resolution_root = resolve_project_roots(project_root, ensure_planning_subdir)
 
     # Build path based on kind
     if kind == "project":
@@ -295,7 +303,7 @@ def resolve_path_for_new_object(
         parent_clean = parent_id.replace("E-", "") if parent_id.startswith("E-") else parent_id
         # Find the parent epic's path to determine the project
         try:
-            epic_path = id_to_path(project_root, "epic", parent_clean)
+            epic_path = id_to_path(path_resolution_root, "epic", parent_clean)
             # Extract project directory from epic path
             project_dir = epic_path.parts[epic_path.parts.index("projects") + 1]
             return (
@@ -337,7 +345,7 @@ def resolve_path_for_new_object(
         parent_clean = parent_id.replace("F-", "") if parent_id.startswith("F-") else parent_id
         # Find the parent feature's path to determine the project and epic
         try:
-            feature_path = id_to_path(project_root, "feature", parent_clean)
+            feature_path = id_to_path(path_resolution_root, "feature", parent_clean)
             # Extract project and epic directories from feature path
             project_dir = feature_path.parts[feature_path.parts.index("projects") + 1]
             epic_dir = feature_path.parts[feature_path.parts.index("epics") + 1]

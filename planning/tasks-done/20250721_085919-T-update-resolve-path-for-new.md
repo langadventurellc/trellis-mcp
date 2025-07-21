@@ -1,14 +1,15 @@
 ---
 kind: task
 id: T-update-resolve-path-for-new
+status: done
 title: Update resolve_path_for_new_object to use ensure_planning_subdir parameter
-status: open
 priority: high
 prerequisites:
 - T-add-ensure-planning-subdir
 created: '2025-07-21T01:01:31.765982'
-updated: '2025-07-21T01:01:31.765982'
+updated: '2025-07-21T08:54:11.125955'
 schema_version: '1.1'
+worktree: null
 ---
 ## Context
 
@@ -90,3 +91,6 @@ Write unit tests in `tests/unit/test_resolve_path_for_new_object.py` to verify:
 
 ### Log
 
+
+**2025-07-21T13:59:19.673619Z** - Successfully updated resolve_path_for_new_object() function to support the ensure_planning_subdir parameter. Added new parameter with default False to maintain backward compatibility. Updated function implementation to pass parameter through to resolve_project_roots() call. Updated create_object.py to pass ensure_planning_subdir=True. Added comprehensive test coverage with 22 new test cases verifying both project root and planning root scenarios work correctly for all object types (project, epic, feature, task). Fixed issue where parent object lookups needed to use path_resolution_root instead of original project_root. All existing functionality remains unchanged - 79 tests passing with full backward compatibility.
+- filesChanged: ["src/trellis_mcp/path_resolver.py", "src/trellis_mcp/tools/create_object.py", "tests/unit/test_resolve_path_for_new_object.py"]
