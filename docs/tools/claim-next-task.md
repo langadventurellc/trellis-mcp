@@ -18,12 +18,93 @@ The `claimNextTask` tool provides three claiming modes:
 | `worktree` | string | No | Optional worktree identifier to stamp on claimed task |
 | `scope` | string | No | Hierarchical scope for task filtering (P-, E-, F- prefixed) |
 | `taskId` | string | No | Specific task ID to claim directly |
+| `force_claim` | boolean | No | Bypass validation when claiming specific task (only with `taskId`) |
+
+## Enhanced Parameter Validation
+
+The `claimNextTask` tool implements comprehensive parameter validation with mutual exclusivity rules and parameter combination logic to ensure correct usage and provide clear error guidance.
+
+### Parameter Combination Rules
+
+#### Valid Combinations
+
+```javascript
+// Basic claiming (default behavior)
+{ projectRoot: './planning' }
+
+// Legacy pattern with worktree
+{ projectRoot: './planning', worktree: 'feature/auth' }
+
+// Scope-based claiming
+{ projectRoot: './planning', scope: 'P-ecommerce-platform' }
+{ projectRoot: './planning', scope: 'E-user-authentication' }
+{ projectRoot: './planning', scope: 'F-login-functionality' }
+
+// Scope-based claiming with worktree
+{ projectRoot: './planning', scope: 'P-project', worktree: 'feature/epic' }
+
+// Direct task claiming
+{ projectRoot: './planning', taskId: 'T-implement-auth' }
+{ projectRoot: './planning', taskId: 'task-standalone-setup' }
+
+// Direct claiming with worktree
+{ projectRoot: './planning', taskId: 'T-urgent-fix', worktree: 'hotfix/critical' }
+
+// Force claiming (bypasses prerequisites and status validation)
+{ projectRoot: './planning', taskId: 'T-blocked-task', force_claim: true }
+{ projectRoot: './planning', taskId: 'T-in-progress-task', force_claim: true, worktree: 'reassign/urgent' }
+```
+
+#### Invalid Combinations
+
+```javascript
+// ❌ Mutual exclusivity violation
+{ projectRoot: './planning', scope: 'P-project', taskId: 'T-task' }
+// Error: "Cannot specify both scope and taskId parameters"
+
+// ❌ Force claim without task ID
+{ projectRoot: './planning', force_claim: true }
+// Error: "force_claim parameter requires taskId to be specified"
+
+// ❌ Force claim with scope (not supported)
+{ projectRoot: './planning', scope: 'P-project', force_claim: true }
+// Error: "Cannot use force_claim with scope parameter"
+```
+
+### Parameter Format Validation
+
+#### Project Root Validation
+- **Required**: Cannot be empty or null
+- **Format**: Valid file system path
+- **Examples**: `./planning`, `/path/to/planning`, `../project/planning`
+
+#### Scope ID Validation
+- **Format**: Must use P-, E-, or F- prefix followed by alphanumeric, hyphen, or underscore characters
+- **Pattern**: `^[PEF]-[A-Za-z0-9_-]+$`
+- **Valid Examples**: `P-ecommerce-platform`, `E-user-auth`, `F-login-form`
+- **Invalid Examples**: `project-name`, `P_invalid`, `Epic-name`
+
+#### Task ID Validation
+- **Hierarchical Tasks**: Must use T- prefix (e.g., `T-implement-auth`, `T-create-user-model`)
+- **Standalone Tasks**: Valid standalone format (e.g., `task-security-audit`, `task-database-setup`)
+- **Pattern Validation**: Automatically detected and validated based on ID format
+
+#### Force Claim Validation
+- **Type**: Boolean only (true/false)
+- **Scope**: Only valid when `taskId` is specified
+- **Purpose**: Bypasses prerequisite validation and status restrictions
+- **Default**: `false` (maintains standard claiming behavior)
 
 ### Parameter Interaction Rules
 
 - **Mutual Exclusivity**: `scope` and `taskId` cannot be used together
+  - Use `scope` for filtering tasks within project boundaries
+  - Use `taskId` for direct claiming of specific tasks
+- **Force Claim Scope**: `force_claim=true` only applies when `taskId` is specified
+  - Cannot be used with scope-based claiming
+  - Enables claiming tasks regardless of prerequisites or status
 - **Priority Override**: When `taskId` is provided, priority-based selection is bypassed
-- **Backward Compatibility**: Omitting both maintains existing priority-based behavior
+- **Backward Compatibility**: Omitting enhanced parameters maintains existing priority-based behavior
 
 ## Usage Examples
 
@@ -85,6 +166,40 @@ const taskWithWorktree = await mcp.call('claimNextTask', {
 });
 ```
 
+### Force Claiming
+
+```javascript
+// Force claim task with incomplete prerequisites
+const blockedTask = await mcp.call('claimNextTask', {
+  projectRoot: './planning',
+  taskId: 'T-blocked-by-dependencies',
+  force_claim: true
+});
+
+// Force claim in-progress task for reassignment
+const inProgressTask = await mcp.call('claimNextTask', {
+  projectRoot: './planning',
+  taskId: 'T-currently-in-progress',
+  force_claim: true,
+  worktree: 'reassign/urgent-priority'
+});
+
+// Force claim completed task for reopening
+const completedTask = await mcp.call('claimNextTask', {
+  projectRoot: './planning',
+  taskId: 'T-completed-task',
+  force_claim: true,
+  worktree: 'reopen/bug-found'
+});
+
+// Force claim task in review status
+const reviewTask = await mcp.call('claimNextTask', {
+  projectRoot: './planning',
+  taskId: 'T-task-under-review',
+  force_claim: true
+});
+```
+
 ## Response Format
 
 ```javascript
@@ -133,9 +248,96 @@ When claiming a task directly:
 
 ## Error Handling
 
-### Common Error Scenarios
+### Parameter Validation Errors
 
-#### Invalid Task ID
+#### Empty Project Root
+
+```javascript
+try {
+  await mcp.call('claimNextTask', {
+    projectRoot: ''  // Empty string
+  });
+} catch (error) {
+  // Error: "Project root parameter cannot be empty or None"
+  // Solution: Provide valid path like './planning' or '/path/to/planning'
+}
+```
+
+#### Invalid Scope Format
+
+```javascript
+try {
+  await mcp.call('claimNextTask', {
+    projectRoot: './planning',
+    scope: 'invalid-scope'  // Missing P-, E-, F- prefix
+  });
+} catch (error) {
+  // Error: "Invalid scope ID format: 'invalid-scope'. Must use P-, E-, or F- prefix"
+  // Solution: Use P-project-name, E-epic-name, or F-feature-name
+}
+```
+
+#### Invalid Task ID Format
+
+```javascript
+try {
+  await mcp.call('claimNextTask', {
+    projectRoot: './planning',
+    taskId: 'invalid-task-id'  // Invalid format
+  });
+} catch (error) {
+  // Error: "Invalid task ID format: 'invalid-task-id'"
+  // Solution: Use T-task-name for hierarchical or task-name for standalone
+}
+```
+
+#### Mutual Exclusivity Violation
+
+```javascript
+try {
+  await mcp.call('claimNextTask', {
+    projectRoot: './planning',
+    scope: 'P-project',
+    taskId: 'T-specific-task'  // Cannot use both
+  });
+} catch (error) {
+  // Error: "Cannot specify both scope 'P-project' and taskId 'T-specific-task' parameters"
+  // Solution: Use either scope for filtering OR taskId for direct claiming
+}
+```
+
+#### Force Claim Without Task ID
+
+```javascript
+try {
+  await mcp.call('claimNextTask', {
+    projectRoot: './planning',
+    force_claim: true  // Missing taskId
+  });
+} catch (error) {
+  // Error: "force_claim parameter requires taskId to be specified"
+  // Solution: Provide taskId when using force_claim=true
+}
+```
+
+#### Force Claim With Scope
+
+```javascript
+try {
+  await mcp.call('claimNextTask', {
+    projectRoot: './planning',
+    scope: 'P-project',
+    force_claim: true  // Not compatible with scope
+  });
+} catch (error) {
+  // Error: "Cannot use force_claim with scope parameter"
+  // Solution: Use force_claim only with direct task claiming (taskId)
+}
+```
+
+### Task State and Availability Errors
+
+#### Task Not Found
 
 ```javascript
 try {
@@ -145,19 +347,23 @@ try {
   });
 } catch (error) {
   // Error: "Task not found: T-nonexistent-task"
+  // Solution: Verify task ID using getObject or listBacklog
 }
 ```
 
-#### Task Already Claimed
+#### Task Not Available (Status)
 
 ```javascript
 try {
   await mcp.call('claimNextTask', {
-    projectRoot: './planning', 
-    taskId: 'T-in-progress-task'
+    projectRoot: './planning',
+    taskId: 'T-in-progress-task'  // Without force_claim
   });
 } catch (error) {
   // Error: "Task T-in-progress-task is not available for claiming (status: in-progress)"
+  // Solutions: 
+  // 1. Wait for task completion 
+  // 2. Use force_claim=true to override status restriction
 }
 ```
 
@@ -167,36 +373,60 @@ try {
 try {
   await mcp.call('claimNextTask', {
     projectRoot: './planning',
-    taskId: 'T-blocked-task'
+    taskId: 'T-blocked-task'  // Without force_claim
   });
 } catch (error) {
-  // Error: "Task T-blocked-task has incomplete prerequisites: [T-setup-database]"
+  // Error: "Task T-blocked-task has incomplete prerequisites: [T-setup-database, T-create-schema]"
+  // Solutions:
+  // 1. Complete prerequisite tasks first
+  // 2. Use force_claim=true to bypass prerequisite validation
 }
 ```
 
-#### Conflicting Parameters
+#### Scope Object Not Found
 
 ```javascript
 try {
   await mcp.call('claimNextTask', {
     projectRoot: './planning',
-    scope: 'P-project',
-    taskId: 'T-specific-task'  // Not allowed together
+    scope: 'P-nonexistent-project'
   });
 } catch (error) {
-  // Error: "Cannot specify both scope and taskId parameters"
+  // Error: "Specified scope object not found: P-nonexistent-project"
+  // Solution: Verify scope ID exists using getObject
 }
 ```
 
-### Error Reference
+#### No Tasks Available in Scope
 
-| Error Type | Description | Solution |
-|------------|-------------|----------|
-| Task not found | Task ID doesn't exist | Verify task ID using `getObject` or `listBacklog` |
-| Invalid status | Task not in 'open' status | Check task status, wait for completion if in-progress |
-| Prerequisites incomplete | Dependent tasks not done | Complete prerequisite tasks first |
-| Invalid format | Task ID format incorrect | Use T- prefix for hierarchical, valid format for standalone |
-| Parameter conflict | scope + taskId together | Use either scope OR taskId, not both |
+```javascript
+try {
+  await mcp.call('claimNextTask', {
+    projectRoot: './planning',
+    scope: 'F-completed-feature'
+  });
+} catch (error) {
+  // Error: "No eligible tasks available within scope boundaries"
+  // Solution: Check scope for open tasks or use broader scope
+}
+```
+
+### Comprehensive Error Reference
+
+| Error Type | Error Code | Description | Solution |
+|------------|------------|-------------|----------|
+| **Parameter Validation** |
+| Empty project root | `MISSING_REQUIRED_FIELD` | Project root cannot be empty | Provide valid path to planning directory |
+| Invalid scope format | `INVALID_FIELD` | Scope must use P-, E-, F- prefix | Use correct format: P-name, E-name, F-name |
+| Invalid task ID format | `INVALID_FIELD` | Task ID format validation failed | Use T- prefix for hierarchical or valid standalone format |
+| Mutual exclusivity | `INVALID_FIELD` | Cannot use scope + taskId together | Choose either scope OR taskId parameter |
+| Force claim scope error | `INVALID_FIELD` | force_claim requires taskId | Use force_claim only with direct task claiming |
+| **Task Availability** |
+| Task not found | `INVALID_FIELD` | Task ID doesn't exist | Verify task ID using getObject or listBacklog |
+| Invalid task status | `INVALID_FIELD` | Task not in claimable status | Use force_claim=true to override or wait for task |
+| Prerequisites incomplete | `CROSS_SYSTEM_PREREQUISITE_INVALID` | Dependent tasks not completed | Complete prerequisites or use force_claim=true |
+| Scope not found | `INVALID_FIELD` | Scope object doesn't exist | Verify scope ID exists in planning structure |
+| No available tasks | `INVALID_FIELD` | No eligible tasks in scope | Check scope for open tasks or broaden scope |
 
 ## Performance Considerations
 
@@ -224,6 +454,159 @@ try {
    - Starting new work session
    - No specific task preferences
    - Following normal development workflow
+
+4. **Use force claiming when**:
+   - Emergency task reassignment is needed
+   - Reopening completed tasks due to discovered issues
+   - Overriding prerequisite blocking in exceptional circumstances
+   - Taking over abandoned in-progress tasks
+
+### Parameter Validation Best Practices
+
+1. **Validate parameters locally** before calling the tool when possible
+2. **Handle validation errors gracefully** with user-friendly messages
+3. **Use specific error codes** for programmatic error handling
+4. **Provide clear feedback** about parameter format requirements
+5. **Test parameter combinations** in development environments first
+
+### Force Claim Security Considerations
+
+- **Audit Logging**: All force claim operations are logged with original status, target status, and worktree context
+- **Use Sparingly**: Reserve force claiming for exceptional circumstances only
+- **Review Process**: Consider implementing review processes for force claim operations
+- **Documentation**: Document the reason for force claiming in commit messages or task logs
+
+## Migration Guide
+
+### Backward Compatibility
+
+The enhanced parameter validation system is **fully backward compatible** with existing claimNextTask usage patterns. All previous parameter combinations continue to work without changes.
+
+#### Legacy Usage (Still Supported)
+
+```javascript
+// Basic claiming - no changes needed
+await mcp.call('claimNextTask', {
+  projectRoot: './planning'
+});
+
+// With worktree - no changes needed  
+await mcp.call('claimNextTask', {
+  projectRoot: './planning',
+  worktree: 'feature/my-branch'
+});
+```
+
+#### Migrating to Enhanced Parameters
+
+**Before (Legacy):**
+```javascript
+// Manual task selection after claiming
+const task = await mcp.call('claimNextTask', { projectRoot: './planning' });
+if (task.task.id !== 'T-desired-task') {
+  // Manual workaround needed
+}
+```
+
+**After (Enhanced):**
+```javascript
+// Direct task claiming
+const task = await mcp.call('claimNextTask', {
+  projectRoot: './planning',
+  taskId: 'T-desired-task'
+});
+```
+
+**Before (No scope filtering):**
+```javascript
+// Claimed tasks from entire project
+const task = await mcp.call('claimNextTask', { projectRoot: './planning' });
+// Had to manually filter or check task scope
+```
+
+**After (With scope filtering):**
+```javascript
+// Claim only from specific epic
+const task = await mcp.call('claimNextTask', {
+  projectRoot: './planning',
+  scope: 'E-user-authentication'
+});
+```
+
+### Adoption Strategy
+
+#### Phase 1: Update Error Handling
+Update your error handling to recognize the new validation error messages:
+
+```javascript
+try {
+  await mcp.call('claimNextTask', params);
+} catch (error) {
+  if (error.message.includes('Cannot specify both scope and taskId')) {
+    // Handle mutual exclusivity error
+    console.error('Invalid parameter combination:', error.message);
+  } else if (error.message.includes('force_claim parameter requires taskId')) {
+    // Handle force claim validation error
+    console.error('Force claim usage error:', error.message);
+  } else {
+    // Handle other errors
+    console.error('Claiming failed:', error.message);
+  }
+}
+```
+
+#### Phase 2: Adopt Enhanced Parameters
+Gradually adopt the new parameter capabilities:
+
+```javascript
+// Add scope filtering for team-based workflows
+const teamTask = await mcp.call('claimNextTask', {
+  projectRoot: './planning',
+  scope: 'E-my-team-epic',
+  worktree: 'team/feature-branch'
+});
+
+// Use direct claiming for specific issues
+const bugfixTask = await mcp.call('claimNextTask', {
+  projectRoot: './planning', 
+  taskId: 'T-fix-critical-bug',
+  worktree: 'hotfix/issue-123'
+});
+```
+
+#### Phase 3: Advanced Features
+Implement advanced features like force claiming for specific workflows:
+
+```javascript
+// Emergency reassignment workflow
+async function emergencyReassign(taskId, newWorktree) {
+  try {
+    return await mcp.call('claimNextTask', {
+      projectRoot: './planning',
+      taskId: taskId,
+      force_claim: true,
+      worktree: newWorktree
+    });
+  } catch (error) {
+    console.error('Emergency reassignment failed:', error.message);
+    throw error;
+  }
+}
+```
+
+### Breaking Changes
+
+**None.** The enhanced parameter validation system maintains full backward compatibility. All existing code will continue to work without modifications.
+
+### New Validation Errors
+
+Be prepared to handle these new validation error scenarios:
+
+- **Parameter format validation errors** (invalid scope/task ID formats)
+- **Parameter combination errors** (mutual exclusivity violations)
+- **Force claim validation errors** (incorrect force_claim usage)
+
+Update your error handling to provide user-friendly messages for these new error types.
 
 ## Integration Patterns
 

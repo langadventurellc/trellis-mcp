@@ -4,6 +4,12 @@ Contains custom exception classes used throughout the system.
 """
 
 from .cascade_error import CascadeError
+from .claiming_errors import (
+    InvalidParameterCombinationError,
+    MutualExclusivityError,
+    ParameterFormatError,
+    ParameterValidationError,
+)
 from .hierarchy_task_validation_error import HierarchyTaskValidationError
 from .invalid_status_for_completion import InvalidStatusForCompletion
 from .no_available_task import NoAvailableTask
@@ -15,8 +21,12 @@ from .validation_error import ValidationError, ValidationErrorCode
 __all__ = [
     "CascadeError",
     "HierarchyTaskValidationError",
+    "InvalidParameterCombinationError",
     "InvalidStatusForCompletion",
+    "MutualExclusivityError",
     "NoAvailableTask",
+    "ParameterFormatError",
+    "ParameterValidationError",
     "PrerequisitesNotComplete",
     "ProtectedObjectError",
     "StandaloneTaskValidationError",

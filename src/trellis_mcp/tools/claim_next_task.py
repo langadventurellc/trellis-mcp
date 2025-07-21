@@ -5,10 +5,12 @@ prerequisites completed, setting its status to in-progress.
 """
 
 from fastmcp import FastMCP
+from pydantic import ValidationError as PydanticValidationError
 
 from ..claim_next_task import claim_next_task
 from ..exceptions.no_available_task import NoAvailableTask
 from ..exceptions.validation_error import ValidationError, ValidationErrorCode
+from ..models.claiming_params import ClaimingParams
 from ..path_resolver import id_to_path, resolve_project_roots
 from ..settings import Settings
 
@@ -158,55 +160,42 @@ def create_claim_next_task_tool(settings: Settings):
             - Project scope most efficient for mixed hierarchical/standalone environments
             - Feature scope most efficient for focused development work
         """
-        # Basic parameter validation
-        if not projectRoot or not projectRoot.strip():
-            raise ValidationError(
-                errors=["Project root cannot be empty"],
-                error_codes=[ValidationErrorCode.MISSING_REQUIRED_FIELD],
-                context={"field": "projectRoot"},
+        # Validate parameters using ClaimingParams model
+        try:
+            claiming_params = ClaimingParams(
+                project_root=projectRoot,
+                worktree=worktree,
+                scope=scope,
+                task_id=taskId,
+                force_claim=force_claim,
             )
+        except PydanticValidationError as e:
+            # Convert Pydantic validation errors to ValidationError format
+            error_messages = []
+            for error in e.errors():
+                field_path = ".".join(str(loc) for loc in error["loc"])
+                error_msg = error["msg"]
+                error_messages.append(f"{field_path}: {error_msg}")
 
-        # Validate scope parameter format if provided
-        scope_param = None
-        if scope and scope.strip():
-            from ..models.filter_params import FilterParams
-
-            try:
-                # Use FilterParams for consistent scope validation
-                filter_params = FilterParams(scope=scope.strip())
-                # Use the validated scope value from FilterParams
-                scope_param = filter_params.scope
-            except Exception as e:
-                raise ValidationError(
-                    errors=[f"Invalid scope parameter: {str(e)}"],
-                    error_codes=[ValidationErrorCode.INVALID_FIELD],
-                    context={"field": "scope", "value": scope},
-                ) from e
-
-        # Validate force_claim parameter restrictions
-        if force_claim:
-            # force_claim requires taskId to be specified
-            if not taskId or not taskId.strip():
-                raise ValidationError(
-                    errors=["force_claim parameter requires taskId to be specified"],
-                    error_codes=[ValidationErrorCode.INVALID_FIELD],
-                    context={"field": "force_claim", "value": force_claim, "taskId": taskId},
-                )
-
-            # force_claim is incompatible with scope parameter
-            if scope and scope.strip():
-                raise ValidationError(
-                    errors=["force_claim parameter is incompatible with scope parameter"],
-                    error_codes=[ValidationErrorCode.INVALID_FIELD],
-                    context={"field": "force_claim", "value": force_claim, "scope": scope},
-                )
+            raise ValidationError(
+                errors=error_messages,
+                error_codes=[ValidationErrorCode.INVALID_FIELD],
+                context={
+                    "validation_type": "parameter_validation",
+                    "fields": [str(loc) for error in e.errors() for loc in error["loc"]],
+                    "raw_errors": str(e),
+                },
+            ) from e
 
         # Call the core claim_next_task function with validated parameters
-        task_id_param = taskId.strip() if taskId and taskId.strip() else None
         try:
-            # Pass force_claim parameter to core function for prerequisite bypass logic
+            # Pass validated parameters from ClaimingParams to core function
             claimed_task = claim_next_task(
-                projectRoot, worktree, scope_param, task_id_param, force_claim
+                claiming_params.project_root,
+                claiming_params.worktree,
+                claiming_params.scope,
+                claiming_params.task_id,
+                claiming_params.force_claim,
             )
         except NoAvailableTask as e:
             raise ValidationError(

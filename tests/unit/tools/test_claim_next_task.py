@@ -477,21 +477,27 @@ class TestClaimNextTaskToolInterface:
                 await client.call_tool(
                     "claimNextTask", {"projectRoot": str(temp_dir), "scope": "invalid-scope"}
                 )
-            assert "Invalid scope parameter" in str(exc_info.value)
+            assert "Invalid scope parameter" in str(
+                exc_info.value
+            ) or "Invalid scope ID format" in str(exc_info.value)
 
             # Test invalid scope format (wrong prefix)
             with pytest.raises(Exception) as exc_info:
                 await client.call_tool(
                     "claimNextTask", {"projectRoot": str(temp_dir), "scope": "T-task-scope"}
                 )
-            assert "Invalid scope parameter" in str(exc_info.value)
+            assert "Invalid scope parameter" in str(
+                exc_info.value
+            ) or "Invalid scope ID format" in str(exc_info.value)
 
             # Test invalid scope format (special characters)
             with pytest.raises(Exception) as exc_info:
                 await client.call_tool(
                     "claimNextTask", {"projectRoot": str(temp_dir), "scope": "P-invalid@scope"}
                 )
-            assert "Invalid scope parameter" in str(exc_info.value)
+            assert "Invalid scope parameter" in str(
+                exc_info.value
+            ) or "Invalid scope ID format" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_scope_parameter_with_worktree(self, temp_dir):
@@ -784,33 +790,25 @@ class TestClaimNextTaskToolInterfaceTaskId:
 
     @pytest.mark.asyncio
     async def test_task_id_with_scope_and_worktree(self, temp_dir):
-        """Test that taskId parameter works correctly with scope and worktree parameters."""
+        """Test taskId and scope parameters are mutually exclusive."""
         settings = Settings(planning_root=temp_dir)
         server = create_server(settings)
 
-        with patch("trellis_mcp.tools.claim_next_task.claim_next_task") as mock_core:
-            mock_core.side_effect = NoAvailableTask("Task not found")
-
-            async with Client(server) as client:
-                with pytest.raises(Exception):
-                    await client.call_tool(
-                        "claimNextTask",
-                        {
-                            "projectRoot": str(temp_dir),
-                            "taskId": "T-test-task",
-                            "scope": "F-test-feature",
-                            "worktree": "/workspace/feature-branch",
-                        },
-                    )
-
-                # Verify all parameters are passed correctly
-                mock_core.assert_called_once_with(
-                    str(temp_dir),
-                    "/workspace/feature-branch",
-                    "F-test-feature",
-                    "T-test-task",
-                    False,
+        async with Client(server) as client:
+            # Test that scope and taskId parameters together trigger validation error
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask",
+                    {
+                        "projectRoot": str(temp_dir),
+                        "taskId": "T-test-task",
+                        "scope": "F-test-feature",
+                        "worktree": "/workspace/feature-branch",
+                    },
                 )
+
+            # Should get mutual exclusivity validation error
+            assert "Cannot specify both scope and task_id parameters" in str(exc_info.value)
 
 
 class TestTaskResolutionFunction:
@@ -892,7 +890,9 @@ class TestClaimNextTaskForceClaimParameter:
                 await client.call_tool(
                     "claimNextTask", {"projectRoot": str(temp_dir), "force_claim": True}
                 )
-            assert "force_claim parameter requires taskId to be specified" in str(exc_info.value)
+            assert "force_claim parameter requires taskId to be specified" in str(
+                exc_info.value
+            ) or "force_claim parameter requires task_id" in str(exc_info.value)
 
             # Test force_claim=True with empty taskId
             with pytest.raises(Exception) as exc_info:
@@ -900,7 +900,9 @@ class TestClaimNextTaskForceClaimParameter:
                     "claimNextTask",
                     {"projectRoot": str(temp_dir), "force_claim": True, "taskId": ""},
                 )
-            assert "force_claim parameter requires taskId to be specified" in str(exc_info.value)
+            assert "force_claim parameter requires taskId to be specified" in str(
+                exc_info.value
+            ) or "force_claim parameter requires task_id" in str(exc_info.value)
 
             # Test force_claim=True with whitespace-only taskId
             with pytest.raises(Exception) as exc_info:
@@ -908,7 +910,9 @@ class TestClaimNextTaskForceClaimParameter:
                     "claimNextTask",
                     {"projectRoot": str(temp_dir), "force_claim": True, "taskId": "   "},
                 )
-            assert "force_claim parameter requires taskId to be specified" in str(exc_info.value)
+            assert "force_claim parameter requires taskId to be specified" in str(
+                exc_info.value
+            ) or "force_claim parameter requires task_id" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_force_claim_incompatible_with_scope(self, temp_dir):
@@ -930,7 +934,7 @@ class TestClaimNextTaskForceClaimParameter:
                 )
             assert "force_claim parameter is incompatible with scope parameter" in str(
                 exc_info.value
-            )
+            ) or "Cannot specify both scope and task_id parameters" in str(exc_info.value)
 
             # Test force_claim=True with epic scope
             with pytest.raises(Exception) as exc_info:
@@ -945,7 +949,7 @@ class TestClaimNextTaskForceClaimParameter:
                 )
             assert "force_claim parameter is incompatible with scope parameter" in str(
                 exc_info.value
-            )
+            ) or "Cannot specify both scope and task_id parameters" in str(exc_info.value)
 
             # Test force_claim=True with feature scope
             with pytest.raises(Exception) as exc_info:
@@ -960,7 +964,7 @@ class TestClaimNextTaskForceClaimParameter:
                 )
             assert "force_claim parameter is incompatible with scope parameter" in str(
                 exc_info.value
-            )
+            ) or "Cannot specify both scope and task_id parameters" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_force_claim_valid_with_task_id_only(self, temp_dir):
@@ -1058,7 +1062,10 @@ class TestClaimNextTaskForceClaimParameter:
                 )
 
             error_message = str(exc_info.value)
-            assert "force_claim parameter requires taskId to be specified" in error_message
+            assert (
+                "force_claim parameter requires taskId to be specified" in error_message
+                or "force_claim parameter requires task_id" in error_message
+            )
 
             # Test validation error context for scope incompatibility
             with pytest.raises(Exception) as exc_info:
@@ -1073,7 +1080,10 @@ class TestClaimNextTaskForceClaimParameter:
                 )
 
             error_message = str(exc_info.value)
-            assert "force_claim parameter is incompatible with scope parameter" in error_message
+            assert (
+                "force_claim parameter is incompatible with scope parameter" in error_message
+                or "Cannot specify both scope and task_id parameters" in error_message
+            )
 
 
 class TestClaimNextTaskForceClaimImplementation:
@@ -1175,3 +1185,246 @@ class TestClaimNextTaskForceClaimImplementation:
 
                 # Verify core function was called with force_claim=False for priority claiming
                 mock_core.assert_called_once_with(str(temp_dir), "", None, None, False)
+
+
+class TestClaimingParamsIntegration:
+    """Test ClaimingParams integration in claimNextTask tool interface."""
+
+    @pytest.mark.asyncio
+    async def test_claiming_params_validates_mutual_exclusivity(self, temp_dir):
+        """Test that ClaimingParams properly validates scope and task_id mutual exclusivity."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Test mutual exclusivity error with scope and task_id both provided
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask",
+                    {
+                        "projectRoot": str(temp_dir),
+                        "scope": "P-test-project",
+                        "taskId": "T-test-task",
+                    },
+                )
+
+            # Should get parameter validation error about mutual exclusivity
+            assert "Cannot specify both scope and task_id" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_claiming_params_validates_force_claim_requires_task_id(self, temp_dir):
+        """Test that ClaimingParams validates force_claim requires task_id."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Test force_claim without task_id
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask",
+                    {
+                        "projectRoot": str(temp_dir),
+                        "force_claim": True,
+                        # No taskId provided
+                    },
+                )
+
+            # Should get parameter validation error about force_claim requiring task_id
+            assert "force_claim parameter requires task_id" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_claiming_params_validates_empty_project_root(self, temp_dir):
+        """Test that ClaimingParams validates empty project_root parameter."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Test empty project_root
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask",
+                    {
+                        "projectRoot": "",
+                    },
+                )
+
+            # Should get parameter validation error about empty project root
+            assert "Project root cannot be empty" in str(exc_info.value)
+
+            # Test whitespace-only project_root
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask",
+                    {
+                        "projectRoot": "   ",
+                    },
+                )
+
+            # Should get parameter validation error about empty project root
+            assert "Project root cannot be empty" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_claiming_params_validates_scope_format(self, temp_dir):
+        """Test that ClaimingParams validates scope ID format."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Test invalid scope format (no prefix)
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask",
+                    {
+                        "projectRoot": str(temp_dir),
+                        "scope": "invalid-scope",
+                    },
+                )
+
+            # Should get parameter validation error about scope format
+            assert "Invalid scope ID format" in str(exc_info.value)
+            assert "Must use P-, E-, or F- prefix" in str(exc_info.value)
+
+            # Test invalid scope format (wrong prefix)
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask",
+                    {
+                        "projectRoot": str(temp_dir),
+                        "scope": "T-invalid-scope",
+                    },
+                )
+
+            # Should get parameter validation error about scope format
+            assert "Invalid scope ID format" in str(exc_info.value)
+            assert "Must use P-, E-, or F- prefix" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_claiming_params_accepts_valid_task_ids(self, temp_dir):
+        """Test that ClaimingParams accepts valid task_id formats."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        with patch("trellis_mcp.tools.claim_next_task.claim_next_task") as mock_core:
+            mock_core.side_effect = NoAvailableTask("No tasks available")
+
+            async with Client(server) as client:
+                # Test valid hierarchical task ID format
+                with pytest.raises(Exception) as exc_info:
+                    await client.call_tool(
+                        "claimNextTask",
+                        {
+                            "projectRoot": str(temp_dir),
+                            "taskId": "T-valid-task-id",
+                        },
+                    )
+
+                # Should pass validation and get to core function
+                assert "No open tasks available" in str(
+                    exc_info.value
+                ) or "No tasks available" in str(exc_info.value)
+                mock_core.assert_called_with(str(temp_dir), "", None, "T-valid-task-id", False)
+
+    @pytest.mark.asyncio
+    async def test_claiming_params_handles_valid_parameters(self, temp_dir):
+        """Test that ClaimingParams accepts valid parameter combinations."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        with patch("trellis_mcp.tools.claim_next_task.claim_next_task") as mock_core:
+            mock_core.side_effect = NoAvailableTask("No tasks available")
+
+            async with Client(server) as client:
+                # Test valid scope-only parameters
+                with pytest.raises(Exception) as exc_info:
+                    await client.call_tool(
+                        "claimNextTask",
+                        {
+                            "projectRoot": str(temp_dir),
+                            "scope": "P-valid-project",
+                            "worktree": "feature/test",
+                        },
+                    )
+
+                # Should get NoAvailableTask error, not validation error
+                assert "No open tasks available" in str(
+                    exc_info.value
+                ) or "No tasks available" in str(exc_info.value)
+
+                # Verify core function called with validated parameters
+                mock_core.assert_called_with(
+                    str(temp_dir), "feature/test", "P-valid-project", None, False
+                )
+
+                mock_core.reset_mock()
+
+                # Test valid task_id-only parameters
+                with pytest.raises(Exception) as exc_info:
+                    await client.call_tool(
+                        "claimNextTask",
+                        {
+                            "projectRoot": str(temp_dir),
+                            "taskId": "T-valid-task",
+                            "force_claim": True,
+                        },
+                    )
+
+                # Should get NoAvailableTask error, not validation error
+                assert "No open tasks available" in str(
+                    exc_info.value
+                ) or "No tasks available" in str(exc_info.value)
+
+                # Verify core function called with validated parameters
+                mock_core.assert_called_with(str(temp_dir), "", None, "T-valid-task", True)
+
+    @pytest.mark.asyncio
+    async def test_claiming_params_error_message_format(self, temp_dir):
+        """Test that ClaimingParams validation errors are properly formatted."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        async with Client(server) as client:
+            # Test complex validation error with multiple issues
+            with pytest.raises(Exception) as exc_info:
+                await client.call_tool(
+                    "claimNextTask",
+                    {
+                        "projectRoot": "",  # Empty project root
+                        "scope": "invalid",  # Invalid scope format
+                        "taskId": "T-valid-task",  # Valid task ID (but conflicts with scope)
+                    },
+                )
+
+            error_message = str(exc_info.value)
+
+            # Should contain formatted field path and error message
+            assert (
+                "project_root:" in error_message or "Project root cannot be empty" in error_message
+            )
+
+    @pytest.mark.asyncio
+    async def test_claiming_params_preserves_backward_compatibility(self, temp_dir):
+        """Test that ClaimingParams integration preserves backward compatibility."""
+        settings = Settings(planning_root=temp_dir)
+        server = create_server(settings)
+
+        with patch("trellis_mcp.tools.claim_next_task.claim_next_task") as mock_core:
+            mock_core.side_effect = NoAvailableTask("No tasks available")
+
+            async with Client(server) as client:
+                # Test legacy parameter usage (projectRoot + worktree only)
+                with pytest.raises(Exception) as exc_info:
+                    await client.call_tool(
+                        "claimNextTask",
+                        {
+                            "projectRoot": str(temp_dir),
+                            "worktree": "main",
+                        },
+                    )
+
+                # Should work exactly as before
+                assert "No open tasks available" in str(
+                    exc_info.value
+                ) or "No tasks available" in str(exc_info.value)
+
+                # Verify core function called with backward-compatible parameters
+                mock_core.assert_called_with(str(temp_dir), "main", None, None, False)

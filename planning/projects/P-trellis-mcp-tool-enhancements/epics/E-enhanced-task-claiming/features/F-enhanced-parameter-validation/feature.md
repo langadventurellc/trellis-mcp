@@ -2,13 +2,13 @@
 kind: feature
 id: F-enhanced-parameter-validation
 title: Enhanced Parameter Validation
-status: in-progress
+status: done
 priority: high
 prerequisites:
 - F-scope-based-task-filtering
 - F-direct-task-claiming
 created: '2025-07-20T13:11:48.994371'
-updated: '2025-07-20T13:11:48.994371'
+updated: '2025-07-21T01:16:49.175923+00:00'
 schema_version: '1.1'
 parent: E-enhanced-task-claiming
 ---
