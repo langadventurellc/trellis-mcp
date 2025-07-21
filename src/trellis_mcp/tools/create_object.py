@@ -108,7 +108,7 @@ def create_create_object_tool(settings: Settings):
             )
 
         # Resolve project roots to get planning directory
-        _, planning_root = resolve_project_roots(projectRoot)
+        _, planning_root = resolve_project_roots(projectRoot, ensure_planning_subdir=True)
 
         # Generate ID if not provided
         if not id or not id.strip():

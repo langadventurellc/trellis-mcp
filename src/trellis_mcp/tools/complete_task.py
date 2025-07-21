@@ -111,7 +111,7 @@ def create_complete_task_tool(settings: Settings):
             )
 
         # Resolve the task file path for response
-        _, planning_root = resolve_project_roots(projectRoot)
+        _, planning_root = resolve_project_roots(projectRoot, ensure_planning_subdir=True)
         task_file_path = id_to_path(planning_root, "task", validated_task.id)
 
         # Build task dictionary in the format expected by the API

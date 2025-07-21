@@ -1,14 +1,15 @@
 ---
 kind: task
 id: T-update-all-mcp-tools-to-use
+status: done
 title: Update all MCP tools to use ensure_planning_subdir=True
-status: open
 priority: high
 prerequisites:
 - T-add-ensure-planning-subdir
 created: '2025-07-21T01:01:13.909367'
-updated: '2025-07-21T01:01:13.909367'
+updated: '2025-07-21T08:48:38.369828'
 schema_version: '1.1'
+worktree: null
 ---
 ## Context
 
@@ -80,3 +81,6 @@ scanning_root, path_resolution_root = resolve_project_roots(project_root, ensure
 
 ### Log
 
+
+**2025-07-21T13:51:35.775891Z** - Successfully updated all 6 MCP tool implementations to use ensure_planning_subdir=True when calling resolve_project_roots(). This ensures MCP operations always create and use planning subdirectories when they don't exist, while maintaining backward compatibility for CLI commands. All quality checks pass and 2099 tests remain green with no regressions.
+- filesChanged: ["src/trellis_mcp/tools/create_object.py", "src/trellis_mcp/tools/get_object.py", "src/trellis_mcp/tools/update_object.py", "src/trellis_mcp/tools/complete_task.py", "src/trellis_mcp/tools/list_backlog.py", "src/trellis_mcp/tools/claim_next_task.py"]

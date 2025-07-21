@@ -170,7 +170,7 @@ def create_update_object_tool(settings: Settings):
             )
 
         # Resolve project roots to get planning directory
-        _, planning_root = resolve_project_roots(projectRoot)
+        _, planning_root = resolve_project_roots(projectRoot, ensure_planning_subdir=True)
 
         # Initialize kind inference engine and infer object type
         try:
