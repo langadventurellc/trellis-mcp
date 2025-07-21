@@ -3,7 +3,7 @@ kind: task
 id: T-update-tool-documentation-for
 title: Update tool documentation for enhanced parameter validation
 status: open
-priority: low
+priority: normal
 prerequisites:
 - T-create-comprehensive-parameter
 created: '2025-07-20T19:14:07.183213'

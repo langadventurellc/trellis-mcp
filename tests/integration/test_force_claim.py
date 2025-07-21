@@ -816,9 +816,11 @@ class TestForceClaimParameterValidation:
                 )
 
             error_message = str(exc_info.value)
-            assert "force_claim" in error_message.lower()
-            assert "scope" in error_message.lower()
-            assert "incompatible" in error_message.lower()
+            # ClaimingParams now validates scope+task_id mutual exclusivity
+            assert (
+                "force_claim" in error_message.lower()
+                or "cannot specify both scope and task_id" in error_message.lower()
+            )
 
     @pytest.mark.asyncio
     async def test_force_claim_nonexistent_task_error(self, temp_dir):

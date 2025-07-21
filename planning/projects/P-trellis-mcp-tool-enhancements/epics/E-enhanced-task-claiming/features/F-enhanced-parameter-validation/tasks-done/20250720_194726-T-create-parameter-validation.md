@@ -1,14 +1,15 @@
 ---
 kind: task
 id: T-create-parameter-validation
+parent: F-enhanced-parameter-validation
+status: done
 title: Create parameter validation error classes
-status: open
 priority: high
 prerequisites: []
 created: '2025-07-20T19:12:58.947562'
-updated: '2025-07-20T19:12:58.947562'
+updated: '2025-07-20T19:35:26.572120'
 schema_version: '1.1'
-parent: F-enhanced-parameter-validation
+worktree: null
 ---
 ## Create Parameter Validation Error Classes
 
@@ -93,3 +94,6 @@ class ParameterFormatError(ParameterValidationError):
 
 ### Log
 
+
+**2025-07-21T00:47:26.357733Z** - Successfully implemented comprehensive parameter validation error classes for claimNextTask operations. Created ParameterValidationError base class and three specific error types: MutualExclusivityError, InvalidParameterCombinationError, and ParameterFormatError. Each error class provides clear, actionable error messages with context information and suggested fixes. Implemented standardized error messages, parameter sanitization for security, and factory function for creating errors. Added comprehensive unit tests covering all error scenarios, inheritance, context capture, and error message quality. All quality checks (isort, black, flake8, pyright) pass successfully.
+- filesChanged: ["src/trellis_mcp/exceptions/claiming_errors.py", "src/trellis_mcp/exceptions/__init__.py", "tests/unit/exceptions/test_claiming_errors.py"]
