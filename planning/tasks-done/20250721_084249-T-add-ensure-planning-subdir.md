@@ -1,13 +1,14 @@
 ---
 kind: task
 id: T-add-ensure-planning-subdir
+status: done
 title: Add ensure_planning_subdir parameter to resolve_project_roots function
-status: open
 priority: high
 prerequisites: []
 created: '2025-07-21T01:00:56.604831'
-updated: '2025-07-21T01:00:56.604831'
+updated: '2025-07-21T08:38:58.932824'
 schema_version: '1.1'
+worktree: null
 ---
 ## Context
 
@@ -100,3 +101,6 @@ Write unit tests in `tests/unit/test_project_roots.py` to verify:
 
 ### Log
 
+
+**2025-07-21T13:42:49.267304Z** - Implemented ensure_planning_subdir parameter to resolve_project_roots function with full backward compatibility. When True, automatically creates/uses planning subdirectory unless path already ends with "planning". When False, preserves existing dual-pattern detection logic for CLI compatibility. Added comprehensive test coverage for both path scenarios and directory creation edge cases. All quality checks pass and 15 tests are green.
+- filesChanged: ["src/trellis_mcp/path_resolver.py", "tests/unit/test_project_roots.py"]
